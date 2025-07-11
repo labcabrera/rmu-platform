@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rmu-shared-configmap
+data:
+  RMU_FE_HOST_PUBLIC_PATH: http://fe-host.rmu.local/
+  RMU_FE_STRATEGIC_PUBLIC_PATH: http://fe-strategic.rmu.local/
+  FOO: foo-value
+  BAR: bar-value
