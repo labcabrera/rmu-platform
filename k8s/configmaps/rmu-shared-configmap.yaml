@@ -5,8 +5,12 @@ metadata:
 data:
   RMU_FE_HOST_PUBLIC_PATH: http://fe-host.rmu.local/
   RMU_FE_STRATEGIC_PUBLIC_PATH: http://fe-strategic.rmu.local/
+  RMU_FE_TACTICAL_PUBLIC_PATH: http://fe-tactical.rmu.local/
+  RMU_FE_NPC_PUBLIC_PATH: http://fe-npc.rmu.local/
 
-  RMU_FE_MODULE_FEDERATION_STRATEGIC: strategic@http://fe-strategic.rmu.local/strategic-app.js
+  RMU_MODULE_FEDERATION_STRATEGIC: strategic@http://fe-strategic.rmu.local/strategic-app.js
+  RMU_MODULE_FEDERATION_TACTICAL: tactical@http://fe-tactical.rmu.local/tactical-app.js
+  RMU_MODULE_FEDERATION_NPC: npc@http://fe-npc.rmu.local/npc-app.js
 
   RMU_API_CORE_URL: http://api-core.rmu.local/v1/
   RMU_API_STRATEGIC_URL: http://api-strategic.rmu.local/v1/
