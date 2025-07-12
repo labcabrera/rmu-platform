@@ -5,5 +5,19 @@ metadata:
 data:
   RMU_FE_HOST_PUBLIC_PATH: http://fe-host.rmu.local/
   RMU_FE_STRATEGIC_PUBLIC_PATH: http://fe-strategic.rmu.local/
-  FOO: foo-value
-  BAR: bar-value
+
+  RMU_FE_MODULE_FEDERATION_STRATEGIC: strategic@http://fe-strategic.rmu.local/strategic-app.js
+
+  RMU_API_CORE_URL: http://api-core.rmu.local/v1/
+  RMU_API_STRATEGIC_URL: http://api-strategic.rmu.local/v1/
+  RMU_API_TACTICAL_URL: http://api-tactical.rmu.local/v1/
+  RMU_API_NPC_URL: http://api-npc.rmu.local/v1/
+  RMU_API_NPC_NAMES_URL: http://api-npc-names.rmu.local/v1/
+  RMU_API_ATTACK_TABLES_URL: http://api-attack-tables.rmu.local/v1/
+  RMU_API_ITEMS_URL: http://api-items.rmu.local/v1/
+
+  RMU_MONGO_CORE_URI: mongodb://host.minikube.internal:27017/rmu-core
+  RMU_MONGO_STRATEGIC_URI: mongodb://host.minikube.internal:27017/rmu-strategic
+  RMU_MONGO_TACTICAL_URI: mongodb://host.minikube.internal:27017/rmu-tactical
+  RMU_MONGO_ITEMS_URI: mongodb://host.minikube.internal:27017/rmu-items
+  RMU_MONGO_NPC_URI: mongodb://host.minikube.internal:27017/rmu-npc

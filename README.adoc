@@ -1,0 +1,18 @@
+= Rolemaster Unified Platform
+
+----
+192.168.58.2 fe-host.rmu.local
+192.168.58.2 fe-strategic.rmu.local
+192.168.58.2 fe-tactical.rmu.local
+192.168.58.2 fe-npc.rmu.local
+
+192.168.58.2 api-strategic.rmu.local
+192.168.58.2 api-tactical.rmu.local
+192.168.58.2 api-core.rmu.local
+192.168.58.2 api-items.rmu.local
+192.168.58.2 api-npc.rmu.local
+192.168.58.2 api-npc-names.rmu.local
+192.168.58.2 api-attack-tables.rmu.local
+
+192.168.58.2 argocd.rmu.local
+----
