@@ -1,18 +1,41 @@
 = Rolemaster Unified Platform
 
-----
-192.168.58.2 fe-host.rmu.local
-192.168.58.2 fe-strategic.rmu.local
-192.168.58.2 fe-tactical.rmu.local
-192.168.58.2 fe-npc.rmu.local
+RMU Online is a project that implements http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified] through a set of APIs and micro-frontends.
 
-192.168.58.2 api-strategic.rmu.local
-192.168.58.2 api-tactical.rmu.local
-192.168.58.2 api-core.rmu.local
-192.168.58.2 api-items.rmu.local
-192.168.58.2 api-npc.rmu.local
-192.168.58.2 api-npc-names.rmu.local
-192.168.58.2 api-attack-tables.rmu.local
+WARNING: *This application is an independent project developed by fans of Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
+*All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
 
-192.168.58.2 argocd.rmu.local
-----
+== Modules
+
+[options,header]
+|===
+|Module                   | Repository                                          
+|API Core                 | https://github.com/labcabrera/rmu-api-core          
+|API Strategic            | https://github.com/labcabrera/rmu-api-strategic     
+|API Tactical             | https://github.com/labcabrera/rmu-api-tactical      
+|API NPC                  | https://github.com/labcabrera/rmu-api-npc           
+|API Attack               | https://github.com/labcabrera/rmu-api-attack
+|API Attack Tables        | https://github.com/labcabrera/rmu-api-attack-tables
+|API Items                | https://github.com/labcabrera/rmu-api-npc           
+|MicroFrontend Host       | https://github.com/labcabrera/rmu-fe-host           
+|MicroFrontend Strategic  | https://github.com/labcabrera/rmu-fe-strategic      
+|MicroFrontend Tactical   | https://github.com/labcabrera/rmu-fe-tactical       
+|MicroFrontend NPC        | https://github.com/labcabrera/rmu-fe-npc            
+|===
+
+// ----
+// 192.168.58.2 fe-host.rmu.local
+// 192.168.58.2 fe-strategic.rmu.local
+// 192.168.58.2 fe-tactical.rmu.local
+// 192.168.58.2 fe-npc.rmu.local
+
+// 192.168.58.2 api-strategic.rmu.local
+// 192.168.58.2 api-tactical.rmu.local
+// 192.168.58.2 api-core.rmu.local
+// 192.168.58.2 api-items.rmu.local
+// 192.168.58.2 api-npc.rmu.local
+// 192.168.58.2 api-npc-names.rmu.local
+// 192.168.58.2 api-attack-tables.rmu.local
+
+// 192.168.58.2 argocd.rmu.local
+// ----
