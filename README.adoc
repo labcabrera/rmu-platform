@@ -9,7 +9,7 @@ WARNING: *This application is an independent project developed by fans of Rolema
 
 [options,header]
 |===
-|Module                   | Repository                                          
+|Module                   | Repository                                            | Language
 |API Core                 | https://github.com/labcabrera/rmu-api-core            | Node JS
 |API Strategic            | https://github.com/labcabrera/rmu-api-strategic       | Node JS
 |API Tactical             | https://github.com/labcabrera/rmu-api-tactical        | Node TS
