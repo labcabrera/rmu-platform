@@ -10,33 +10,16 @@ WARNING: *This application is an independent project developed by fans of Rolema
 [options,header]
 |===
 |Module                   | Repository                                          
-|API Core                 | https://github.com/labcabrera/rmu-api-core
-|API Strategic            | https://github.com/labcabrera/rmu-api-strategic
-|API Tactical             | https://github.com/labcabrera/rmu-api-tactical
-|API Attack               | https://github.com/labcabrera/rmu-api-attack
-|API Attack Tables        | https://github.com/labcabrera/rmu-api-attack-tables
-|API Items                | https://github.com/labcabrera/rmu-api-items
-|API NPC                  | https://github.com/labcabrera/rmu-api-npc
-|API NPC Names            | https://github.com/labcabrera/rmu-api-npc-names
-|MicroFrontend Host       | https://github.com/labcabrera/rmu-fe-host
-|MicroFrontend Strategic  | https://github.com/labcabrera/rmu-fe-strategic      
-|MicroFrontend Tactical   | https://github.com/labcabrera/rmu-fe-tactical       
-|MicroFrontend NPC        | https://github.com/labcabrera/rmu-fe-npc            
+|API Core                 | https://github.com/labcabrera/rmu-api-core            | Node JS
+|API Strategic            | https://github.com/labcabrera/rmu-api-strategic       | Node JS
+|API Tactical             | https://github.com/labcabrera/rmu-api-tactical        | Node TS
+|API Attack               | https://github.com/labcabrera/rmu-api-attack          | Python
+|API Attack Tables        | https://github.com/labcabrera/rmu-api-attack-tables   | Node TS
+|API Items                | https://github.com/labcabrera/rmu-api-items           | Node JS
+|API NPC                  | https://github.com/labcabrera/rmu-api-npc             | Node JS
+|API NPC Names            | https://github.com/labcabrera/rmu-api-npc-names       | Node TS
+|MicroFrontend Host       | https://github.com/labcabrera/rmu-fe-host             | React
+|MicroFrontend Strategic  | https://github.com/labcabrera/rmu-fe-strategic        | React
+|MicroFrontend Tactical   | https://github.com/labcabrera/rmu-fe-tactical         | React
+|MicroFrontend NPC        | https://github.com/labcabrera/rmu-fe-npc              | React
 |===
-
-// ----
-// 192.168.58.2 fe-host.rmu.local
-// 192.168.58.2 fe-strategic.rmu.local
-// 192.168.58.2 fe-tactical.rmu.local
-// 192.168.58.2 fe-npc.rmu.local
-
-// 192.168.58.2 api-strategic.rmu.local
-// 192.168.58.2 api-tactical.rmu.local
-// 192.168.58.2 api-core.rmu.local
-// 192.168.58.2 api-items.rmu.local
-// 192.168.58.2 api-npc.rmu.local
-// 192.168.58.2 api-npc-names.rmu.local
-// 192.168.58.2 api-attack-tables.rmu.local
-
-// 192.168.58.2 argocd.rmu.local
-// ----
