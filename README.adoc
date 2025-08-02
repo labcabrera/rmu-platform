@@ -23,3 +23,5 @@ WARNING: *This application is an independent project developed by fans of Rolema
 |MicroFrontend Tactical   | https://github.com/labcabrera/rmu-fe-tactical         | React
 |MicroFrontend NPC        | https://github.com/labcabrera/rmu-fe-npc              | React
 |===
+
+image::diagrams/c4-context.png[RMU Context Diagram]

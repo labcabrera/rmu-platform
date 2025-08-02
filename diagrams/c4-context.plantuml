@@ -1,0 +1,77 @@
+@startuml C4 Context Attack API
+title C4 Context Attack API
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_LEFT_RIGHT()
+
+UpdateElementStyle(person, $bgColor="#2b4a74ff")
+UpdateElementStyle(system, $bgColor="#4373b1ff")
+UpdateElementStyle(external_system, $bgColor="#96b6beff")
+UpdateElementStyle(boundary, $bgColor="#d1dcdfff")
+
+Person(user, "User")
+
+Boundary(frontend, "RMO Frontend") {
+    System(rmu_fe_host, "RMO Frontend Host", "Node.js / JS")
+    System(rmu_fe_strategic, "Strategic microfrontend", "Node / JS")
+    System(rmu_fe_tactical, "Tactical microfrontend", "Node / TS")
+    System(rmu_fe_npc, "NPC microfrontend", "Node / JS")
+}
+
+Boundary(apis, "RMO APIs") {
+    System(rmu_api_core, "Core API", "Node.js")
+    System(rmu_api_strategic, "Strategic API", "Node.js")
+    System(rmu_api_tactical, "Tactical API", "Node.js")
+    System(rmu_api_npc, "NPC API", "Node.js")
+    System(rmu_api_npc_names, "NPC Names API", "Node.js")
+    System(rmu_api_attack, "Attack API", "Python")
+    System(rmu_api_items, "Items API", "Node.js")
+    System(rmu_api_attack_tables, "Attack Tables API", "Node.js")
+}
+
+Boundary(infrastructure, "Infrastructure") {
+    System_Ext(mongodb, "MongoDB", "")
+    System_Ext(keycloak, "Keycloak", "26.3")
+    System_Ext(kafka, "Kafka", "")
+}
+
+Rel(user, rmu_fe_host, "Navigate", "HTTP")
+Rel(user, keycloak, "Login", "HTTP")
+
+' Frontends
+
+Rel(rmu_fe_host, rmu_fe_strategic, "Load strategic microfrontend", "Module federation")
+Rel(rmu_fe_host, rmu_fe_tactical, "Load tactical microfrontend", "Module federation")
+Rel(rmu_fe_host, rmu_fe_npc, "Load strategic NPC microfrontend", "Module federation")
+Rel(rmu_fe_host, keycloak, "Authenticate user", "OIDC")
+
+Rel(rmu_fe_strategic, rmu_api_strategic, "", "HTTP")
+
+Rel(rmu_fe_tactical, rmu_api_tactical, "", "HTTP")
+Rel(rmu_fe_tactical, rmu_api_core, "", "HTTP")
+Rel(rmu_fe_tactical, rmu_api_items, "", "HTTP")
+Rel(rmu_fe_tactical, rmu_api_npc_names, "", "HTTP")
+
+Rel(rmu_fe_npc, rmu_api_npc, "", "HTTP")
+
+' APIs
+
+' Rel(rmu_api_core, mongodb, "", "")
+
+' Rel(rmu_api_strategic, mongodb, "Manage attacks", "HTTP")
+
+Rel(rmu_api_tactical, rmu_api_attack, "Manage attacks", "HTTP")
+Rel(rmu_api_tactical, rmu_api_core, "", "HTTP")
+' Rel(rmu_api_attack, mongodb, "Read/Write data", "pymongo")
+
+
+' Rel(rmu_api_npc, mongodb, "", "")
+
+Rel(rmu_api_attack, rmu_api_attack_tables, "Read tables", "HTTP")
+
+
+
+SHOW_LEGEND()
+
+@enduml
