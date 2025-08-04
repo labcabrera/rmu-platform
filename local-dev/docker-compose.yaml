@@ -1,6 +1,36 @@
-version: '3.8'
+# version: '3.8'
 
 services:
+  
+  rmu-mongo:
+    image: mongo:8.0
+    hostname: rmu-mongo
+    container_name: rmu-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - rmu-network
+
+  rmu-keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    hostname: rmu-keycloak
+    container_name: rmu-keycloak
+    command: start-dev
+    ports:
+      - "8090:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+    networks:
+      - rmu-network
+
   rmu-kafka:
     image: confluentinc/cp-kafka:7.4.0
     hostname: rmu-kafka-broker
@@ -37,7 +67,7 @@ services:
     depends_on:
       - rmu-kafka
     ports:
-      - "8080:8080"
+      - "8091:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: rmu-kafka-broker:9092
@@ -49,6 +79,10 @@ services:
       - rmu-network
 
 volumes:
+  mongo-data:
+    driver: local
+  keycloak-data:
+    driver: local
   kafka-data:
     driver: local
 
