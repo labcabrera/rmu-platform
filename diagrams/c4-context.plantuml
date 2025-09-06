@@ -13,16 +13,17 @@ UpdateElementStyle(boundary, $bgColor="#d1dcdfff")
 Person(user, "User")
 
 Boundary(frontend, "RMO Frontend") {
-    System(rmu_fe_host, "RMO Frontend Host", "Node.js / JS")
-    System(rmu_fe_strategic, "Strategic microfrontend", "Node / JS")
-    System(rmu_fe_tactical, "Tactical microfrontend", "Node / TS")
-    System(rmu_fe_npc, "NPC microfrontend", "Node / JS")
+    System(rmu_fe_host, "RMO Frontend Host", "React")
+    System(rmu_fe_strategic, "Strategic microfrontend", "React")
+    System(rmu_fe_tactical, "Tactical microfrontend", "React")
+    System(rmu_fe_npc, "NPC microfrontend", "React")
 }
 
 Boundary(apis, "RMO APIs") {
-    System(rmu_api_core, "Core API", "Node.js")
-    System(rmu_api_strategic, "Strategic API", "Node.js")
-    System(rmu_api_tactical, "Tactical API", "Node.js")
+    System(rmu_api_users, "Users API", "NestJS")
+    System(rmu_api_core, "Core API", "NestJS")
+    System(rmu_api_strategic, "Strategic API", "NestJS")
+    System(rmu_api_tactical, "Tactical API", "NestJS")
     System(rmu_api_npc, "NPC API", "Node.js")
     System(rmu_api_npc_names, "NPC Names API", "Node.js")
     System(rmu_api_attack, "Attack API", "Python")
@@ -44,14 +45,18 @@ Rel(user, keycloak, "Login", "HTTP")
 Rel(rmu_fe_host, rmu_fe_strategic, "Load strategic microfrontend", "Module federation")
 Rel(rmu_fe_host, rmu_fe_tactical, "Load tactical microfrontend", "Module federation")
 Rel(rmu_fe_host, rmu_fe_npc, "Load strategic NPC microfrontend", "Module federation")
+Rel(rmu_fe_host, rmu_api_users, "Read profile", "OIDC")
 Rel(rmu_fe_host, keycloak, "Authenticate user", "OIDC")
 
 Rel(rmu_fe_strategic, rmu_api_strategic, "", "HTTP")
+Rel(rmu_fe_strategic, rmu_api_npc_names, "", "HTTP")
+
 
 Rel(rmu_fe_tactical, rmu_api_tactical, "", "HTTP")
-Rel(rmu_fe_tactical, rmu_api_core, "", "HTTP")
+' Rel(rmu_fe_tactical, rmu_api_core, "", "HTTP")
 Rel(rmu_fe_tactical, rmu_api_items, "", "HTTP")
-Rel(rmu_fe_tactical, rmu_api_npc_names, "", "HTTP")
+
+Rel(rmu_api_users, keycloak, "Read user info", "OIDC")
 
 Rel(rmu_fe_npc, rmu_api_npc, "", "HTTP")
 
@@ -60,6 +65,8 @@ Rel(rmu_fe_npc, rmu_api_npc, "", "HTTP")
 ' Rel(rmu_api_core, mongodb, "", "")
 
 ' Rel(rmu_api_strategic, mongodb, "Manage attacks", "HTTP")
+
+Rel(rmu_api_strategic, rmu_api_core, "", "HTTP")
 
 Rel(rmu_api_tactical, rmu_api_attack, "Manage attacks", "HTTP")
 Rel(rmu_api_tactical, rmu_api_core, "", "HTTP")

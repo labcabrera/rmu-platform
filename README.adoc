@@ -11,14 +11,14 @@ WARNING: *This application is an independent project developed by fans of Rolema
 |===
 |Module                   | Repository                                            |
 |API Users                | https://github.com/labcabrera/rmu-api-users           | NestJS
-|API Core                 | https://github.com/labcabrera/rmu-api-core            | Node TS
-|API Strategic            | https://github.com/labcabrera/rmu-api-strategic       | Node JS
-|API Tactical             | https://github.com/labcabrera/rmu-api-tactical        | Node TS
+|API Core                 | https://github.com/labcabrera/rmu-api-core            | NestJS
+|API Strategic            | https://github.com/labcabrera/rmu-api-strategic       | NestJS
+|API Tactical             | https://github.com/labcabrera/rmu-api-tactical        | NestJS
 |API Attack               | https://github.com/labcabrera/rmu-api-attack          | Python
 |API Attack Tables        | https://github.com/labcabrera/rmu-api-attack-tables   | Node TS
 |API Items                | https://github.com/labcabrera/rmu-api-items           | Node JS
 |API NPC                  | https://github.com/labcabrera/rmu-api-npc             | Node JS
-|API NPC Names            | https://github.com/labcabrera/rmu-api-npc-names       | Node TS
+|API NPC Names            | https://github.com/labcabrera/rmu-api-npc-names       | Node JS
 |MicroFrontend Host       | https://github.com/labcabrera/rmu-fe-host             | React
 |MicroFrontend Strategic  | https://github.com/labcabrera/rmu-fe-strategic        | React
 |MicroFrontend Tactical   | https://github.com/labcabrera/rmu-fe-tactical         | React

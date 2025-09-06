@@ -1,7 +1,4 @@
-# version: '3.8'
-
 services:
-  
   rmu-mongo:
     image: mongo:8.0
     hostname: rmu-mongo
@@ -12,22 +9,46 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
     volumes:
-      - mongo-data:/data/db
+      - rmu-mongo-data:/data/db
     networks:
       - rmu-network
+
+  rmu-postgres:
+    image: postgres:16
+    hostname: rmu-postgres
+    container_name: rmu-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    networks:
+      - rmu-network
+    volumes:
+      - rmu-postgres-data:/var/lib/postgresql/data
 
   rmu-keycloak:
     image: quay.io/keycloak/keycloak:26.3
     hostname: rmu-keycloak
     container_name: rmu-keycloak
-    command: start-dev
+    command:
+      - start
+      - --features=scripts
+      - --http-enabled=true
+      - --hostname=localhost
     ports:
       - "8090:8080"
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL_HOST: rmu-postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_LOG_LEVEL: INFO
     volumes:
-      - keycloak-data:/opt/keycloak/data
+      - rmu-keycloak-data:/opt/keycloak/data
     networks:
       - rmu-network
 
@@ -57,7 +78,7 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     volumes:
-      - kafka-data:/var/lib/kafka/data
+      - rmu-kafka-data:/var/lib/kafka/data
     networks:
       - rmu-network
 
@@ -79,11 +100,13 @@ services:
       - rmu-network
 
 volumes:
-  mongo-data:
+  rmu-mongo-data:
     driver: local
-  keycloak-data:
+  rmu-keycloak-data:
     driver: local
-  kafka-data:
+  rmu-postgres-data:
+    driver: local
+  rmu-kafka-data:
     driver: local
 
 networks:
