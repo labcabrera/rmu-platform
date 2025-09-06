@@ -1,4 +1,8 @@
 = Rolemaster Unified Platform
+:linkattrs:
+:icons: font
+
+image:https://img.shields.io/badge/license-GPL--3.0-blue.svg[License,link="https://www.gnu.org/licenses/gpl-3.0.html"]
 
 RMU Online is a project that implements http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified] through a set of APIs and micro-frontends.
 
