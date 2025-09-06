@@ -1,4 +1,4 @@
-= Rolemaster Unified Platform
+= RMU Engine Platform
 :linkattrs:
 :icons: font
 
@@ -38,3 +38,11 @@ WARNING: *This application is an independent project developed by fans of Rolema
 |===
 
 image::diagrams/c4-context.png[RMU Context Diagram]
+
+*RMU Engine* is an online assistant for playing *Rolemaster Unified* games.
+
+The application is divided into APIs developed in *NestJS*, *Python*, and *Express*, along with MFEs developed in *React* using *Webpack* for module federation.
+
+It uses *MongoDB* for the persistence of different domains (core, strategic, tactical, attack items, NPCs, and users) and *Kafka* for event communication between different services.
+
+The application uses *OIDC* for authentication, with *Keycloak* as the IAM used.
