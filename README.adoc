@@ -46,3 +46,38 @@ The application is divided into APIs developed in *NestJS*, *Python*, and *Expre
 It uses *MongoDB* for the persistence of different domains (core, strategic, tactical, attack items, NPCs, and users) and *Kafka* for event communication between different services.
 
 The application uses *OIDC* for authentication, with *Keycloak* as the IAM used.
+
+== Samples
+
+=== Home page
+
+image::images/home-page.png[RMU Engine Home]
+
+=== Strategic game
+
+image::images/strategic-game.png[Strategic Game]
+
+=== Character management
+
+image::images/character-management.png[Character Management]
+
+=== Item management
+
+image::images/item-management.png[Item Management]
+
+=== Skill management
+
+image::images/skill-management.png[Skill Management]
+
+=== Tactical Game
+
+image::images/tactical-game.png[Tactical Game]
+
+=== Dashboard
+
+image::images/dashboard.png[Dashboard]
+
+=== Movement declaration
+
+image::images/movement-declaration.png[Movement]
+
