@@ -54,6 +54,14 @@ The application uses *OIDC* for authentication, with *Keycloak* as the IAM used.
 
 image::images/home-page.png[RMU Engine Home]
 
+=== Realm management
+
+image::images/realm-management.png[RMU Engine Realm Management]
+
+=== Race management
+
+image::images/race-management.png[RMU Engine Race Management]
+
 === Strategic game
 
 image::images/strategic-game.png[Strategic Game]
