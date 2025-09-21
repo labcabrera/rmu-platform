@@ -66,6 +66,10 @@ image::images/race-management.png[RMU Engine Race Management]
 
 image::images/strategic-game.png[Strategic Game]
 
+=== Faction management
+
+image::images/faction-management.png[Faction Management]
+
 === Character management
 
 image::images/character-management.png[Character Management]
