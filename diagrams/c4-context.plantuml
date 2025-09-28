@@ -12,15 +12,16 @@ UpdateElementStyle(boundary, $bgColor="#d1dcdfff")
 
 Person(user, "User")
 
-Boundary(frontend, "RMO Frontend") {
-    System(rmu_mfe_host, "MFE Host", "React")
+Boundary(frontend, "RMU Engine Microfrontends") {
+    System(rmu_mfe_shell, "MFE Shell", "React")
     System(rmu_mfe_core, "MFE Core", "React")
     System(rmu_mfe_strategic, "MFE Strategic", "React")
     System(rmu_mfe_tactical, "MFE Tactical", "React")
-    System(rmu_mfe_npc, "MFE NPC", "React")
+    System(rmu_mfe_items, "MFE Items", "React")
+    System(rmu_mfe_npc, "MFE NPCs", "React")
 }
 
-Boundary(apis, "RMO APIs") {
+Boundary(apis, "RMU Engine APIs") {
     System(rmu_api_users, "Users API", "NestJS")
     System(rmu_api_core, "Core API", "NestJS")
     System(rmu_api_strategic, "Strategic API", "NestJS")
@@ -28,7 +29,7 @@ Boundary(apis, "RMO APIs") {
     System(rmu_api_npc, "NPC API", "NestJS")
     System(rmu_api_npc_names, "NPC Names API", "Node.js")
     System(rmu_api_attack, "Attack API", "Python")
-    System(rmu_api_items, "Items API", "Node.js")
+    System(rmu_api_items, "Items API", "NestJS")
     System(rmu_api_attack_tables, "Attack Tables API", "Node.js")
 }
 
@@ -38,17 +39,17 @@ Boundary(infrastructure, "Infrastructure") {
     System_Ext(kafka, "Kafka", "")
 }
 
-Rel(user, rmu_mfe_host, "Navigate", "HTTP")
+Rel(user, rmu_mfe_shell, "Navigate", "HTTP")
 Rel(user, keycloak, "Login", "HTTP")
 
-' Frontends
+Rel(rmu_mfe_shell, rmu_mfe_core, "Federation", "OIDC")
+Rel(rmu_mfe_shell, rmu_mfe_strategic, "Federation", "Webpack")
+Rel(rmu_mfe_shell, rmu_mfe_tactical, "Federation", "Webpack")
+Rel(rmu_mfe_shell, rmu_mfe_items, "Read profile", "OIDC")
+Rel(rmu_mfe_shell, rmu_mfe_npc, "Federation", "Webpack")
 
-Rel(rmu_mfe_host, rmu_mfe_core, "Federation", "OIDC")
-Rel(rmu_mfe_host, rmu_mfe_strategic, "Federation", "Webpack")
-Rel(rmu_mfe_host, rmu_mfe_tactical, "Federation", "Webpack")
-Rel(rmu_mfe_host, rmu_mfe_npc, "Federation", "Webpack")
-Rel(rmu_mfe_host, rmu_api_users, "Read profile", "OIDC")
-Rel(rmu_mfe_host, keycloak, "Authenticate user", "OIDC")
+Rel(rmu_mfe_shell, rmu_api_users, "Read profile", "OIDC")
+Rel(rmu_mfe_shell, keycloak, "Authenticate user", "OIDC")
 
 Rel(rmu_mfe_core, rmu_api_core, "", "HTTP")
 
@@ -56,16 +57,14 @@ Rel(rmu_mfe_strategic, rmu_api_strategic, "", "HTTP")
 Rel(rmu_mfe_strategic, rmu_api_npc_names, "", "HTTP")
 
 Rel(rmu_mfe_tactical, rmu_api_tactical, "", "HTTP")
-Rel(rmu_mfe_tactical, rmu_api_items, "", "HTTP")
 
 Rel(rmu_api_users, keycloak, "Read user info", "OIDC")
 
 Rel(rmu_mfe_npc, rmu_api_npc, "", "HTTP")
 
-Rel(rmu_api_strategic, rmu_api_core, "", "HTTP")
+Rel(rmu_mfe_items, rmu_api_items, "", "HTTP")
 
 Rel(rmu_api_tactical, rmu_api_attack, "Manage attacks", "HTTP")
-Rel(rmu_api_tactical, rmu_api_core, "", "HTTP")
 
 Rel(rmu_api_attack, rmu_api_attack_tables, "Read tables", "HTTP")
 

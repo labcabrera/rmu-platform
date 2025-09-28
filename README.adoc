@@ -29,13 +29,13 @@ WARNING: *This application is an independent project developed by fans of Rolema
 |API Attack               | https://github.com/labcabrera/rmu-api-attack          | Python
 |API Attack Tables        | https://github.com/labcabrera/rmu-api-attack-tables   | Node TS
 |API Items                | https://github.com/labcabrera/rmu-api-items           | Node JS
-|API NPC                  | https://github.com/labcabrera/rmu-api-npc             | Node JS
+|API NPC                  | https://github.com/labcabrera/rmu-api-npcs            | Node JS
 |API NPC Names            | https://github.com/labcabrera/rmu-api-npc-names       | Node JS
-|MFE Shell                | https://github.com/labcabrera/rmu-fe-host             | React
-|MFE Core                 | https://github.com/labcabrera/rmu-fe-core             | React
-|MFE Strategic            | https://github.com/labcabrera/rmu-fe-strategic        | React
-|MFE Tactical             | https://github.com/labcabrera/rmu-fe-tactical         | React
-|MFE NPC                  | https://github.com/labcabrera/rmu-fe-npc              | React
+|MFE Shell                | https://github.com/labcabrera/rmu-mfe-shell           | React
+|MFE Core                 | https://github.com/labcabrera/rmu-mfe-core            | React
+|MFE Strategic            | https://github.com/labcabrera/rmu-mfe-strategic       | React
+|MFE Tactical             | https://github.com/labcabrera/rmu-mfe-tactical        | React
+|MFE NPC                  | https://github.com/labcabrera/rmu-mfe-npcs            | React
 |===
 
 image::diagrams/c4-context.png[RMU Context Diagram]
