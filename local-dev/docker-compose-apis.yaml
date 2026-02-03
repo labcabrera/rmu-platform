@@ -192,6 +192,36 @@ services:
     networks:
       - rmu-network
 
+  rmu-api-attack-tables:
+    image: labcabrera/rmu-api-attack-tables:latest
+    container_name: rmu-api-attack-tables
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      #RMU_MONGO_URI: mongodb://admin:admin@rmu-mongo:27017/rmu-core?authSource=admin
+      #RMU_API_CORE_URI: http://rmu-api-core:3001
+    networks:
+      - rmu-network
+
+  rmu-api-attack:
+    image: labcabrera/rmu-api-attack:latest
+    container_name: rmu-api-attack
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      RMU_MONGO_ATTACK_URI: mongodb://admin:admin@rmu-mongo:27017/rmu-attack?authSource=admin
+      RMU_API_ATTACK_TABLES_URL: http://rmu-api-attack-tables:3005/v1
+    networks:
+      - rmu-network
+
 volumes:
   rmu-mongo-data:
     driver: local
