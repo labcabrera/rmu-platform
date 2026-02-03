@@ -136,6 +136,62 @@ services:
     networks:
       - rmu-network
 
+  rmu-api-strategic:
+    image: labcabrera/rmu-api-strategic:latest
+    container_name: rmu-api-strategic
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      RMU_MONGO_STRATEGIC_URI: mongodb://admin:admin@rmu-mongo:27017/rmu-strategic?authSource=admin
+      RMU_IAM_BASE_URL: http://rmu-keycloak:8080
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/token
+      RMU_IAM_REALM: rmu-local
+      RMU_IAM_CLIENT_ID: rmu-client
+      RMU_IAM_CLIENT_SECRET: 1tUzPc24SYJMPpX37g2eymEoS9C3Ttzw
+      RMU_KAFKA_CLIENT_ID: rmu-api-strategic
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_PARTITION_COUNT: '1'
+      RMU_API_CORE_URI: http://rmu-api-core:3001
+      RMU_API_ITEMS_URI: http://rmu-api-items:3004
+    networks:
+      - rmu-network
+
+  rmu-api-tactical:
+    image: labcabrera/rmu-api-tactical:latest
+    container_name: rmu-api-tactical
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      RMU_MONGO_TACTICAL_URI: mongodb://admin:admin@rmu-mongo:27017/rmu-tactical?authSource=admin
+      RMU_IAM_BASE_URL: http://rmu-keycloak:8080
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/token
+      RMU_IAM_REALM: rmu-local
+      RMU_IAM_CLIENT_ID: rmu-client
+      RMU_IAM_CLIENT_SECRET: 1tUzPc24SYJMPpX37g2eymEoS9C3Ttzw
+      RMU_KAFKA_CLIENT_ID: rmu-api-tactical
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_PARTITION_COUNT: '1'
+      RMU_API_CORE_URI: http://rmu-api-core:3001
+      RMU_API_STRATEGIC_URI: http://rmu-api-strategic:3002
+      RMU_API_ITEMS_URI: http://rmu-api-items:3004
+      RMU_API_ATTACK_URI: http://rmu-api-attack:3005
+    networks:
+      - rmu-network
+
 volumes:
   rmu-mongo-data:
     driver: local
