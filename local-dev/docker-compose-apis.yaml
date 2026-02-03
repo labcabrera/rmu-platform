@@ -6,8 +6,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - rmu-mongo-data:/data/db
     networks:
@@ -24,9 +24,9 @@ services:
     hostname: rmu-postgres
     container_name: rmu-postgres
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_KEYCLOAK}
     networks:
       - rmu-network
     volumes:
@@ -44,13 +44,13 @@ services:
     ports:
       - "8090:8080"
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_DB: postgres
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
+      KC_DB: ${POSTGRES_DB_KEYCLOAK}
       KC_DB_URL_HOST: rmu-postgres
-      KC_DB_URL_DATABASE: keycloak
-      KC_DB_USERNAME: admin
-      KC_DB_PASSWORD: admin
+      KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KC_HOSTNAME: localhost
       KC_LOG_LEVEL: INFO
     volumes:
