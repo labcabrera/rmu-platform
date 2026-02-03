@@ -1,0 +1,151 @@
+services:
+  rmu-mongo:
+    image: mongo:8.0
+    hostname: rmu-mongo
+    container_name: rmu-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - rmu-mongo-data:/data/db
+    networks:
+      - rmu-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  rmu-postgres:
+    image: postgres:16
+    hostname: rmu-postgres
+    container_name: rmu-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    networks:
+      - rmu-network
+    volumes:
+      - rmu-postgres-data:/var/lib/postgresql/data
+
+  rmu-keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    hostname: rmu-keycloak
+    container_name: rmu-keycloak
+    command:
+      - start
+      - --features=scripts
+      - --http-enabled=true
+      - --hostname=localhost
+    ports:
+      - "8090:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL_HOST: rmu-postgres
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_LOG_LEVEL: INFO
+    volumes:
+      - rmu-keycloak-data:/opt/keycloak/data
+    networks:
+      - rmu-network
+
+  rmu-kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    hostname: rmu-kafka-broker
+    container_name: rmu-kafka-broker
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://rmu-kafka-broker:9092,PLAINTEXT_HOST://localhost:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093,CONTROLLER://0.0.0.0:9094'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@rmu-kafka-broker:9094'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: localhost
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - rmu-kafka-data:/var/lib/kafka/data
+    networks:
+      - rmu-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '>/dev/tcp/localhost/9092 && echo ok || exit 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: rmu-kafka-ui
+    depends_on:
+      - rmu-kafka
+    ports:
+      - "8091:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: rmu-kafka-broker:9092
+      KAFKA_CLUSTERS_0_READONLY: false
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: admin
+      SPRING_SECURITY_USER_PASSWORD: admin
+    networks:
+      - rmu-network
+
+  rmu-api-core:
+    image: labcabrera/rmu-api-core:latest
+    container_name: rmu-api-core
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      RMU_MONGO_CORE_URI: mongodb://admin:admin@rmu-mongo:27017/rmu-core?authSource=admin
+      RMU_IAM_BASE_URL: http://rmu-keycloak:8080
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/token
+      RMU_IAM_REALM: rmu-local
+      RMU_IAM_CLIENT_ID: rmu-client
+      RMU_IAM_CLIENT_SECRET: 1tUzPc24SYJMPpX37g2eymEoS9C3Ttzw
+      RMU_KAFKA_CLIENT_ID: rmu-api-core
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_PARTITION_COUNT: '1'
+    networks:
+      - rmu-network
+
+volumes:
+  rmu-mongo-data:
+    driver: local
+  rmu-keycloak-data:
+    driver: local
+  rmu-postgres-data:
+    driver: local
+  rmu-kafka-data:
+    driver: local
+
+networks:
+  rmu-network:
+    external: true
