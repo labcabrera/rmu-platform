@@ -42,12 +42,12 @@ services:
       - --http-enabled=true
       - --hostname=localhost
     ports:
-      - "8090:8080"
+      - "8080:8080"
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
-      KC_DB: ${POSTGRES_DB_KEYCLOAK}
-      KC_DB_URL_HOST: rmu-postgres
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KC_DB: ${KC_DB}
+      KC_DB_URL_HOST: ${KC_DB_URL_HOST}
       KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -240,6 +240,24 @@ services:
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
     networks:
       - rmu-network
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: rmu-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - rmu-network
+    depends_on:
+      - rmu-api-core
+      - rmu-api-strategic
+      - rmu-api-tactical
+      - rmu-keycloak
+      - rmu-api-attack
+      - rmu-api-attack-tables
+      - rmu-api-items
 
 volumes:
   rmu-mongo-data:
