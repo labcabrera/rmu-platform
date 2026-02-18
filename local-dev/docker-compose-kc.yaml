@@ -1,0 +1,50 @@
+services:
+
+  rmu-postgres:
+    image: postgres:16
+    hostname: rmu-postgres
+    container_name: rmu-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_KEYCLOAK}
+    networks:
+      - rmu-network
+    volumes:
+      - rmu-postgres-data:/var/lib/postgresql/data
+
+  rmu-keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    hostname: rmu-keycloak
+    container_name: rmu-keycloak
+    command:
+      - start
+      - --features=scripts
+      - --http-enabled=true
+      - --hostname=localhost
+    ports:
+      - "8090:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
+      KC_DB: ${POSTGRES_DB_KEYCLOAK}
+      KC_DB_URL_HOST: rmu-postgres
+      KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: localhost
+      KC_LOG_LEVEL: INFO
+    volumes:
+      - rmu-keycloak-data:/opt/keycloak/data
+    networks:
+      - rmu-network
+
+volumes:
+  rmu-keycloak-data:
+    driver: local
+  rmu-postgres-data:
+    driver: local
+
+networks:
+  rmu-network:
+    external: true

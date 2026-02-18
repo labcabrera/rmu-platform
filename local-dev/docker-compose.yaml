@@ -18,9 +18,9 @@ services:
     hostname: rmu-postgres
     container_name: rmu-postgres
     environment:
-      POSTGRES_DB: keycloak
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
+      POSTGRES_DB: keycloak
     networks:
       - rmu-network
     volumes:
