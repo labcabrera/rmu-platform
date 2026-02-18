@@ -127,8 +127,8 @@ services:
       PORT: 3001
       RMU_MONGO_CORE_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-core?authSource=admin
       RMU_IAM_BASE_URL: http://rmu-keycloak:8080
-      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/certs
-      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/rmu-local/protocol/openid-connect/token
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       RMU_IAM_REALM: ${KEYCLOAK_REALM}
       RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
