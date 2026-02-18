@@ -51,7 +51,7 @@ services:
       KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HOSTNAME: localhost
+      KC_HOSTNAME: ${KC_HOSTNAME}
       KC_LOG_LEVEL: INFO
     volumes:
       - rmu-keycloak-data:/opt/keycloak/data
