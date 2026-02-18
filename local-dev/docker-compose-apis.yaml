@@ -40,7 +40,7 @@ services:
       - start
       - --features=scripts
       - --http-enabled=true
-      - --hostname=localhost
+      - --hostname=auth.labcabrera.com
     ports:
       - "8080:8080"
     environment:
