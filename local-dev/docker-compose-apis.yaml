@@ -240,7 +240,7 @@ services:
       RMU_IAM_REALM: ${RMU_IAM_REALM}
       RMU_IAM_CLIENT_ID: ${RMU_IAM_CLIENT_ID}
       RMU_IAM_CLIENT_SECRET: ${RMU_IAM_CLIENT_SECRET}
-      RMU_API_CORE_URI: http://rmu-api-core:3001
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
       RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
       RMU_KAFKA_CLIENT_ID: rmu-api-items
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-items-consumer
