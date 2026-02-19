@@ -160,8 +160,8 @@ services:
       RMU_KAFKA_CLIENT_ID: rmu-api-strategic
       RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
       RMU_KAFKA_PARTITION_COUNT: '1'
-      RMU_API_CORE_URI: http://rmu-api-core:3001
-      RMU_API_ITEMS_URI: http://rmu-api-items:3004
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3004/v1
     networks:
       - rmu-network
 
