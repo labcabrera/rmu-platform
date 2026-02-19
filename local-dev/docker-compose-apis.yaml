@@ -197,9 +197,6 @@ services:
   rmu-api-attack-tables:
     image: labcabrera/rmu-api-attack-tables:latest
     container_name: rmu-api-attack-tables
-    depends_on:
-      rmu-mongo:
-        condition: service_healthy
     ports:
       - "3005:3005"
     environment:
@@ -246,6 +243,14 @@ services:
       RMU_KAFKA_CLIENT_ID: rmu-api-items
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-items-consumer
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
+    networks:
+      - rmu-network
+
+  rmu-api-npc-names:
+    image: labcabrera/rmu-api-npc-names:latest
+    container_name: rmu-api-npc-names
+    ports:
+      - "3007:3007"
     networks:
       - rmu-network
 
