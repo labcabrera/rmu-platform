@@ -194,6 +194,35 @@ services:
     networks:
       - rmu-network
 
+  rmu-api-npcs:
+    image: labcabrera/rmu-api-npcs:latest
+    container_name: rmu-api-npcs
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      RMU_MONGO_NPCS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-npcs?authSource=admin
+      RMU_IAM_BASE_URL: ${RMU_IAM_BASE_URL}
+      RMU_IAM_JWK_URI: ${RMU_IAM_JWK_URI}
+      RMU_IAM_TOKEN_URI: ${RMU_IAM_TOKEN_URI}
+      RMU_IAM_REALM: ${RMU_IAM_REALM}
+      RMU_IAM_CLIENT_ID: ${RMU_IAM_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${RMU_IAM_CLIENT_SECRET}
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_PARTITION_COUNT: '1'
+      RMU_KAFKA_CLIENT_ID: rmu-api-npcs
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_STRATEGIC_URI: http://rmu-api-strategic:3002/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3004/v1
+      RMU_API_ATTACK_URI: http://rmu-api-attack:3005/v1
+    networks:
+      - rmu-network
+
   rmu-api-attack-tables:
     image: labcabrera/rmu-api-attack-tables:latest
     container_name: rmu-api-attack-tables
