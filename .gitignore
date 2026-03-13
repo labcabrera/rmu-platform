@@ -2,3 +2,4 @@ out/
 **/.env
 **/.env*
 aws.*
+mongodb/

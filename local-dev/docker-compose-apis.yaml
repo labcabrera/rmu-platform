@@ -274,6 +274,33 @@ services:
     networks:
       - rmu-network
 
+  rmu-api-spells:
+    image: labcabrera/rmu-api-spells:latest
+    container_name: rmu-api-spells
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3009:3009"
+    environment:
+      PORT: 3009
+      RMU_MONGO_SPELLS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-spells?authSource=admin
+      RMU_IAM_BASE_URL: ${RMU_IAM_BASE_URL}
+      RMU_IAM_JWK_URI: ${RMU_IAM_JWK_URI}
+      RMU_IAM_TOKEN_URI: ${RMU_IAM_TOKEN_URI}
+      RMU_IAM_REALM: ${RMU_IAM_REALM}
+      RMU_IAM_CLIENT_ID: ${RMU_IAM_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${RMU_IAM_CLIENT_SECRET}
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_CLIENT_ID: rmu-api-spells
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-spells-consumer
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+    networks:
+      - rmu-network
+
   rmu-api-npc-names:
     image: labcabrera/rmu-api-npc-names:latest
     container_name: rmu-api-npc-names
