@@ -1,4 +1,4 @@
-@startuml RMU Engine Context Diagram
+@startuml c4-context
 title RMU Engine Context Diagram
 
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
@@ -19,6 +19,8 @@ Boundary(frontend, "RMU Engine Microfrontends") {
     System(rmu_mfe_tactical, "MFE Tactical", "React")
     System(rmu_mfe_items, "MFE Items", "React")
     System(rmu_mfe_npc, "MFE NPCs", "React")
+    System(rmu_mfe_spells, "MFE SPells", "React")
+    System_Ext(rmu_shared_library, "Shared UI Components", "React + MUI")
 }
 
 Boundary(apis, "RMU Engine APIs") {
@@ -29,14 +31,15 @@ Boundary(apis, "RMU Engine APIs") {
     System(rmu_api_npc, "NPC API", "NestJS")
     System(rmu_api_npc_names, "NPC Names API", "Node.js")
     System(rmu_api_attack, "Attack API", "Python")
+    System(rmu_api_spells, "Spell API", "NestJS")
     System(rmu_api_items, "Items API", "NestJS")
     System(rmu_api_attack_tables, "Attack Tables API", "Node.js")
 }
 
 Boundary(infrastructure, "Infrastructure") {
-    System_Ext(mongodb, "MongoDB", "")
-    System_Ext(keycloak, "Keycloak", "26.3")
-    System_Ext(kafka, "Kafka", "")
+    System_Ext(mongodb, "MongoDB", "8.x")
+    System_Ext(keycloak, "Keycloak", "26.x")
+    System_Ext(kafka, "Kafka", "3.4.x")
 }
 
 Rel(user, rmu_mfe_shell, "Navigate", "HTTP")
@@ -47,6 +50,7 @@ Rel(rmu_mfe_shell, rmu_mfe_strategic, "Federation", "Webpack")
 Rel(rmu_mfe_shell, rmu_mfe_tactical, "Federation", "Webpack")
 Rel(rmu_mfe_shell, rmu_mfe_items, "Read profile", "OIDC")
 Rel(rmu_mfe_shell, rmu_mfe_npc, "Federation", "Webpack")
+Rel(rmu_mfe_shell, rmu_mfe_spells, "Federation", "Webpack")
 
 Rel(rmu_mfe_shell, rmu_api_users, "Read profile", "OIDC")
 Rel(rmu_mfe_shell, keycloak, "Authenticate user", "OIDC")
@@ -63,6 +67,8 @@ Rel(rmu_api_users, keycloak, "Read user info", "OIDC")
 Rel(rmu_mfe_npc, rmu_api_npc, "", "HTTP")
 
 Rel(rmu_mfe_items, rmu_api_items, "", "HTTP")
+
+Rel(rmu_mfe_spells, rmu_api_spells, "", "HTTP")
 
 Rel(rmu_api_tactical, rmu_api_attack, "Manage attacks", "HTTP")
 
