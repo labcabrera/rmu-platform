@@ -20,7 +20,8 @@ Boundary(frontend, "RMU Engine Microfrontends") {
     System(rmu_mfe_items, "MFE Items", "React")
     System(rmu_mfe_npc, "MFE NPCs", "React")
     System(rmu_mfe_spells, "MFE SPells", "React")
-    System_Ext(rmu_shared_library, "Shared UI Components", "React + MUI")
+    System(rmu_react_shared_lib, "React Shared Lib", "React + MUI")
+    System(rmu_mfe_assets, "MFE Assets", "Static files: locales, images...")
 }
 
 Boundary(apis, "RMU Engine APIs") {
@@ -40,6 +41,7 @@ Boundary(infrastructure, "Infrastructure") {
     System_Ext(mongodb, "MongoDB", "8.x")
     System_Ext(keycloak, "Keycloak", "26.x")
     System_Ext(kafka, "Kafka", "3.4.x")
+    System_Ext(postgresql, "PostgreSQL", "16.x")
 }
 
 Rel(user, rmu_mfe_shell, "Navigate", "HTTP")
@@ -54,6 +56,7 @@ Rel(rmu_mfe_shell, rmu_mfe_spells, "Federation", "Webpack")
 
 Rel(rmu_mfe_shell, rmu_api_users, "Read profile", "OIDC")
 Rel(rmu_mfe_shell, keycloak, "Authenticate user", "OIDC")
+Rel(rmu_mfe_shell, rmu_mfe_assets, "Load static content", "HTTP")
 
 Rel(rmu_mfe_core, rmu_api_core, "", "HTTP")
 
@@ -73,6 +76,8 @@ Rel(rmu_mfe_spells, rmu_api_spells, "", "HTTP")
 Rel(rmu_api_tactical, rmu_api_attack, "Manage attacks", "HTTP")
 
 Rel(rmu_api_attack, rmu_api_attack_tables, "Read tables", "HTTP")
+
+Rel(keycloak, postgresql, "", "")
 
 SHOW_LEGEND()
 

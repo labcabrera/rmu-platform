@@ -42,6 +42,7 @@ image::diagrams/c4-context.png[RMU Context Diagram]
 |MFE Tactical             | https://github.com/labcabrera/rmu-mfe-tactical        | React
 |MFE NPCs                 | https://github.com/labcabrera/rmu-mfe-npcs            | React
 |MFE Spells               | https://github.com/labcabrera/rmu-mfe-spells          | React
+|MFE Assets               | https://github.com/labcabrera/rmu-mfe-assets          | Static
 |===
 
 
