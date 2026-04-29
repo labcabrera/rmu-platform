@@ -34,6 +34,8 @@ image::diagrams/c4-context.png[RMU Context Diagram]
 |API Spells               | https://github.com/labcabrera/rmu-api-spells          | NestJS
 |API NPCs                 | https://github.com/labcabrera/rmu-api-npcs            | NestJS
 |API NPCs Names           | https://github.com/labcabrera/rmu-api-npc-names       | Node JS
+|API React Shared Lib     | https://github.com/labcabrera/rmu-react-shared-lib    | React
+|MFE Shell                | https://github.com/labcabrera/rmu-mfe-shell           | React
 |MFE Shell                | https://github.com/labcabrera/rmu-mfe-shell           | React
 |MFE Core                 | https://github.com/labcabrera/rmu-mfe-core            | React
 |MFE Strategic            | https://github.com/labcabrera/rmu-mfe-strategic       | React
@@ -45,7 +47,7 @@ image::diagrams/c4-context.png[RMU Context Diagram]
 
 *RMU Engine* is an online assistant for playing *Rolemaster Unified* games.
 
-The application is divided into APIs developed in *NestJS*, *Python*, and *Express*, along with MFEs developed in *React* using *Webpack* for module federation.
+The application is divided into APIs developed in *NestJS*, *Python*, and *Express*, along with MFEs developed in *React* using *Webpack* for module federation. Shell manages the authentication and shared components, while each MFE is responsible for a specific domain of the application (core, strategic, tactical, attack items, NPCs, and spells).
 
 It uses *MongoDB* for the persistence of different domains (core, strategic, tactical, attack items, NPCs, and users) and *Kafka* for event communication between different services.
 

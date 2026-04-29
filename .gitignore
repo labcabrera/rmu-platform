@@ -4,3 +4,5 @@ out/
 aws.*
 mongodb/
 dump*
+.sonar/*
+sonar/*
