@@ -1,5 +1,5 @@
 out/
-mongodb/
+mongodb/dump*
 .sonar/*
 **/.env
 **/.env*
