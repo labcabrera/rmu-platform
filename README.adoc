@@ -38,7 +38,7 @@ image::diagrams/c4-context.png[RMU Context Diagram]
 
 *RMU Engine* is an online assistant for playing *Rolemaster Unified* games.
 
-The application is divided into APIs developed in *NestJS*, *Python*, and *Express/Node.js*, along with micro-frontends developed in *React* using *Webpack Module Federation*. The shell handles authentication and shared application composition, while each MFE owns a specific domain such as core rules, strategic play, tactical play, NPCs, and spells.
+The application is divided into APIs developed in *NestJS*, *Python*, and *Express/Node.js*, along with micro-frontends developed in *React* using *Webpack Module Federation*. The shell handles authentication and shared application composition, while each MFE owns a specific domain such as core rules, strategic play, tactical play, items, NPCs, and spells.
 
 The platform uses *MongoDB* for domain persistence, *Kafka* for event communication between services, and *Keycloak* as the OIDC identity and access management provider. Some local Compose profiles also include *PostgreSQL* for Keycloak storage and *Kafka UI* for event inspection.
 
