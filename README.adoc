@@ -68,7 +68,7 @@ The platform uses *MongoDB* for domain persistence, *Kafka* for event communicat
 
 |API Attack Tables
 |link:https://github.com/labcabrera/rmu-api-attack-tables[]
-|Node.js / TypeScript
+|Node.js
 
 |API Items
 |link:https://github.com/labcabrera/rmu-api-items[]
