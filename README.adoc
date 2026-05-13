@@ -1,6 +1,8 @@
 = RMU Engine Platform
 :linkattrs:
 :icons: font
+:toc: left
+:toclevels: 3
 
 image:https://img.shields.io/badge/license-GPL3.0-green.svg[License,link="https://www.gnu.org/licenses/gpl-3.0.html"]
 image:https://img.shields.io/badge/rolemaster-rmu-green.svg[Rolemaster,link="http://ironcrown.co.uk/unified-rolemaster/"]
@@ -11,45 +13,270 @@ image:https://img.shields.io/badge/rolemaster-rmu-green.svg[Rolemaster,link="htt
 </a>
 ++++
 
-RMU Online is a project that implements http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified] through a set of APIs and micro-frontends.
+RMU Online is a project that implements link:http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified] through a distributed set of APIs, shared libraries, and micro-frontends.
 
-WARNING: *This application is an independent project developed by fans of Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
+This repository is the platform entry point. It documents the solution, links to the modules that compose it, and provides local orchestration assets for infrastructure, APIs, and supporting services.
+
+WARNING: *This application is an independent fan project for Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
 *All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
 
+== What This Repository Contains
 
-== Modules
+The RMU Platform repository is intentionally informational and operational. The implementation of each bounded domain lives in its own repository, while this repository keeps the global view of the solution.
+
+Main responsibilities:
+
+* Link to each API, micro-frontend, and shared module.
+* Describe the platform architecture and runtime dependencies.
+* Provide Docker Compose files for local infrastructure and API execution.
+* Keep deployment-oriented assets such as Kubernetes, Argo CD, Minikube, MongoDB backup, and AWS notes.
+* Centralize diagrams and high-level documentation for contributors.
+
+== Architecture Overview
 
 image::diagrams/c4-context.png[RMU Context Diagram]
 
-[options,header]
-|===
-|Module                   | Repository                                            |
-|API Users                | https://github.com/labcabrera/rmu-api-users           | NestJS
-|API Core                 | https://github.com/labcabrera/rmu-api-core            | NestJS
-|API Strategic            | https://github.com/labcabrera/rmu-api-strategic       | NestJS
-|API Tactical             | https://github.com/labcabrera/rmu-api-tactical        | NestJS
-|API Attack               | https://github.com/labcabrera/rmu-api-attack          | Python
-|API Attack Tables        | https://github.com/labcabrera/rmu-api-attack-tables   | Node TS
-|API Items                | https://github.com/labcabrera/rmu-api-items           | NestJS
-|API Spells               | https://github.com/labcabrera/rmu-api-spells          | NestJS
-|API NPCs                 | https://github.com/labcabrera/rmu-api-npcs            | NestJS
-|API NPCs Names           | https://github.com/labcabrera/rmu-api-npc-names       | Node JS
-|API React Shared Lib     | https://github.com/labcabrera/rmu-react-shared-lib    | React
-|MFE Shell                | https://github.com/labcabrera/rmu-mfe-shell           | React
-|MFE Shell                | https://github.com/labcabrera/rmu-mfe-shell           | React
-|MFE Core                 | https://github.com/labcabrera/rmu-mfe-core            | React
-|MFE Strategic            | https://github.com/labcabrera/rmu-mfe-strategic       | React
-|MFE Tactical             | https://github.com/labcabrera/rmu-mfe-tactical        | React
-|MFE NPCs                 | https://github.com/labcabrera/rmu-mfe-npcs            | React
-|MFE Spells               | https://github.com/labcabrera/rmu-mfe-spells          | React
-|MFE Assets               | https://github.com/labcabrera/rmu-mfe-assets          | Static
-|===
-
-
 *RMU Engine* is an online assistant for playing *Rolemaster Unified* games.
 
-The application is divided into APIs developed in *NestJS*, *Python*, and *Express*, along with MFEs developed in *React* using *Webpack* for module federation. Shell manages the authentication and shared components, while each MFE is responsible for a specific domain of the application (core, strategic, tactical, attack items, NPCs, and spells).
+The application is divided into APIs developed in *NestJS*, *Python*, and *Express/Node.js*, along with micro-frontends developed in *React* using *Webpack Module Federation*. The shell handles authentication and shared application composition, while each MFE owns a specific domain such as core rules, strategic play, tactical play, NPCs, and spells.
 
-It uses *MongoDB* for the persistence of different domains (core, strategic, tactical, attack items, NPCs, and users) and *Kafka* for event communication between different services.
+The platform uses *MongoDB* for domain persistence, *Kafka* for event communication between services, and *Keycloak* as the OIDC identity and access management provider. Some local Compose profiles also include *PostgreSQL* for Keycloak storage and *Kafka UI* for event inspection.
 
-The application uses *OIDC* for authentication, with *Keycloak* as the IAM used.
+== Modules
+
+=== API Modules
+
+[options="header"]
+|===
+|Module |Repository |Stack
+
+|API Core
+|link:https://github.com/labcabrera/rmu-api-core[]
+|NestJS
+
+|API Strategic
+|link:https://github.com/labcabrera/rmu-api-strategic[]
+|NestJS
+
+|API Tactical
+|link:https://github.com/labcabrera/rmu-api-tactical[]
+|NestJS
+
+|API Attack
+|link:https://github.com/labcabrera/rmu-api-attack[]
+|Python
+
+|API Attack Tables
+|link:https://github.com/labcabrera/rmu-api-attack-tables[]
+|Node.js / TypeScript
+
+|API Items
+|link:https://github.com/labcabrera/rmu-api-items[]
+|NestJS
+
+|API Spells
+|link:https://github.com/labcabrera/rmu-api-spells[]
+|NestJS
+
+|API NPCs
+|link:https://github.com/labcabrera/rmu-api-npcs[]
+|NestJS
+
+|API NPC Names
+|link:https://github.com/labcabrera/rmu-api-npc-names[]
+|Node.js
+
+|API Users
+|link:https://github.com/labcabrera/rmu-api-users[]
+|NestJS
+
+|React Shared Library
+|link:https://github.com/labcabrera/rmu-react-shared-lib[]
+|React
+|===
+
+=== Micro-Frontend Modules
+
+[options="header"]
+|===
+|Module |Repository |Stack
+
+|MFE Shell
+|link:https://github.com/labcabrera/rmu-mfe-shell[]
+|React
+
+|MFE Core
+|link:https://github.com/labcabrera/rmu-mfe-core[]
+|React
+
+|MFE Strategic
+|link:https://github.com/labcabrera/rmu-mfe-strategic[]
+|React
+
+|MFE Tactical
+|link:https://github.com/labcabrera/rmu-mfe-tactical[]
+|React
+
+|MFE NPCs
+|link:https://github.com/labcabrera/rmu-mfe-npcs[]
+|React
+
+|MFE Spells
+|link:https://github.com/labcabrera/rmu-mfe-spells[]
+|React
+
+|MFE Assets
+|link:https://github.com/labcabrera/rmu-mfe-assets[]
+|Static assets
+|===
+
+== Repository Structure
+
+[options="header"]
+|===
+|Path |Purpose
+
+|`docker-compose/`
+|Local Docker Compose definitions for infrastructure, APIs, Keycloak, Kafka UI, and Nginx.
+
+|`diagrams/`
+|Architecture diagrams and their source files.
+
+|`argocd/`
+|Argo CD application descriptors for deployment automation.
+
+|`k8s/`
+|Kubernetes manifests and deployment resources.
+
+|`minikube/`
+|Helper scripts for local Kubernetes environments.
+
+|===
+
+== Running Locally With Docker Compose
+
+=== Prerequisites
+
+Install the following tools before starting the platform locally:
+
+* Docker Engine or Docker Desktop.
+* Docker Compose v2.
+* A local clone of this repository.
+* Access to the Docker images referenced by the Compose files.
+
+The Compose files expect an external Docker network named `rmu-network`.
+
+[source,bash]
+----
+docker network create rmu-network
+----
+
+If the network already exists, Docker will report it and you can continue.
+
+=== Environment
+
+The local Compose setup reads variables from `docker-compose/.env`. The file contains development credentials and local-only defaults for MongoDB, PostgreSQL, Keycloak, Kafka UI, and OIDC integration.
+
+Review the values before running the stack, especially if local ports such as `80`, `8080`, `8090`, `8091`, `27017`, or `9092-9094` are already in use.
+
+=== Start Base Infrastructure
+
+Use this option when you only need MongoDB, PostgreSQL, Keycloak, Kafka, and Kafka UI.
+
+[source,bash]
+----
+docker compose -f docker-compose/docker-compose.yaml up -d
+----
+
+Useful local endpoints:
+
+[options="header"]
+|===
+|Service |URL
+
+|Keycloak
+|link:http://localhost:8090[]
+
+|Kafka UI
+|link:http://localhost:8091[]
+
+|MongoDB
+|`mongodb://localhost:27017`
+|===
+
+=== Start APIs
+
+Use this option when you want to run the backend services from their published Docker images.
+
+[source,bash]
+----
+docker compose --env-file docker-compose/.env -f docker-compose/docker-compose-apis.yaml up -d
+----
+
+The API Compose profile exposes services such as:
+
+[options="header"]
+|===
+|Service |Local port
+
+|Core API
+|`3001`
+
+|Strategic API
+|`3002`
+
+|Tactical API
+|`3003`
+
+|Attack Tables API
+|`3005`
+
+|Items API
+|`3006`
+
+|NPC Names API
+|`3007`
+
+|NPCs API
+|`3008`
+
+|Spells API
+|`3009`
+
+|Attack API
+|`8000`
+|===
+
+=== Start APIs With Nginx
+
+Use this option when you want the local API gateway in front of the services.
+
+[source,bash]
+----
+docker compose --env-file docker-compose/.env -f docker-compose/docker-compose-nginx.yaml up -d
+----
+
+The Nginx profile exposes the gateway on `http://localhost` and routes paths such as `/core/`, `/strategic/`, `/tactical/`, `/attack/`, `/attack-tables/`, and `/items/` to the corresponding API containers.
+
+=== Stop The Stack
+
+[source,bash]
+----
+docker compose --env-file docker-compose/.env -f docker-compose/docker-compose-apis.yaml down
+----
+
+To remove persisted local data as well, add `-v` after confirming that you no longer need the local volumes.
+
+=== Initialization Data Notice
+
+WARNING: Some initialization data is intentionally not available in this public repository because it may contain copyrighted Rolemaster Unified material owned by Iron Crown Enterprises.
+
+As a result, a fresh local environment may start successfully but lack part of the game reference content needed for complete functional usage. Contributors should use legally obtained materials only for personal testing and must not submit copyrighted data, tables, text, or derived protected content to this repository.
+
+== API Collection
+
+The Postman collection linked at the top of this README provides a convenient starting point for exploring the available APIs. Depending on the local profile and seed data available in your environment, some requests may require manual configuration of authentication tokens, base URLs, or test data.
+
+== License
+
+This project is distributed under the GPL-3.0 license. See link:LICENSE[] for details.
