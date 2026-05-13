@@ -130,28 +130,17 @@ The platform uses *MongoDB* for domain persistence, *Kafka* for event communicat
 |Static assets
 |===
 
-== Repository Structure
+== Resurces
 
-[options="header"]
-|===
-|Path |Purpose
+* `docker-compose/`:  different Docker Compose configurations: base infrastructure only, infrastructure + APIs, infrastructure + APIs + Nginx.
+* `terraform/`: Terraform scripts for AWS infrastructure provisioning.
+* `diagrams/`: Architecture diagrams and their source files.
 
-|`docker-compose/`
-|Local Docker Compose definitions for infrastructure, APIs, Keycloak, Kafka UI, and Nginx.
+To deploy the project locally on a local Kubernetes cluster, we have the following Minikube-based resources (_WIP_):
 
-|`diagrams/`
-|Architecture diagrams and their source files.
-
-|`argocd/`
-|Argo CD application descriptors for deployment automation.
-
-|`k8s/`
-|Kubernetes manifests and deployment resources.
-
-|`minikube/`
-|Helper scripts for local Kubernetes environments.
-
-|===
+* `minikube/`: Helper scripts for running the platform on Minikube local Kubernetes
+* `argocd/`: Argo CD application descriptors for GitOps deployment.
+* `k8s/`: Kubernetes manifests for deployment on cloud or local clusters.
 
 == Running Locally With Docker Compose
 
@@ -176,8 +165,6 @@ If the network already exists, Docker will report it and you can continue.
 === Environment
 
 The local Compose setup reads variables from `docker-compose/.env`. The file contains development credentials and local-only defaults for MongoDB, PostgreSQL, Keycloak, Kafka UI, and OIDC integration.
-
-Review the values before running the stack, especially if local ports such as `80`, `8080`, `8090`, `8091`, `27017`, or `9092-9094` are already in use.
 
 === Start Base Infrastructure
 
