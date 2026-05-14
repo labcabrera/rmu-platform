@@ -1,0 +1,21 @@
+# Keycloak connection
+keycloak_url            = "http://localhost:8080"
+keycloak_admin_username = "admin"
+keycloak_admin_password = "changeme"
+
+# Realm
+realm_name         = "rmu"
+realm_display_name = "RMU Platform"
+
+# Client
+rmu_client_secret = "changeme"
+
+rmu_client_valid_redirect_uris = [
+  "http://localhost:*/*",
+  "https://app.example.com/*",
+]
+
+rmu_client_web_origins = [
+  "http://localhost:*",
+  "https://app.example.com",
+]
