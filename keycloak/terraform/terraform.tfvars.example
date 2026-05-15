@@ -20,9 +20,25 @@ rmu_client_web_origins = [
   "https://app.example.com",
 ]
 
+rmu_client_front_valid_redirect_uris = [
+  "http://localhost:*/*",
+  "https://app.example.com/*",
+]
+
+rmu_client_front_web_origins = [
+  "http://localhost:*",
+  "https://app.example.com",
+]
+
 # Users
 primary_user_username   = "johndoe"
 primary_user_email      = "user@example.com"
 primary_user_first_name = "John"
 primary_user_last_name  = "Doe"
 primary_user_password   = "changeme"
+
+guest_user_username   = "guest"
+guest_user_email      = "guest@example.com"
+guest_user_first_name = "Guest"
+guest_user_last_name  = "User"
+guest_user_password   = "changeme"

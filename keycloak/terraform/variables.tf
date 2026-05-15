@@ -45,6 +45,18 @@ variable "rmu_client_web_origins" {
   default     = ["http://localhost:*"]
 }
 
+variable "rmu_client_front_valid_redirect_uris" {
+  description = "List of valid redirect URIs for rmu-client-front."
+  type        = list(string)
+  default     = ["http://localhost:8080/*"]
+}
+
+variable "rmu_client_front_web_origins" {
+  description = "List of allowed web origins for rmu-client-front (CORS)."
+  type        = list(string)
+  default     = ["http://localhost:*"]
+}
+
 variable "primary_user_username" {
   description = "Username for the primary user."
   type        = string
@@ -67,6 +79,33 @@ variable "primary_user_last_name" {
 
 variable "primary_user_password" {
   description = "Password for the primary user."
+  type        = string
+  sensitive   = true
+}
+
+variable "guest_user_username" {
+  description = "Username for the guest user."
+  type        = string
+  default     = "guest"
+}
+
+variable "guest_user_email" {
+  description = "Email for the guest user."
+  type        = string
+}
+
+variable "guest_user_first_name" {
+  description = "First name of the guest user."
+  type        = string
+}
+
+variable "guest_user_last_name" {
+  description = "Last name of the guest user."
+  type        = string
+}
+
+variable "guest_user_password" {
+  description = "Password for the guest user."
   type        = string
   sensitive   = true
 }

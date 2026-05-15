@@ -116,6 +116,41 @@ resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
 }
 
 # -----------------------------------------------------------------------------
+# Client: rmu-client-front (public / PKCE S256 / SPA)
+# -----------------------------------------------------------------------------
+
+resource "keycloak_openid_client" "rmu_client_front" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = "rmu-client-front"
+  name      = "RMU Client Front"
+  enabled   = true
+
+  access_type                  = "PUBLIC"
+  standard_flow_enabled        = true
+  implicit_flow_enabled        = false
+  direct_access_grants_enabled = false
+  service_accounts_enabled     = false
+
+  pkce_code_challenge_method = "S256"
+
+  valid_redirect_uris = var.rmu_client_front_valid_redirect_uris
+  web_origins         = var.rmu_client_front_web_origins
+}
+
+resource "keycloak_openid_client_default_scopes" "rmu_client_front_default_scopes" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = keycloak_openid_client.rmu_client_front.id
+
+  default_scopes = [
+    "profile",
+    "email",
+    "roles",
+    "web-origins",
+    keycloak_openid_client_scope.groups.name,
+  ]
+}
+
+# -----------------------------------------------------------------------------
 # User: primary
 # -----------------------------------------------------------------------------
 
@@ -146,4 +181,24 @@ resource "keycloak_user_groups" "primary_user_groups" {
     keycloak_group.rmu_treasure_law.id,
     keycloak_group.rmu_creature_law_i.id,
   ]
+}
+
+# -----------------------------------------------------------------------------
+# User: guest
+# -----------------------------------------------------------------------------
+
+resource "keycloak_user" "guest_user" {
+  realm_id = keycloak_realm.rmu.id
+  username = var.guest_user_username
+  enabled  = true
+
+  email          = var.guest_user_email
+  email_verified = true
+  first_name     = var.guest_user_first_name
+  last_name      = var.guest_user_last_name
+
+  initial_password {
+    value     = var.guest_user_password
+    temporary = false
+  }
 }
