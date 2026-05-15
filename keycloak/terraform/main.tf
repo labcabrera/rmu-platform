@@ -17,8 +17,8 @@ resource "keycloak_realm" "rmu" {
 
   ssl_required = "external"
 
-  access_token_lifespan                = "5m"
-  access_token_lifespan_for_implicit_flow = "15m"
+  access_token_lifespan                = "24h"
+  access_token_lifespan_for_implicit_flow = "24h"
   sso_session_idle_timeout             = "30m"
   sso_session_max_lifespan             = "10h"
   offline_session_idle_timeout         = "720h"
