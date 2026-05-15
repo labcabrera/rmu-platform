@@ -99,6 +99,28 @@ resource "keycloak_openid_group_membership_protocol_mapper" "groups_mapper" {
 }
 
 # -----------------------------------------------------------------------------
+# Service account role: assign realm-admin to rmu-client
+# -----------------------------------------------------------------------------
+
+data "keycloak_openid_client" "realm_management" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = "realm-management"
+}
+
+data "keycloak_role" "realm_admin" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = data.keycloak_openid_client.realm_management.id
+  name      = "realm-admin"
+}
+
+resource "keycloak_openid_client_service_account_role" "rmu_client_realm_admin" {
+  realm_id                = keycloak_realm.rmu.id
+  service_account_user_id = keycloak_openid_client.rmu_client.service_account_user_id
+  client_id               = data.keycloak_openid_client.realm_management.id
+  role                    = data.keycloak_role.realm_admin.name
+}
+
+# -----------------------------------------------------------------------------
 # Assign client scope to rmu-client (default)
 # -----------------------------------------------------------------------------
 
