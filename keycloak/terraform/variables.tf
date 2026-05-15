@@ -44,3 +44,29 @@ variable "rmu_client_web_origins" {
   type        = list(string)
   default     = ["http://localhost:*"]
 }
+
+variable "primary_user_username" {
+  description = "Username for the primary user."
+  type        = string
+}
+
+variable "primary_user_email" {
+  description = "Email for the primary user."
+  type        = string
+}
+
+variable "primary_user_first_name" {
+  description = "First name of the primary user."
+  type        = string
+}
+
+variable "primary_user_last_name" {
+  description = "Last name of the primary user."
+  type        = string
+}
+
+variable "primary_user_password" {
+  description = "Password for the primary user."
+  type        = string
+  sensitive   = true
+}

@@ -19,3 +19,10 @@ rmu_client_web_origins = [
   "http://localhost:*",
   "https://app.example.com",
 ]
+
+# Users
+primary_user_username   = "johndoe"
+primary_user_email      = "user@example.com"
+primary_user_first_name = "John"
+primary_user_last_name  = "Doe"
+primary_user_password   = "changeme"
