@@ -107,6 +107,7 @@ resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
   client_id = keycloak_openid_client.rmu_client.id
 
   default_scopes = [
+    "basic",
     "profile",
     "email",
     "roles",
@@ -142,6 +143,7 @@ resource "keycloak_openid_client_default_scopes" "rmu_client_front_default_scope
   client_id = keycloak_openid_client.rmu_client_front.id
 
   default_scopes = [
+    "basic",
     "profile",
     "email",
     "roles",
