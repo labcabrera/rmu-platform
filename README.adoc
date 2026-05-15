@@ -191,6 +191,19 @@ Useful local endpoints:
 |`mongodb://localhost:27017`
 |===
 
+==== Terraform Keycloak Setup
+
+To set up the basic Keycloak configuration (creating the realm, groups, clients, etc.), we will run the following commands:
+
+----
+cd keycloak/terraform
+cp terraform.tfvars.example terraform.tfvars
+# edit terraform.tfvars with your desired configuration
+terraform init
+terraform plan
+terraform apply
+----
+
 === Start APIs
 
 Use this option when you want to run the backend services from their published Docker images.

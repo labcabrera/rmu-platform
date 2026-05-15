@@ -1,9 +1,0 @@
-
-----
-cd keycloak/terraform
-cp terraform.tfvars.example terraform.tfvars
-# editar terraform.tfvars con los valores reales
-terraform init
-terraform plan
-terraform apply
-----
