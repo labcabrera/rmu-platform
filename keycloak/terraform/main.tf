@@ -7,7 +7,7 @@ resource "keycloak_realm" "rmu" {
   enabled      = true
   display_name = var.realm_display_name
 
-  registration_allowed           = false
+  registration_allowed           = true
   registration_email_as_username = false
   reset_password_allowed         = true
   remember_me                    = false
@@ -224,5 +224,81 @@ resource "keycloak_user" "guest_user" {
   initial_password {
     value     = var.guest_user_password
     temporary = false
+  }
+}
+
+# -----------------------------------------------------------------------------
+# User profile: make firstName and lastName optional
+# -----------------------------------------------------------------------------
+
+resource "keycloak_realm_user_profile" "rmu" {
+  realm_id = keycloak_realm.rmu.id
+
+  attribute {
+    name         = "username"
+    display_name = "$${username}"
+
+    validator {
+      name = "length"
+      config = {
+        min = "3"
+        max = "255"
+      }
+    }
+    validator {
+      name = "username-prohibited-characters"
+    }
+    validator {
+      name = "up-username-not-idn-homograph"
+    }
+
+    permissions {
+      view = ["admin", "user"]
+      edit = ["admin", "user"]
+    }
+
+    required_for_roles = ["user"]
+  }
+
+  attribute {
+    name         = "email"
+    display_name = "$${email}"
+
+    validator {
+      name = "email"
+    }
+    validator {
+      name = "length"
+      config = {
+        max = "255"
+      }
+    }
+
+    permissions {
+      view = ["admin", "user"]
+      edit = ["admin", "user"]
+    }
+
+    required_for_roles = ["user"]
+  }
+
+  attribute {
+    name         = "firstName"
+    display_name = "$${firstName}"
+
+    permissions {
+      view = ["admin", "user"]
+      edit = ["admin", "user"]
+    }
+  }
+
+  attribute {
+    name         = "lastName"
+    display_name = "$${lastName}"
+
+    permissions {
+      view = ["admin", "user"]
+      edit = ["admin", "user"]
+    }
   }
 }
