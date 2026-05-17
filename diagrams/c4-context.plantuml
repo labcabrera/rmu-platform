@@ -3,7 +3,7 @@ title RMU Engine Context Diagram
 
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 
-LAYOUT_LEFT_RIGHT()
+' LAYOUT_LEFT_RIGHT()
 
 UpdateElementStyle(person, $bgColor="#2b4a74ff")
 UpdateElementStyle(system, $bgColor="#4373b1ff")
@@ -35,6 +35,7 @@ Boundary(apis, "RMU Engine APIs") {
     System(rmu_api_spells, "Spell API", "NestJS")
     System(rmu_api_items, "Items API", "NestJS")
     System(rmu_api_attack_tables, "Attack Tables API", "Node.js")
+    System(rmu_api_media, "Media API", "Node.js")
 }
 
 Boundary(infrastructure, "Infrastructure") {
@@ -42,6 +43,10 @@ Boundary(infrastructure, "Infrastructure") {
     System_Ext(keycloak, "Keycloak", "26.x")
     System_Ext(kafka, "Kafka", "3.4.x")
     System_Ext(postgresql, "PostgreSQL", "16.x")
+}
+
+Boundary(aws, "AWS") {
+    System_Ext(s3, "S3", "Object storage")
 }
 
 Rel(user, rmu_mfe_shell, "Navigate", "HTTP")
@@ -57,6 +62,7 @@ Rel(rmu_mfe_shell, rmu_mfe_spells, "Federation", "Webpack")
 Rel(rmu_mfe_shell, rmu_api_users, "Read profile", "OIDC")
 Rel(rmu_mfe_shell, keycloak, "Authenticate user", "OIDC")
 Rel(rmu_mfe_shell, rmu_mfe_assets, "Load static content", "HTTP")
+Rel(rmu_mfe_shell, rmu_api_media, "", "HTTP")
 
 Rel(rmu_mfe_core, rmu_api_core, "", "HTTP")
 
@@ -65,7 +71,7 @@ Rel(rmu_mfe_strategic, rmu_api_npc_names, "", "HTTP")
 
 Rel(rmu_mfe_tactical, rmu_api_tactical, "", "HTTP")
 
-Rel(rmu_api_users, keycloak, "Read user info", "OIDC")
+Rel(rmu_api_users, keycloak, "Read/write user profile", "HTTP")
 
 Rel(rmu_mfe_npc, rmu_api_npc, "", "HTTP")
 
@@ -78,6 +84,8 @@ Rel(rmu_api_tactical, rmu_api_attack, "Manage attacks", "HTTP")
 Rel(rmu_api_attack, rmu_api_attack_tables, "Read tables", "HTTP")
 
 Rel(keycloak, postgresql, "", "")
+
+Rel(rmu_api_media, s3, "Store media", "S3 API")
 
 SHOW_LEGEND()
 

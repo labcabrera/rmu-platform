@@ -90,9 +90,11 @@ The platform uses *MongoDB* for domain persistence, *Kafka* for event communicat
 |link:https://github.com/labcabrera/rmu-api-users[]
 |NestJS
 
-|React Shared Library
-|link:https://github.com/labcabrera/rmu-react-shared-lib[]
-|React
+|API Media
+|link:https://github.com/labcabrera/rmu-api-media[]
+|NestJS
+
+
 |===
 
 === Micro-Frontend Modules
@@ -123,6 +125,10 @@ The platform uses *MongoDB* for domain persistence, *Kafka* for event communicat
 
 |MFE Spells
 |link:https://github.com/labcabrera/rmu-mfe-spells[]
+|React
+
+|React Shared Library
+|link:https://github.com/labcabrera/rmu-react-shared-lib[]
 |React
 
 |MFE Assets
