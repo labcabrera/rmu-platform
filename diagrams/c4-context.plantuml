@@ -35,7 +35,7 @@ Boundary(apis, "RMU Engine APIs") {
     System(rmu_api_spells, "Spell API", "NestJS")
     System(rmu_api_items, "Items API", "NestJS")
     System(rmu_api_attack_tables, "Attack Tables API", "Node.js")
-    System(rmu_api_media, "Media API", "Node.js")
+    System(rmu_api_media, "Media API", "NestJS")
 }
 
 Boundary(infrastructure, "Infrastructure") {
