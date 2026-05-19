@@ -77,6 +77,16 @@ resource "keycloak_openid_client" "rmu_client" {
 }
 
 # -----------------------------------------------------------------------------
+# Roles: rmu-client
+# -----------------------------------------------------------------------------
+
+resource "keycloak_role" "rmu_admin" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = keycloak_openid_client.rmu_client.id
+  name      = "rmu-admin"
+}
+
+# -----------------------------------------------------------------------------
 # Client scope: groups
 # -----------------------------------------------------------------------------
 
@@ -118,6 +128,13 @@ resource "keycloak_openid_client_service_account_role" "rmu_client_realm_admin" 
   service_account_user_id = keycloak_openid_client.rmu_client.service_account_user_id
   client_id               = data.keycloak_openid_client.realm_management.id
   role                    = data.keycloak_role.realm_admin.name
+}
+
+resource "keycloak_openid_client_service_account_role" "rmu_client_rmu_admin" {
+  realm_id                = keycloak_realm.rmu.id
+  service_account_user_id = keycloak_openid_client.rmu_client.service_account_user_id
+  client_id               = keycloak_openid_client.rmu_client.id
+  role                    = keycloak_role.rmu_admin.name
 }
 
 # -----------------------------------------------------------------------------
