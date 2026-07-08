@@ -178,7 +178,7 @@ Use this option when you only need MongoDB, PostgreSQL, Keycloak, Kafka, and Kaf
 
 [source,bash]
 ----
-docker compose -f docker-compose/docker-compose.yaml up -d
+docker compose --env-file docker-compose/.env -f docker-compose/docker-compose.yaml up -d
 ----
 
 Useful local endpoints:
@@ -216,7 +216,7 @@ Use this option when you want to run the backend services from their published D
 
 [source,bash]
 ----
-docker compose --env-file docker-compose/.env -f docker-compose/docker-compose-apis.yaml up -d
+docker compose --env-file docker-compose/.env -f docker-compose/docker-compose.yaml --profile apis up -d
 ----
 
 The API Compose profile exposes services such as:

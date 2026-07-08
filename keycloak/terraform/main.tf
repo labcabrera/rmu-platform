@@ -77,13 +77,21 @@ resource "keycloak_openid_client" "rmu_client" {
 }
 
 # -----------------------------------------------------------------------------
-# Roles: rmu-client
+# Mappers: rmu-client dedicated scope
 # -----------------------------------------------------------------------------
 
-resource "keycloak_role" "rmu_admin" {
+resource "keycloak_openid_hardcoded_claim_protocol_mapper" "rmu_client_groups" {
   realm_id  = keycloak_realm.rmu.id
   client_id = keycloak_openid_client.rmu_client.id
-  name      = "rmu-admin"
+  name      = "hardcoded-groups"
+
+  claim_name        = "groups"
+  claim_value       = jsonencode(["rmu-admin"])
+  claim_value_type  = "JSON"
+
+  add_to_id_token     = false
+  add_to_access_token = true
+  add_to_userinfo     = false
 }
 
 # -----------------------------------------------------------------------------
@@ -128,13 +136,6 @@ resource "keycloak_openid_client_service_account_role" "rmu_client_realm_admin" 
   service_account_user_id = keycloak_openid_client.rmu_client.service_account_user_id
   client_id               = data.keycloak_openid_client.realm_management.id
   role                    = data.keycloak_role.realm_admin.name
-}
-
-resource "keycloak_openid_client_service_account_role" "rmu_client_rmu_admin" {
-  realm_id                = keycloak_realm.rmu.id
-  service_account_user_id = keycloak_openid_client.rmu_client.service_account_user_id
-  client_id               = keycloak_openid_client.rmu_client.id
-  role                    = keycloak_role.rmu_admin.name
 }
 
 # -----------------------------------------------------------------------------

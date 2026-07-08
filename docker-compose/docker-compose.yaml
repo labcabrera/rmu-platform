@@ -6,21 +6,27 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - rmu-mongo-data:/data/db
     networks:
       - rmu-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rmu-postgres:
     image: postgres:16
     hostname: rmu-postgres
     container_name: rmu-postgres
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: keycloak
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_KEYCLOAK}
     networks:
       - rmu-network
     volumes:
@@ -34,19 +40,21 @@ services:
       - start
       - --features=scripts
       - --http-enabled=true
-      - --hostname=localhost
+      - --hostname=${KC_HOSTNAME}
     ports:
       - "8090:8080"
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
       KC_DB: postgres
       KC_DB_URL_HOST: rmu-postgres
-      KC_DB_URL_DATABASE: keycloak
-      KC_DB_USERNAME: admin
-      KC_DB_PASSWORD: admin
-      KC_HOSTNAME: localhost
+      KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
       KC_LOG_LEVEL: INFO
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: true
     volumes:
       - rmu-keycloak-data:/opt/keycloak/data
     networks:
@@ -81,6 +89,12 @@ services:
       - rmu-kafka-data:/var/lib/kafka/data
     networks:
       - rmu-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '>/dev/tcp/localhost/9092 && echo ok || exit 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -94,8 +108,203 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: rmu-kafka-broker:9092
       KAFKA_CLUSTERS_0_READONLY: false
       AUTH_TYPE: "LOGIN_FORM"
-      SPRING_SECURITY_USER_NAME: admin
-      SPRING_SECURITY_USER_PASSWORD: admin
+      SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USER}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD}
+    networks:
+      - rmu-network
+
+  rmu-api-core:
+    image: labcabrera/rmu-api-core:latest
+    container_name: rmu-api-core
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      RMU_MONGO_CORE_URI: ${MONGO_BASE_URI}/rmu-core?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-core
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-core-consumer
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      LOG_LEVEL: ${LOG_LEVEL}
+    networks:
+      - rmu-network
+
+  rmu-api-strategic:
+    image: labcabrera/rmu-api-strategic:latest
+    container_name: rmu-api-strategic
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
+      RMU_MONGO_STRATEGIC_URI: ${MONGO_BASE_URI}/rmu-strategic?authSource=admin
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_KAFKA_CLIENT_ID: rmu-api-strategic
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-strategic-consumer
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+      LOG_LEVEL: ${LOG_LEVEL}
+    networks:
+      - rmu-network
+
+  rmu-api-tactical:
+    image: labcabrera/rmu-api-tactical:latest
+    container_name: rmu-api-tactical
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_STRATEGIC_URI: http://rmu-api-strategic:3002/v1
+      RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
+      RMU_API_ITEMS_URI: http://rmu-apu-items:3006/v1
+      RMU_MONGO_TACTICAL_URI: ${MONGO_BASE_URI}/rmu-tactical?authSource=admin
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_KAFKA_CLIENT_ID: rmu-api-tactical
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-tactical-consumer
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+    networks:
+      - rmu-network
+
+  rmu-api-npcs:
+    image: labcabrera/rmu-api-npcs:latest
+    container_name: rmu-api-npcs
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      RMU_MONGO_NPCS_URI: ${MONGO_BASE_URI}/rmu-npcs?authSource=admin
+      RMU_IAM_BASE_URL: http://rmu-keycloak:8080
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_REALM: ${KEYCLOAK_REALM}
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_PARTITION_COUNT: '1'
+      RMU_KAFKA_CLIENT_ID: rmu-api-npcs
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3004/v1
+      RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
+    networks:
+      - rmu-network
+
+  rmu-api-attack-tables:
+    image: labcabrera/rmu-api-attack-tables:latest
+    container_name: rmu-api-attack-tables
+    profiles:
+      - apis
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+    networks:
+      - rmu-network
+
+  rmu-api-items:
+    image: labcabrera/rmu-api-items:latest
+    container_name: rmu-api-items
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_MONGO_ITEMS_URI: ${MONGO_BASE_URI}/rmu-items?authSource=admin
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_REALM: ${KEYCLOAK_REALM}
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_KAFKA_CLIENT_ID: rmu-api-items
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-items-consumer
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+    networks:
+      - rmu-network
+
+  rmu-api-spells:
+    image: labcabrera/rmu-api-spells:latest
+    container_name: rmu-api-spells
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3009:3009"
+    environment:
+      PORT: 3009
+      RMU_MONGO_SPELLS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-spells?authSource=admin
+      RMU_IAM_BASE_URL: http://rmu-keycloak:8080
+      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_REALM: ${KEYCLOAK_REALM}
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_CLIENT_ID: rmu-api-spells
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-spells-consumer
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+    networks:
+      - rmu-network
+
+  rmu-api-npc-names:
+    image: labcabrera/rmu-api-npc-names:latest
+    container_name: rmu-api-npc-names
+    profiles:
+      - apis
+    ports:
+      - "3007:3007"
     networks:
       - rmu-network
 
