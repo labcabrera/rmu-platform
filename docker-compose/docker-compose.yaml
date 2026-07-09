@@ -215,9 +215,8 @@ services:
       PORT: 3008
       RMU_MONGO_NPCS_URI: ${MONGO_BASE_URI}/rmu-npcs?authSource=admin
       RMU_IAM_BASE_URL: http://rmu-keycloak:8080
-      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
-      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-      RMU_IAM_REALM: ${KEYCLOAK_REALM}
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
@@ -257,9 +256,8 @@ services:
       PORT: 3006
       RMU_API_CORE_URI: http://rmu-api-core:3001/v1
       RMU_MONGO_ITEMS_URI: ${MONGO_BASE_URI}/rmu-items?authSource=admin
-      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
-      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-      RMU_IAM_REALM: ${KEYCLOAK_REALM}
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       RMU_KAFKA_CLIENT_ID: rmu-api-items
@@ -283,18 +281,79 @@ services:
       - "3009:3009"
     environment:
       PORT: 3009
-      RMU_MONGO_SPELLS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-spells?authSource=admin
-      RMU_IAM_BASE_URL: http://rmu-keycloak:8080
-      RMU_IAM_JWK_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
-      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
-      RMU_IAM_REALM: ${KEYCLOAK_REALM}
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_MONGO_SPELLS_URI: ${MONGO_BASE_URI}/rmu-spells?authSource=admin
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
       RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
-      RMU_KAFKA_BROKERS: rmu-kafka-broker:9092
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
       RMU_KAFKA_CLIENT_ID: rmu-api-spells
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-spells-consumer
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
+    networks:
+      - rmu-network
+
+  rmu-api-users:
+    image: labcabrera/rmu-api-users:latest
+    container_name: rmu-api-users
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      RMU_MONGO_USERS_URI: ${MONGO_BASE_URI}/rmu-users?authSource=admin
+      RMU_IAM_JWKS_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_ADMIN_BASE_URL: http://rmu-keycloak:8080/realms/${KEYCLOAK_REALM}
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_KAFKA_CLIENT_ID: rmu-api-users
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-users-consumer
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+    networks:
+      - rmu-network
+
+  rmu-api-media:
+    image: labcabrera/rmu-api-media:latest
+    container_name: rmu-api-media
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+    ports:
+      - "3011:3011"
+    environment:
+      PORT: 3011
+      RMU_MONGO_MEDIA_URI: ${MONGO_BASE_URI}/rmu-media?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-media
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-media-consumer
+      RMU_KAFKA_DEFAULT_PARTITIONS: 1
+      RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+      RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+      RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      RMU_MEDIA_S3_REGION: ${AWS_S3_REGION}
+      RMU_MEDIA_S3_BUCKET: ${AWS_S3_BUCKET}
+      RMU_MEDIA_S3_BASE_FOLDER: ${AWS_S3_BASE_FOLDER}
+      RMU_MEDIA_S3_IMAGE_FOLDER: ${AWS_S3_IMAGE_FOLDER}
+      RMU_MEDIA_S3_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      RMU_MEDIA_S3_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      RMU_MEDIA_S3_FORCE_PATH_STYLE: true
+      RMU_MEDIA_IMAGE_MAX_WIDTH: 2048
+      RMU_MEDIA_S3_PUBLIC_BASE_URL: ${MEDIA_ASSETS_URI}
+      LOG_LEVEL: ${LOG_LEVEL}
     networks:
       - rmu-network
 
