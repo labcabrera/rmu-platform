@@ -1,18 +1,10 @@
-variable "keycloak_url" {
-  description = "Base URL of the Keycloak instance (e.g. http://localhost:8080)."
-  type        = string
-}
-
-variable "keycloak_admin_username" {
-  description = "Keycloak admin username."
-  type        = string
-  default     = "admin"
-}
-
-variable "keycloak_admin_password" {
-  description = "Keycloak admin password."
-  type        = string
-  sensitive   = true
+terraform {
+  required_providers {
+    keycloak = {
+      source  = "mrparkers/keycloak"
+      version = "~> 4.4"
+    }
+  }
 }
 
 variable "realm_name" {
@@ -48,7 +40,7 @@ variable "rmu_client_web_origins" {
 variable "rmu_client_front_valid_redirect_uris" {
   description = "List of valid redirect URIs for rmu-client-front."
   type        = list(string)
-  default     = ["http://localhost:8080/*"]
+  default     = ["http://localhost:*/*"]
 }
 
 variable "rmu_client_front_web_origins" {

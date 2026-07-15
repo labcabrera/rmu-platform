@@ -139,7 +139,7 @@ The platform uses *MongoDB* for domain persistence, *Kafka* for event communicat
 == Resurces
 
 * `docker-compose/`:  different Docker Compose configurations: base infrastructure only, infrastructure + APIs, infrastructure + APIs + Nginx.
-* `terraform/`: Terraform scripts for AWS infrastructure provisioning.
+* `terraform/`: Terraform scripts for AWS infrastructure provisioning and shared Keycloak configuration for local and AWS instances.
 * `diagrams/`: Architecture diagrams and their source files.
 
 To deploy the project locally on a local Kubernetes cluster, we have the following Minikube-based resources (_WIP_):
@@ -199,16 +199,23 @@ Useful local endpoints:
 
 ==== Terraform Keycloak Setup
 
-To set up the basic Keycloak configuration (creating the realm, groups, clients, etc.), we will run the following commands:
+The same Terraform configuration manages the realm, groups, clients, and users in
+either the local instance or the Keycloak instance deployed on AWS. For the local
+instance, run:
 
+[source,bash]
 ----
-cd keycloak/terraform
-cp terraform.tfvars.example terraform.tfvars
-# edit terraform.tfvars with your desired configuration
+cd terraform/keycloak
+cp environments/local.tfvars.example terraform.tfvars
 terraform init
 terraform plan
 terraform apply
 ----
+
+For AWS, first apply the infrastructure in `terraform/`, wait for the `auth`
+endpoint to become available, and then use
+`terraform/keycloak/environments/keycloak-aws.tfvars.example`. See
+link:terraform/keycloak/README.adoc[] for both workflows and legacy state migration.
 
 === Start APIs
 

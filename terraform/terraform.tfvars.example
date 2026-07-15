@@ -1,128 +1,43 @@
-project_name = "rmu-platform"
-environment  = "prod"
-aws_region   = "eu-west-1"
+# ---------------------------------------------------------------------------
+# Keycloak
+# ---------------------------------------------------------------------------
+keycloak_url            = "http://localhost:8090"
+keycloak_admin_username = "admin"
+keycloak_admin_password = "admin"
 
-domain_name      = "labcabrera.com"
-hosted_zone_name = "labcabrera.com"
+realm_name         = "rmu"
+realm_display_name = "Rolemaster Unified Engine"
 
-vpc_cidr            = "10.40.0.0/16"
-public_subnet_cidrs = ["10.40.1.0/24", "10.40.2.0/24"]
+rmu_client_secret = "changeit"
 
-mfe_bucket_name = "rmu-platform-prod-labcabrera-com-mfe"
+rmu_client_valid_redirect_uris = [
+  "http://localhost:*/*",
+  "*",
+]
+rmu_client_web_origins = [
+  "http://localhost:*",
+  "*",
+]
+rmu_client_front_valid_redirect_uris = [
+  "http://localhost:*/*",
+  "*",
+]
+rmu_client_front_web_origins = [
+  "http://localhost:*",
+  "*",
+]
 
-mfe_apps = {
-  shell = {
-    subdomain   = "app"
-    origin_path = "/shell"
-  }
-  core = {
-    subdomain   = "core"
-    origin_path = "/core"
-  }
-  strategic = {
-    subdomain   = "strategic"
-    origin_path = "/strategic"
-  }
-  tactical = {
-    subdomain   = "tactical"
-    origin_path = "/tactical"
-  }
-  npcs = {
-    subdomain   = "npcs"
-    origin_path = "/npcs"
-  }
-  spells = {
-    subdomain   = "spells"
-    origin_path = "/spells"
-  }
-}
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+primary_user_username   = "luiscabrera"
+primary_user_email      = "lab.cabrera@gmail.com"
+primary_user_first_name = "Luis"
+primary_user_last_name  = "Cabrera"
+primary_user_password   = "changeit"
 
-api_routes = {
-  core = {
-    subdomain         = "core-api"
-    port              = 3001
-    health_check_path = "/"
-    priority          = 10
-  }
-  strategic = {
-    subdomain         = "strategic-api"
-    port              = 3002
-    health_check_path = "/"
-    priority          = 20
-  }
-  tactical = {
-    subdomain         = "tactical-api"
-    port              = 3003
-    health_check_path = "/"
-    priority          = 30
-  }
-  attack_tables = {
-    subdomain         = "attack-tables-api"
-    port              = 3005
-    health_check_path = "/"
-    priority          = 40
-  }
-  items = {
-    subdomain         = "items-api"
-    port              = 3006
-    health_check_path = "/"
-    priority          = 50
-  }
-  npc_names = {
-    subdomain         = "npc-names-api"
-    port              = 3007
-    health_check_path = "/"
-    priority          = 60
-  }
-  npcs = {
-    subdomain         = "npcs-api"
-    port              = 3008
-    health_check_path = "/"
-    priority          = 70
-  }
-  spells = {
-    subdomain         = "spells-api"
-    port              = 3009
-    health_check_path = "/"
-    priority          = 80
-  }
-  attack = {
-    subdomain         = "attack-api"
-    port              = 8000
-    health_check_path = "/"
-    priority          = 90
-  }
-}
-
-api_instance_type = "t3.medium"
-key_name          = null
-
-ssh_allowed_cidrs = []
-alb_allowed_cidrs = ["0.0.0.0/0"]
-
-api_docker_compose_file = "../docker-compose/docker-compose-apis.yaml"
-
-api_environment = {
-  MONGO_USER     = "change-me"
-  MONGO_PASSWORD = "change-me"
-
-  POSTGRES_USER        = "change-me"
-  POSTGRES_PASSWORD    = "change-me"
-  POSTGRES_DB_KEYCLOAK = "keycloak"
-
-  KAFKA_UI_USER     = "change-me"
-  KAFKA_UI_PASSWORD = "change-me"
-
-  KC_BOOTSTRAP_ADMIN_USERNAME = "change-me"
-  KC_BOOTSTRAP_ADMIN_PASSWORD = "change-me"
-  KC_DB_URL_HOST              = "rmu-postgres"
-  KC_HOSTNAME                 = "auth.labcabrera.com"
-  KC_LOG_LEVEL                = "INFO"
-
-  RMU_IAM_BASE_URL      = "https://auth.labcabrera.com"
-  RMU_IAM_JWK_URI       = "https://auth.labcabrera.com/realms/rmu/protocol/openid-connect/certs"
-  RMU_IAM_TOKEN_URI     = "https://auth.labcabrera.com/realms/rmu/protocol/openid-connect/token"
-  RMU_IAM_REALM         = "rmu"
-  RMU_IAM_CLIENT_ID     = "change-me"
-  RMU_IAM_CLIENT_SECRET = "change-me"
-}
+guest_user_username   = "genericuser"
+guest_user_email      = "generic-user@example.com"
+guest_user_first_name = "John"
+guest_user_last_name  = "Doe"
+guest_user_password   = "changeit"

@@ -1,11 +1,21 @@
+# Terraform state and provider cache
 .terraform/
+.terraform.lock.hcl
+
+# Secret variable files — never commit real credentials
+terraform.tfvars
+
+# State files
 terraform.tfstate
-terraform.tfstate.*
-*.tfvars
-*.tfvars.json
-crash.log
-crash.*.log
+terraform.tfstate.backup
+*.tfstate.*
+
+# Override files
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Crash log
+crash.log
+crash.*.log

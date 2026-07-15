@@ -1,195 +1,147 @@
-variable "project_name" {
-  description = "Project name used in resource naming."
+# ---------------------------------------------------------------------------
+# Keycloak
+# ---------------------------------------------------------------------------
+
+variable "keycloak_url" {
+  description = "Base URL of the Keycloak instance (e.g. http://localhost:8080)."
   type        = string
-  default     = "rmu-platform"
 }
 
-variable "environment" {
-  description = "Deployment environment name."
+variable "keycloak_admin_username" {
+  description = "Keycloak admin username."
   type        = string
-  default     = "prod"
+  default     = "admin"
 }
 
-variable "aws_region" {
-  description = "AWS region where regional resources are created."
+variable "keycloak_admin_password" {
+  description = "Keycloak admin password."
   type        = string
-  default     = "eu-west-1"
-}
-
-variable "domain_name" {
-  description = "Main domain used to create Route53 records."
-  type        = string
-  default     = "labcabrera.com"
-}
-
-variable "hosted_zone_name" {
-  description = "Route53 hosted zone name. Defaults to domain_name when null."
-  type        = string
-  default     = null
-}
-
-variable "vpc_cidr" {
-  description = "CIDR block for the platform VPC."
-  type        = string
-  default     = "10.40.0.0/16"
-}
-
-variable "public_subnet_cidrs" {
-  description = "CIDR blocks for public subnets."
-  type        = list(string)
-  default     = ["10.40.1.0/24", "10.40.2.0/24"]
-}
-
-variable "mfe_bucket_name" {
-  description = "Name of the single S3 bucket that stores all MFE static assets. Defaults to a generated project/environment/domain name."
-  type        = string
-  default     = null
-}
-
-variable "mfe_apps" {
-  description = "Micro-frontends exposed through CloudFront. Each app uses the shared S3 bucket and a dedicated origin path."
-  type = map(object({
-    subdomain              = string
-    origin_path            = string
-    default_root_object    = optional(string, "index.html")
-    cloudfront_price_class = optional(string, "PriceClass_100")
-  }))
-  default = {
-    shell = {
-      subdomain   = "app"
-      origin_path = "/shell"
-    }
-    core = {
-      subdomain   = "core"
-      origin_path = "/core"
-    }
-    strategic = {
-      subdomain   = "strategic"
-      origin_path = "/strategic"
-    }
-    tactical = {
-      subdomain   = "tactical"
-      origin_path = "/tactical"
-    }
-    npcs = {
-      subdomain   = "npcs"
-      origin_path = "/npcs"
-    }
-    spells = {
-      subdomain   = "spells"
-      origin_path = "/spells"
-    }
-  }
-}
-
-variable "api_routes" {
-  description = "API host-based routing rules for the ALB. Each entry maps one subdomain to one container port on the EC2 instance."
-  type = map(object({
-    subdomain         = string
-    port              = number
-    health_check_path = optional(string, "/")
-    priority          = number
-  }))
-  default = {
-    core = {
-      subdomain = "core-api"
-      port      = 3001
-      priority  = 10
-    }
-    strategic = {
-      subdomain = "strategic-api"
-      port      = 3002
-      priority  = 20
-    }
-    tactical = {
-      subdomain = "tactical-api"
-      port      = 3003
-      priority  = 30
-    }
-    attack_tables = {
-      subdomain = "attack-tables-api"
-      port      = 3005
-      priority  = 40
-    }
-    items = {
-      subdomain = "items-api"
-      port      = 3006
-      priority  = 50
-    }
-    npc_names = {
-      subdomain = "npc-names-api"
-      port      = 3007
-      priority  = 60
-    }
-    npcs = {
-      subdomain = "npcs-api"
-      port      = 3008
-      priority  = 70
-    }
-    spells = {
-      subdomain = "spells-api"
-      port      = 3009
-      priority  = 80
-    }
-    attack = {
-      subdomain = "attack-api"
-      port      = 8000
-      priority  = 90
-    }
-  }
-}
-
-variable "api_instance_type" {
-  description = "EC2 instance type used to run the API Docker Compose stack."
-  type        = string
-  default     = "t3.medium"
-}
-
-variable "api_instance_ami_id" {
-  description = "Optional AMI ID for the API EC2 instance. When null, the latest Debian 12 AMI is used."
-  type        = string
-  default     = null
-}
-
-variable "key_name" {
-  description = "Optional EC2 key pair name for SSH access."
-  type        = string
-  default     = null
-}
-
-variable "ssh_allowed_cidrs" {
-  description = "CIDR blocks allowed to SSH into the API EC2 instance."
-  type        = list(string)
-  default     = []
-}
-
-variable "alb_allowed_cidrs" {
-  description = "CIDR blocks allowed to reach the public ALB."
-  type        = list(string)
-  default     = ["0.0.0.0/0"]
-}
-
-variable "api_docker_compose_file" {
-  description = "Path to the Docker Compose file copied into the API EC2 instance."
-  type        = string
-  default     = "../docker-compose/docker-compose-apis.yaml"
-}
-
-variable "api_environment" {
-  description = "Environment variables written to the API EC2 .env file used by Docker Compose."
-  type        = map(string)
   sensitive   = true
-  default     = {}
 }
 
-variable "enable_deletion_protection" {
-  description = "Enable deletion protection on the API ALB."
-  type        = bool
-  default     = true
+variable "realm_name" {
+  description = "Name of the Keycloak realm to create."
+  type        = string
+  default     = "rmu"
 }
 
-variable "tags" {
-  description = "Additional tags applied to all supported resources."
-  type        = map(string)
-  default     = {}
+variable "realm_display_name" {
+  description = "Display name of the realm shown in the Keycloak UI."
+  type        = string
+  default     = "RMU Platform"
+}
+
+variable "rmu_client_secret" {
+  description = "Client secret for rmu-client."
+  type        = string
+  sensitive   = true
+}
+
+variable "rmu_client_valid_redirect_uris" {
+  description = "List of valid redirect URIs for rmu-client."
+  type        = list(string)
+  default     = ["http://localhost:*/*"]
+}
+
+variable "rmu_client_web_origins" {
+  description = "List of allowed web origins for rmu-client (CORS)."
+  type        = list(string)
+  default     = ["http://localhost:*"]
+}
+
+variable "rmu_client_front_valid_redirect_uris" {
+  description = "List of valid redirect URIs for rmu-client-front."
+  type        = list(string)
+  default = [
+    "http://localhost:3000/*",
+    "http://localhost:3001/*",
+    "http://localhost:3002/*",
+    "http://localhost:3003/*",
+    "http://localhost:5173/*",
+    "http://127.0.0.1:3000/*",
+    "http://127.0.0.1:3001/*",
+    "http://127.0.0.1:3002/*",
+    "http://127.0.0.1:3003/*",
+    "http://127.0.0.1:5173/*",
+    "http://192.168.1.107:3000/*",
+    "http://192.168.1.107:3001/*",
+    "http://192.168.1.107:3002/*",
+    "http://192.168.1.107:3003/*",
+    "http://192.168.1.107:5173/*"
+  ]
+}
+
+variable "rmu_client_front_web_origins" {
+  description = "List of allowed web origins for rmu-client-front (CORS)."
+  type        = list(string)
+  default = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+    "http://127.0.0.1:5173",
+    "http://192.168.1.107:3000",
+    "http://192.168.1.107:3001",
+    "http://192.168.1.107:3002",
+    "http://192.168.1.107:3003",
+    "http://192.168.1.107:5173"
+  ]
+}
+
+variable "primary_user_username" {
+  description = "Username for the primary user."
+  type        = string
+}
+
+variable "primary_user_email" {
+  description = "Email for the primary user."
+  type        = string
+}
+
+variable "primary_user_first_name" {
+  description = "First name of the primary user."
+  type        = string
+}
+
+variable "primary_user_last_name" {
+  description = "Last name of the primary user."
+  type        = string
+}
+
+variable "primary_user_password" {
+  description = "Password for the primary user."
+  type        = string
+  sensitive   = true
+}
+
+variable "guest_user_username" {
+  description = "Username for the guest user."
+  type        = string
+  default     = "guest"
+}
+
+variable "guest_user_email" {
+  description = "Email for the guest user."
+  type        = string
+}
+
+variable "guest_user_first_name" {
+  description = "First name of the guest user."
+  type        = string
+}
+
+variable "guest_user_last_name" {
+  description = "Last name of the guest user."
+  type        = string
+}
+
+variable "guest_user_password" {
+  description = "Password for the guest user."
+  type        = string
+  sensitive   = true
 }

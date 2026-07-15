@@ -17,12 +17,12 @@ resource "keycloak_realm" "rmu" {
 
   ssl_required = "external"
 
-  access_token_lifespan                = "24h"
+  access_token_lifespan                   = "24h"
   access_token_lifespan_for_implicit_flow = "24h"
-  sso_session_idle_timeout             = "30m"
-  sso_session_max_lifespan             = "10h"
-  offline_session_idle_timeout         = "720h"
-  offline_session_max_lifespan_enabled = false
+  sso_session_idle_timeout                = "30m"
+  sso_session_max_lifespan                = "10h"
+  offline_session_idle_timeout            = "720h"
+  offline_session_max_lifespan_enabled    = false
 }
 
 # -----------------------------------------------------------------------------
@@ -55,46 +55,6 @@ resource "keycloak_group" "rmu_creature_law_i" {
 }
 
 # -----------------------------------------------------------------------------
-# Client: rmu-client (confidential / authentication enabled)
-# -----------------------------------------------------------------------------
-
-resource "keycloak_openid_client" "rmu_client" {
-  realm_id  = keycloak_realm.rmu.id
-  client_id = "rmu-client"
-  name      = "RMU Client"
-  enabled   = true
-
-  access_type                  = "CONFIDENTIAL"
-  standard_flow_enabled        = true
-  implicit_flow_enabled        = false
-  direct_access_grants_enabled = true
-  service_accounts_enabled     = true
-
-  client_secret = var.rmu_client_secret
-
-  valid_redirect_uris = var.rmu_client_valid_redirect_uris
-  web_origins         = var.rmu_client_web_origins
-}
-
-# -----------------------------------------------------------------------------
-# Mappers: rmu-client dedicated scope
-# -----------------------------------------------------------------------------
-
-resource "keycloak_openid_hardcoded_claim_protocol_mapper" "rmu_client_groups" {
-  realm_id  = keycloak_realm.rmu.id
-  client_id = keycloak_openid_client.rmu_client.id
-  name      = "hardcoded-groups"
-
-  claim_name        = "groups"
-  claim_value       = jsonencode(["rmu-admin"])
-  claim_value_type  = "JSON"
-
-  add_to_id_token     = false
-  add_to_access_token = true
-  add_to_userinfo     = false
-}
-
-# -----------------------------------------------------------------------------
 # Client scope: groups
 # -----------------------------------------------------------------------------
 
@@ -117,6 +77,56 @@ resource "keycloak_openid_group_membership_protocol_mapper" "groups_mapper" {
 }
 
 # -----------------------------------------------------------------------------
+# Client: rmu-client (confidential / authentication enabled)
+# -----------------------------------------------------------------------------
+
+resource "keycloak_openid_client" "rmu_client" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = "rmu-client"
+  name      = "RMU Client"
+  enabled   = true
+
+  access_type                  = "CONFIDENTIAL"
+  standard_flow_enabled        = true
+  implicit_flow_enabled        = false
+  direct_access_grants_enabled = true
+  service_accounts_enabled     = true
+
+  client_secret = var.rmu_client_secret
+
+  valid_redirect_uris = var.rmu_client_valid_redirect_uris
+  web_origins         = var.rmu_client_web_origins
+}
+
+resource "keycloak_openid_hardcoded_claim_protocol_mapper" "rmu_client_groups" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = keycloak_openid_client.rmu_client.id
+  name      = "hardcoded-groups"
+
+  claim_name       = "groups"
+  claim_value      = jsonencode(["rmu-admin", "rmu-admin-tmp"])
+  claim_value_type = "JSON"
+
+  add_to_id_token     = false
+  add_to_access_token = true
+  add_to_userinfo     = false
+}
+
+resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
+  realm_id  = keycloak_realm.rmu.id
+  client_id = keycloak_openid_client.rmu_client.id
+
+  default_scopes = [
+    "basic",
+    "profile",
+    "email",
+    "roles",
+    "web-origins",
+    keycloak_openid_client_scope.groups.name,
+  ]
+}
+
+# -----------------------------------------------------------------------------
 # Service account role: assign realm-admin to rmu-client
 # -----------------------------------------------------------------------------
 
@@ -136,24 +146,6 @@ resource "keycloak_openid_client_service_account_role" "rmu_client_realm_admin" 
   service_account_user_id = keycloak_openid_client.rmu_client.service_account_user_id
   client_id               = data.keycloak_openid_client.realm_management.id
   role                    = data.keycloak_role.realm_admin.name
-}
-
-# -----------------------------------------------------------------------------
-# Assign client scope to rmu-client (default)
-# -----------------------------------------------------------------------------
-
-resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
-  realm_id  = keycloak_realm.rmu.id
-  client_id = keycloak_openid_client.rmu_client.id
-
-  default_scopes = [
-    "basic",
-    "profile",
-    "email",
-    "roles",
-    "web-origins",
-    keycloak_openid_client_scope.groups.name,
-  ]
 }
 
 # -----------------------------------------------------------------------------

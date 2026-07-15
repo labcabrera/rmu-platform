@@ -10,8 +10,6 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - rmu-mongo-data:/data/db
-    networks:
-      - rmu-network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -27,8 +25,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB_KEYCLOAK}
-    networks:
-      - rmu-network
     volumes:
       - rmu-postgres-data:/var/lib/postgresql/data
 
@@ -57,8 +53,6 @@ services:
       KC_HTTP_ENABLED: true
     volumes:
       - rmu-keycloak-data:/opt/keycloak/data
-    networks:
-      - rmu-network
 
   rmu-kafka:
     image: confluentinc/cp-kafka:7.4.0
@@ -87,8 +81,6 @@ services:
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     volumes:
       - rmu-kafka-data:/var/lib/kafka/data
-    networks:
-      - rmu-network
     healthcheck:
       test: ["CMD-SHELL", "bash -c '>/dev/tcp/localhost/9092 && echo ok || exit 1'"]
       interval: 10s
@@ -110,8 +102,6 @@ services:
       AUTH_TYPE: "LOGIN_FORM"
       SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USER}
       SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD}
-    networks:
-      - rmu-network
 
   rmu-api-core:
     image: labcabrera/rmu-api-core:latest
@@ -137,8 +127,6 @@ services:
       RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
       LOG_LEVEL: ${LOG_LEVEL}
-    networks:
-      - rmu-network
 
   rmu-api-strategic:
     image: labcabrera/rmu-api-strategic:latest
@@ -166,8 +154,6 @@ services:
       RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
       LOG_LEVEL: ${LOG_LEVEL}
-    networks:
-      - rmu-network
 
   rmu-api-tactical:
     image: labcabrera/rmu-api-tactical:latest
@@ -196,8 +182,6 @@ services:
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-tactical-consumer
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
       RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
-    networks:
-      - rmu-network
 
   rmu-api-npcs:
     image: labcabrera/rmu-api-npcs:latest
@@ -225,8 +209,6 @@ services:
       RMU_API_CORE_URI: http://rmu-api-core:3001/v1
       RMU_API_ITEMS_URI: http://rmu-api-items:3004/v1
       RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
-    networks:
-      - rmu-network
 
   rmu-api-attack-tables:
     image: labcabrera/rmu-api-attack-tables:latest
@@ -237,8 +219,6 @@ services:
       - "3005:3005"
     environment:
       PORT: 3005
-    networks:
-      - rmu-network
 
   rmu-api-items:
     image: labcabrera/rmu-api-items:latest
@@ -264,8 +244,6 @@ services:
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-items-consumer
       RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
-    networks:
-      - rmu-network
 
   rmu-api-spells:
     image: labcabrera/rmu-api-spells:latest
@@ -291,8 +269,6 @@ services:
       RMU_KAFKA_CLIENT_ID: rmu-api-spells
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-spells-consumer
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
-    networks:
-      - rmu-network
 
   rmu-api-users:
     image: labcabrera/rmu-api-users:latest
@@ -318,8 +294,6 @@ services:
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-users-consumer
       RMU_KAFKA_DEFAULT_PARTITIONS: 1
       RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
-    networks:
-      - rmu-network
 
   rmu-api-media:
     image: labcabrera/rmu-api-media:latest
@@ -354,8 +328,6 @@ services:
       RMU_MEDIA_IMAGE_MAX_WIDTH: 2048
       RMU_MEDIA_S3_PUBLIC_BASE_URL: ${MEDIA_ASSETS_URI}
       LOG_LEVEL: ${LOG_LEVEL}
-    networks:
-      - rmu-network
 
   rmu-api-npc-names:
     image: labcabrera/rmu-api-npc-names:latest
@@ -364,8 +336,6 @@ services:
       - apis
     ports:
       - "3007:3007"
-    networks:
-      - rmu-network
 
 volumes:
   rmu-mongo-data:
@@ -376,7 +346,3 @@ volumes:
     driver: local
   rmu-kafka-data:
     driver: local
-
-networks:
-  rmu-network:
-    external: true

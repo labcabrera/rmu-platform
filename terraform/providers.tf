@@ -1,8 +1,6 @@
-provider "aws" {
-  region = var.aws_region
-}
-
-provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
+provider "keycloak" {
+  client_id = "admin-cli"
+  username  = var.keycloak_admin_username
+  password  = var.keycloak_admin_password
+  url       = var.keycloak_url
 }

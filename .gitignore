@@ -4,3 +4,10 @@ mongodb/dump*
 **/.env
 **/.env-pro
 aws.*
+
+# Terraform working directories, local state, and private variable files
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/terraform.tfvars
+**/*.auto.tfvars

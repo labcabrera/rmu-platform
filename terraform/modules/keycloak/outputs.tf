@@ -23,6 +23,16 @@ output "group_rmu_spell_law_id" {
   value       = keycloak_group.rmu_spell_law.id
 }
 
+output "group_rmu_treasure_law_id" {
+  description = "ID of the rmu-treasure-law group."
+  value       = keycloak_group.rmu_treasure_law.id
+}
+
+output "group_rmu_creature_law_i_id" {
+  description = "ID of the rmu-creature-law-i group."
+  value       = keycloak_group.rmu_creature_law_i.id
+}
+
 output "rmu_client_id" {
   description = "Client ID of rmu-client."
   value       = keycloak_openid_client.rmu_client.client_id
