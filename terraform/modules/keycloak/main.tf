@@ -98,20 +98,6 @@ resource "keycloak_openid_client" "rmu_client" {
   web_origins         = var.rmu_client_web_origins
 }
 
-resource "keycloak_openid_hardcoded_claim_protocol_mapper" "rmu_client_groups" {
-  realm_id  = keycloak_realm.rmu.id
-  client_id = keycloak_openid_client.rmu_client.id
-  name      = "hardcoded-groups"
-
-  claim_name       = "groups"
-  claim_value      = jsonencode(["rmu-admin", "rmu-admin-tmp"])
-  claim_value_type = "JSON"
-
-  add_to_id_token     = false
-  add_to_access_token = true
-  add_to_userinfo     = false
-}
-
 resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
   realm_id  = keycloak_realm.rmu.id
   client_id = keycloak_openid_client.rmu_client.id
