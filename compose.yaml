@@ -1,13 +1,22 @@
+# Services are grouped by profile; enable them with COMPOSE_PROFILES in .env:
+#   infrastructure  MongoDB, PostgreSQL, Keycloak, Kafka, Kafka UI
+#   apis            backend API containers (must be enabled together with infrastructure)
+#   frontend        React micro-frontends (none defined yet)
 services:
   rmu-mongo:
     image: mongo:8.0
     hostname: rmu-mongo
     container_name: rmu-mongo
+    profiles:
+      - infrastructure
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      # Kernel 6.19+ breaks tcmalloc's rseq usage (SERVER-121912). Let glibc own rseq
+      # so mongod falls back to a safe allocator mode; harmless on older kernels.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     volumes:
       - rmu-mongo-data:/data/db
     healthcheck:
@@ -21,6 +30,8 @@ services:
     image: postgres:16
     hostname: rmu-postgres
     container_name: rmu-postgres
+    profiles:
+      - infrastructure
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -32,6 +43,8 @@ services:
     image: quay.io/keycloak/keycloak:26.3
     hostname: rmu-keycloak
     container_name: rmu-keycloak
+    profiles:
+      - infrastructure
     command:
       - start
       - --features=scripts
@@ -58,6 +71,8 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     hostname: rmu-kafka-broker
     container_name: rmu-kafka-broker
+    profiles:
+      - infrastructure
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -91,6 +106,8 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: rmu-kafka-ui
+    profiles:
+      - infrastructure
     depends_on:
       - rmu-kafka
     ports:
@@ -346,3 +363,9 @@ volumes:
     driver: local
   rmu-kafka-data:
     driver: local
+
+# Fixed name so containers started outside this file (e.g. `make docker-run` in an API repo)
+# can join with --network rmu-network.
+networks:
+  default:
+    name: rmu-network

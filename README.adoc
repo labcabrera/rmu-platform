@@ -138,7 +138,7 @@ The platform uses *MongoDB* for domain persistence, *Kafka* for event communicat
 
 == Resurces
 
-* `docker-compose/`:  different Docker Compose configurations: base infrastructure only, infrastructure + APIs, infrastructure + APIs + Nginx.
+* `compose.yaml`: Docker Compose definition of the local stack, organized in profiles (infrastructure, APIs, frontend).
 * `terraform/`: Terraform scripts for AWS infrastructure provisioning and shared Keycloak configuration for local and AWS instances.
 * `diagrams/`: Architecture diagrams and their source files.
 
@@ -157,31 +157,72 @@ Install the following tools before starting the platform locally:
 * Docker Engine or Docker Desktop.
 * Docker Compose v2.
 * A local clone of this repository.
-* Access to the Docker images referenced by the Compose files.
-
-The Compose files expect an external Docker network named `rmu-network`.
-
-[source,bash]
-----
-docker network create rmu-network
-----
-
-If the network already exists, Docker will report it and you can continue.
+* Access to the Docker images referenced by `compose.yaml`.
 
 === Environment
 
-The local Compose setup reads variables from `docker-compose/.env`. The file contains development credentials and local-only defaults for MongoDB, PostgreSQL, Keycloak, Kafka UI, and OIDC integration.
-
-=== Start Base Infrastructure
-
-Use this option when you only need MongoDB, PostgreSQL, Keycloak, Kafka, and Kafka UI.
+`compose.yaml` reads its variables from the `.env` file in the repository root. Create it from the example:
 
 [source,bash]
 ----
-docker compose --env-file docker-compose/.env -f docker-compose/docker-compose.yaml up -d
+cp .env.example .env
 ----
 
-Useful local endpoints:
+The file contains development credentials and local-only defaults for MongoDB, PostgreSQL, Keycloak, Kafka UI, OIDC integration, and media storage.
+
+=== Profiles
+
+Every service in `compose.yaml` belongs to one of these profiles:
+
+[options="header"]
+|===
+|Profile |Services
+
+|`infrastructure`
+|MongoDB, PostgreSQL, Keycloak, Kafka, and Kafka UI.
+
+|`apis`
+|Backend API containers, built from the published `labcabrera/rmu-api-*` images.
+
+|`frontend`
+|React micro-frontends (no services defined yet).
+|===
+
+The active profiles are set with `COMPOSE_PROFILES` in `.env` as a comma-separated list:
+
+[source,bash]
+----
+# Infrastructure only, for example to run the APIs from source
+COMPOSE_PROFILES=infrastructure
+
+# Full backend stack (default in .env.example)
+COMPOSE_PROFILES=infrastructure,apis
+----
+
+IMPORTANT: The `apis` profile must always be enabled together with `infrastructure`. The APIs depend on the MongoDB and Kafka services. With `apis` alone, Compose fails with `depends on undefined service`.
+
+=== Start The Stack
+
+[source,bash]
+----
+docker compose up -d
+----
+
+To use different profiles for a single run without editing `.env`, pass them on the command line. `--profile` replaces the value of `COMPOSE_PROFILES`:
+
+[source,bash]
+----
+docker compose --profile infrastructure up -d
+----
+
+To list the services enabled by the current profiles:
+
+[source,bash]
+----
+docker compose config --services
+----
+
+Infrastructure endpoints:
 
 [options="header"]
 |===
@@ -195,38 +236,12 @@ Useful local endpoints:
 
 |MongoDB
 |`mongodb://localhost:27017`
+
+|Kafka (from the host)
+|`localhost:9093`
 |===
 
-==== Terraform Keycloak Setup
-
-The same Terraform configuration manages the realm, groups, clients, and users in
-either the local instance or the Keycloak instance deployed on AWS. For the local
-instance, run:
-
-[source,bash]
-----
-cd terraform/keycloak
-cp environments/local.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
-----
-
-For AWS, first apply the infrastructure in `terraform/`, wait for the `auth`
-endpoint to become available, and then use
-`terraform/keycloak/environments/keycloak-aws.tfvars.example`. See
-link:terraform/keycloak/README.adoc[] for both workflows and legacy state migration.
-
-=== Start APIs
-
-Use this option when you want to run the backend services from their published Docker images.
-
-[source,bash]
-----
-docker compose --env-file docker-compose/.env -f docker-compose/docker-compose.yaml --profile apis up -d
-----
-
-The API Compose profile exposes services such as:
+API endpoints (`apis` profile):
 
 [options="header"]
 |===
@@ -256,26 +271,40 @@ The API Compose profile exposes services such as:
 |Spells API
 |`3009`
 
-|Attack API
-|`8000`
+|Users API
+|`3010`
+
+|Media API
+|`3011`
 |===
 
-=== Start APIs With Nginx
+NOTE: MongoDB 8.0 refuses to start on Linux kernels 6.19 and newer (link:https://jira.mongodb.org/browse/SERVER-121912[SERVER-121912]). `compose.yaml` sets `GLIBC_TUNABLES=glibc.pthread.rseq=1` on the MongoDB service to avoid this, and the setting is harmless on older kernels.
 
-Use this option when you want the local API gateway in front of the services.
+==== Terraform Keycloak Setup
+
+The same Terraform configuration manages the realm, groups, clients, and users in
+either the local instance or the Keycloak instance deployed on AWS. For the local
+instance, run:
 
 [source,bash]
 ----
-docker compose --env-file docker-compose/.env -f docker-compose/docker-compose-nginx.yaml up -d
+cd terraform/keycloak
+cp environments/local.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
 ----
 
-The Nginx profile exposes the gateway on `http://localhost` and routes paths such as `/core/`, `/strategic/`, `/tactical/`, `/attack/`, `/attack-tables/`, and `/items/` to the corresponding API containers.
+For AWS, first apply the infrastructure in `terraform/`, wait for the `auth`
+endpoint to become available, and then use
+`terraform/keycloak/environments/keycloak-aws.tfvars.example`. See
+link:terraform/keycloak/README.adoc[] for both workflows and legacy state migration.
 
 === Stop The Stack
 
 [source,bash]
 ----
-docker compose --env-file docker-compose/.env -f docker-compose/docker-compose-apis.yaml down
+docker compose down
 ----
 
 To remove persisted local data as well, add `-v` after confirming that you no longer need the local volumes.
