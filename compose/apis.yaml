@@ -7,6 +7,20 @@
 # name in their published images; those values are also set under the old name, marked "legacy".
 # Remove each legacy line once the API releases a version that reads the new name.
 
+# Healthcheck timings shared by every API. The probe uses node's fetch (Node 20+), because not every
+# image ships wget or curl; PORT comes from each service's environment.
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 20s
+
+# NestJS APIs: Terminus endpoint at /v1/health (Mongo ping, memory and, for some APIs, the APIs
+# they call, so a dependency that is down also turns them unhealthy).
+x-api-healthcheck: &api-healthcheck
+  <<: *healthcheck
+  test: ["CMD", "node", "-e", "fetch(`http://localhost:$${process.env.PORT}/v1/health`).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+
 # Mongo + Kafka dependency shared by every API that persists data or publishes events.
 x-api-common: &api-common
   profiles:
@@ -16,6 +30,7 @@ x-api-common: &api-common
       condition: service_healthy
     rmu-kafka:
       condition: service_healthy
+  healthcheck: *api-healthcheck
 
 x-iam-env: &iam-env
   RMU_IAM_JWK_URI: ${RMU_IAM_BASE_URI}/realms/${RMU_IAM_REALM}/protocol/openid-connect/certs
@@ -78,6 +93,7 @@ services:
       # legacy: read by rmu-api-tactical images before feature/env-vars-alignment.
       RMU_API_NPC_URI: http://rmu-api-npcs:3008/v1
 
+  # Healthcheck built into the image (curl http://localhost:8000/health).
   rmu-api-attack:
     image: labcabrera/rmu-api-attack:${RMU_API_ATTACK_VERSION:-latest}
     container_name: rmu-api-attack
@@ -105,6 +121,10 @@ services:
       - "3005:3005"
     environment:
       PORT: 3005
+    # No health endpoint: the root answers 200 once the server listens.
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3005/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 
   rmu-api-items:
     <<: *api-common
@@ -128,6 +148,10 @@ services:
       - "3007:3007"
     environment:
       PORT: 3007
+    # No health endpoint: the root answers 200 once the server listens.
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3007/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 
   # rmu-api-npcs is not checked out in this workspace, so its variables were not aligned yet: it
   # reads RMU_IAM_BASE_URL and RMU_KAFKA_PARTITION_COUNT instead of the common names.
