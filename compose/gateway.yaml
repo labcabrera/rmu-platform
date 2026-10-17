@@ -1,13 +1,16 @@
-# nginx gateway with the same path prefixes the AWS ALB will use (/core/, /sso/, ...).
-# Routes are listed in config/nginx/default.conf. Upstreams resolve per request, so the
-# gateway starts with any subset of the APIs running.
+# Caddy gateway: a single origin for the shell, the remote MFEs (/mfe/<name>/), the APIs
+# (/api/<name>/) and Keycloak (/sso/). Routes are in config/caddy/Caddyfile. Upstreams resolve
+# per request, so the gateway starts with any subset of services running. A stopped MFE container
+# falls back to its webpack dev server on the host (host.docker.internal).
 services:
   rmu-gateway:
-    image: nginx:1.27-alpine
+    image: caddy:${CADDY_VERSION:-2.10-alpine}
     container_name: rmu-gateway
     profiles:
       - gateway
     ports:
       - "${RMU_GATEWAY_PORT:-80}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
-      - ./config/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro

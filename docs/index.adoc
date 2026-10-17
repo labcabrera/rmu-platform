@@ -8,6 +8,7 @@ Documentation map for the RMU Engine platform. `rmu-platform` describes how the 
 * link:architecture/overview.adoc[Overview]: context diagram, call flow between services, Kafka events.
 * link:architecture/services.adoc[Services]: catalog of APIs and micro-frontends with repository, port, database and image.
 * link:architecture/frontends.adoc[Frontends]: Module Federation contract, remotes and environment variables.
+* link:architecture/configuration.adoc[Configuration]: naming convention of the environment variables, the platform `.env`, legacy names.
 * link:architecture/auth.adoc[Authentication]: Keycloak realm, clients, groups and token claims.
 
 == Running the platform

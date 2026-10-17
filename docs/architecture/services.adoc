@@ -98,28 +98,29 @@ APIs are configured through `RMU_*` variables. In `compose/apis.yaml` they are b
 |Variable |Value
 
 |`RMU_MONGO_<DOMAIN>_URI`
-|`${MONGO_BASE_URI}/rmu-<domain>?authSource=admin`
+|`mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-<domain>?authSource=admin`
 
 |`RMU_IAM_JWK_URI`, `RMU_IAM_TOKEN_URI`
-|`${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/{certs,token}`
+|`${RMU_IAM_BASE_URI}/realms/${RMU_IAM_REALM}/protocol/openid-connect/{certs,token}`
 
 |`RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`
-|The confidential `rmu-client` (`KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`).
+|The confidential `rmu-client` (`RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET` in `.env`).
 
 |`RMU_KAFKA_BROKERS`, `RMU_KAFKA_CLIENT_ID`, `RMU_KAFKA_CONSUMER_GROUP_ID`
-|`${KAFKA_BROKERS}`, `rmu-api-<name>`, `rmu-api-<name>-consumer`.
+|`${RMU_KAFKA_BROKERS}`, `rmu-api-<name>`, `rmu-api-<name>-consumer` (only the APIs that consume events).
 
 |`RMU_API_<OTHER>_URI`
 |`http://rmu-api-<other>:<port>/v1`
 |===
 
-The IAM, Kafka and `LOG_LEVEL` blocks are YAML anchors (`x-iam-env`, `x-kafka-env`, `x-log-env`) merged into each service. Exceptions:
+The IAM, Kafka and `LOG_LEVEL` blocks are YAML anchors (`x-iam-env`, `x-kafka-env`, `x-log-env`) merged into each service that reads them. The naming convention and the legacy names still set for older images are in link:configuration.adoc[]. Service-specific variables:
 
-* *Users* reads `RMU_IAM_JWKS_URI` (with an S) and `RMU_IAM_ADMIN_BASE_URL`.
-* *Attack* (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE` and `RMU_API_ATTACK_TABLES_URL`.
-* *Media* reads its S3 settings from the `AWS_*` and `MEDIA_ASSETS_URI` values.
+* *Users* also reads `RMU_IAM_ADMIN_URI` (`${RMU_IAM_BASE_URI}/admin/realms/${RMU_IAM_REALM}`) and `RMU_USERS_ACTIVATION_CODE_SIZE`.
+* *Attack* (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE` and `RMU_API_ATTACK_TABLES_URI`.
+* *Media* reads `RMU_MEDIA_S3_*` and `RMU_MEDIA_IMAGE_*`, passed from the same names in `.env`.
+* *NPCs* is not aligned yet: it reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
 
-When adding a service, follow the same pattern and add it to this table, `compose/apis.yaml`, the gateway routes (`compose/config/nginx/default.conf`) and the context diagram.
+When adding a service, follow the same pattern and add it to this table, `compose/apis.yaml`, the gateway routes (`compose/config/caddy/Caddyfile`) and the context diagram.
 
 == Micro-frontends
 
@@ -187,6 +188,6 @@ See link:frontends.adoc[] for the Module Federation contract.
 |Kafka (KRaft) |`confluentinc/cp-kafka:7.4.0` |9092, 9093 (host), 9094 |`infrastructure`
 |Kafka UI |`provectuslabs/kafka-ui` |8091 |`tools`
 |Mongo Express |`mongo-express:1.0` |8092 |`tools`
-|Gateway |`nginx:1.27-alpine` |80 (`RMU_GATEWAY_PORT`) |`gateway`
+|Gateway |`caddy:2.10-alpine` |80 (`RMU_GATEWAY_PORT`) |`gateway`
 |Grafana + OTel |`grafana/otel-lgtm` |3000, 4317, 4318 |`observability`
 |===

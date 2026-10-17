@@ -1,0 +1,119 @@
+# Local gateway: one origin (http://localhost) for the shell, the remote MFEs, the APIs and Keycloak.
+#
+#   /                 rmu-mfe-shell            fallback: dev server on the host :8080
+#   /mfe/<name>/      rmu-mfe-<name>           fallback: dev server on the host (core :8089, strategic :8082,
+#                                              tactical :8083, npcs :8084, assets :4000)
+#   /api/<name>/      rmu-api-<name>:<port>
+#   /sso/             rmu-keycloak:8080
+#
+# handle_path strips the prefix, so /api/core/v1/races reaches rmu-api-core:3001/v1/races.
+# Upstreams are resolved when a request is proxied, so Caddy starts with any subset of services.
+#
+# MFE fallback: `lb_policy first` sends each request to the first upstream that answers. When
+# the container is stopped its name no longer resolves, the dial fails, and Caddy retries on
+# host.docker.internal (the webpack dev server started from VS Code). `make mfe-dev s=<name>`
+# and `make mfe-container s=<name>` switch between both without touching this file.
+{
+	auto_https off
+	admin off
+}
+
+(mfe_upstream) {
+	lb_policy first
+	lb_try_duration 2s
+	lb_try_interval 100ms
+	fail_duration 2s
+}
+
+:80 {
+	handle_path /api/core/* {
+		reverse_proxy rmu-api-core:3001
+	}
+	handle_path /api/strategic/* {
+		reverse_proxy rmu-api-strategic:3002
+	}
+	handle_path /api/tactical/* {
+		reverse_proxy rmu-api-tactical:3003
+	}
+	handle_path /api/attack-tables/* {
+		reverse_proxy rmu-api-attack-tables:3005
+	}
+	handle_path /api/attack/* {
+		reverse_proxy rmu-api-attack:8000
+	}
+	handle_path /api/items/* {
+		reverse_proxy rmu-api-items:3006
+	}
+	handle_path /api/npc-names/* {
+		reverse_proxy rmu-api-npc-names:3007
+	}
+	handle_path /api/npcs/* {
+		reverse_proxy rmu-api-npcs:3008
+	}
+	handle_path /api/spells/* {
+		reverse_proxy rmu-api-spells:3009
+	}
+	handle_path /api/users/* {
+		reverse_proxy rmu-api-users:3010
+	}
+	handle_path /api/media/* {
+		reverse_proxy rmu-api-media:3011
+	}
+
+	# Keycloak under a path prefix. The SPA uses Keycloak directly on :8090 (RMU_MFE_IAM_URI); this route
+	# mirrors the old nginx one (redirects and cookies rewritten to /sso/).
+	redir /sso /sso/ 301
+	handle_path /sso/* {
+		reverse_proxy rmu-keycloak:8080 {
+			header_down Location ^/ /sso/
+			header_down Set-Cookie "Path=/" "Path=/sso/"
+		}
+	}
+
+	handle_path /mfe/core/* {
+		reverse_proxy rmu-mfe-core:80 host.docker.internal:8089 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/strategic/* {
+		reverse_proxy rmu-mfe-strategic:80 host.docker.internal:8082 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/tactical/* {
+		reverse_proxy rmu-mfe-tactical:80 host.docker.internal:8083 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/npcs/* {
+		reverse_proxy rmu-mfe-npcs:80 host.docker.internal:8084 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/items/* {
+		reverse_proxy rmu-mfe-items:80 host.docker.internal:8088 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/spells/* {
+		reverse_proxy rmu-mfe-spells:80 host.docker.internal:8087 {
+			import mfe_upstream
+		}
+	}
+	# Images and locales. Fallback: `make start` (python3 local-start.py) in rmu-mfe-assets.
+	handle_path /mfe/assets/* {
+		reverse_proxy rmu-mfe-assets:80 host.docker.internal:4000 {
+			import mfe_upstream
+		}
+	}
+	# Remotes without a route yet: answer 404 instead of falling through to the shell's index.html.
+	handle /mfe/* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy rmu-mfe-shell:80 host.docker.internal:8080 {
+			import mfe_upstream
+		}
+	}
+}

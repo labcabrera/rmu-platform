@@ -1,0 +1,85 @@
+= Configuration variables
+:toc: left
+
+Every RMU service is configured through environment variables that follow one naming convention. The same concept has the same name everywhere: in each repository's `.env.example`, in the code, and in `compose/*.yaml`.
+
+== Convention
+
+[options="header",cols="2,3,3"]
+|===
+|Pattern |Meaning |Examples
+
+|`RMU_*`
+|Every application variable has the `RMU_` prefix. The exceptions are the conventional `PORT`, `LOG_LEVEL` and `DEBUG`, and the third-party images (`MONGO_*`, `POSTGRES_*`, `KC_*`, `KAFKA_UI_*`, `MONGO_EXPRESS_*`), which keep their own names.
+|`RMU_KAFKA_BROKERS`, `PORT`
+
+|`*_URI`
+|Any URL or base URL. There are no `*_URL` names.
+|`RMU_API_CORE_URI`, `RMU_MFE_ASSETS_URI`
+
+|`RMU_API_<NAME>_URI`
+|Base URL of an API, including `/v1`. `<NAME>` is the service name of the repository: `CORE`, `STRATEGIC`, `TACTICAL`, `ITEMS`, `NPCS`, `NPC_NAMES`, `SPELLS`, `USERS`, `MEDIA`, `ATTACK`, `ATTACK_TABLES`. In an API it is the in-network address; in an MFE it is the browser address (a gateway path).
+|`RMU_API_NPCS_URI` (not `NPC`)
+
+|`RMU_MONGO_<NAME>_URI`
+|Mongo connection string of the API that owns the database.
+|`RMU_MONGO_TACTICAL_URI`
+
+|`RMU_IAM_*`
+|Keycloak. APIs: `RMU_IAM_JWK_URI`, `RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`, and `RMU_IAM_ADMIN_URI` (users). MFEs: `RMU_IAM_URI`, `RMU_IAM_REALM`, `RMU_IAM_CLIENT_ID`.
+|`RMU_IAM_JWK_URI`
+
+|`RMU_KAFKA_*`
+|Kafka client: `RMU_KAFKA_BROKERS`, `RMU_KAFKA_CLIENT_ID`, `RMU_KAFKA_CONSUMER_GROUP_ID`, `RMU_KAFKA_DEFAULT_PARTITIONS`.
+|
+
+|`RMU_MFE_<NAME>_PUBLIC_PATH`
+|Where the shell loads a remote from (trailing slash).
+|`RMU_MFE_CORE_PUBLIC_PATH=/mfe/core/`
+
+|`RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`
+|Static assets and locales.
+|
+
+|`RMU_<NAME>_<SETTING>`
+|A setting that belongs to one service.
+|`RMU_MEDIA_S3_BUCKET`, `RMU_USERS_ACTIVATION_CODE_SIZE`, `RMU_SHELL_CONTACT_URI`
+|===
+
+Each `.env.example` is grouped in the same order: server, MongoDB, Keycloak, Kafka, other APIs, and the service's own settings.
+
+== rmu-platform `.env`
+
+The platform `.env` holds the inputs of `compose/*.yaml`, grouped in the same blocks as `.env.example`: compose, infrastructure, tools, gateway, API shared settings, media, MFE public values, image versions.
+
+* When a value is passed to the services as is, it keeps the name the services read: `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`, `LOG_LEVEL`.
+* `RMU_IAM_BASE_URI` and `RMU_IAM_REALM` build the Keycloak endpoints of the APIs.
+* The Mongo connection strings are built from `MONGO_USER` and `MONGO_PASSWORD`.
+* `RMU_MFE_*` are the values that differ for the browser: `RMU_MFE_IAM_URI`, `RMU_MFE_IAM_CLIENT_ID`, `RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`. The remote and API paths of the MFEs are fixed gateway paths in `compose/mfes.yaml`.
+
+== MFEs: runtime configuration
+
+The MFEs do not bake their URLs into the bundle. Each repository lists its keys in `public/env-config.template.js`, which is the single source for three mechanisms:
+
+* `webpack.config.ts` rewrites every `process.env.<KEY>` (in `src/` and in `rmu-react-shared-lib`) to `window.__RMU_CONFIG__.<KEY>`;
+* the dev server serves `/env-config.js` from `.env`;
+* the nginx image renders `env-config.js` from the container environment (`envsubst`).
+
+Inside the shell, the remotes read the shell's `window.__RMU_CONFIG__`, so the shell's template carries every key a remote uses.
+
+== Legacy names still set by compose
+
+Some published images still read an older name. `compose/apis.yaml` sets both names, marking the old one as `legacy`. Remove each legacy line once the API releases a version from `feature/env-vars-alignment`:
+
+[options="header",cols="1,2,2"]
+|===
+|API |Legacy name |Current name
+
+|users |`RMU_IAM_JWKS_URI` |`RMU_IAM_JWK_URI`
+|users |`RMU_IAM_ADMIN_BASE_URL` |`RMU_IAM_ADMIN_URI`
+|tactical |`RMU_API_NPC_URI` |`RMU_API_NPCS_URI`
+|attack |`RMU_API_ATTACK_TABLES_URL` |`RMU_API_ATTACK_TABLES_URI` (attack keeps accepting both)
+|media |`RMU_MEDIA_S3_PUBLIC_BASE_URL` |`RMU_MEDIA_S3_PUBLIC_BASE_URI`
+|===
+
+`rmu-api-npcs` is not aligned yet. It is not checked out in the workspace, and it still reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.

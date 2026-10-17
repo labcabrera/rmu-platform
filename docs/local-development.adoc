@@ -17,7 +17,7 @@ The local stack runs with Docker Compose from the root of this repository. `comp
 ----
 cp .env.example .env     # local-only credentials and defaults
 make up                  # starts the profiles in COMPOSE_PROFILES
-make tf-keycloak-apply   # once Keycloak answers on http://localhost:8090
+make keycloak-init       # once Keycloak answers on http://localhost:8090
 ----
 
 Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfvars` from its `.example`; see link:operations/keycloak-terraform.adoc[]. The APIs start before the realm exists and fail token validation until it has been applied.
@@ -38,7 +38,7 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`mfes`
 |`compose/mfes.yaml`
-|Micro-frontends as static images. None yet; see link:architecture/frontends.adoc[].
+|Micro-frontends as static images (shell, core, strategic, tactical, npcs, items, spells, assets), served through the gateway; see link:architecture/frontends.adoc[].
 
 |`tools`
 |`compose/tools.yaml`
@@ -46,14 +46,14 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`gateway`
 |`compose/gateway.yaml`
-|nginx with the same path routing as the future AWS ALB.
+|Caddy on port 80: the shell at `/`, the remote MFEs at `/mfe/<name>/`, the APIs at `/api/<name>/`, Keycloak at `/sso/`.
 
 |`observability`
 |`compose/observability.yaml`
 |Grafana, Loki, Tempo, Prometheus and an OTel collector (`grafana/otel-lgtm`).
 |===
 
-`COMPOSE_PROFILES` in `.env` selects what `docker compose up -d` starts. The default is `infrastructure,apis,mfes,tools`. On the command line, `--profile` replaces it for that run.
+`COMPOSE_PROFILES` in `.env` selects what `docker compose up -d` starts. The default is `infrastructure,apis,mfes,gateway,tools`. On the command line, `--profile` replaces it for that run.
 
 IMPORTANT: `apis` and `tools` depend on services of `infrastructure`. Without it, Compose fails with `depends on undefined service`. The `make up-*` targets add it for you.
 
@@ -125,20 +125,43 @@ It opens a `gnome-terminal` tab per checked-out MFE running `npm run start:live`
 
 == Gateway
 
-The `gateway` profile runs nginx on port 80 with one path prefix per service, the same prefixes the AWS ALB will use:
+The `gateway` profile runs Caddy on port 80 (`RMU_GATEWAY_PORT`). It is the single origin of the application, http://localhost. Routes are in `compose/config/caddy/Caddyfile`:
 
 [options="header",cols="1,2"]
 |===
-|Prefix |Upstream
+|Path |Upstream
 
+|`/` |`rmu-mfe-shell`, or its dev server on the host (`:8080`) when the container is stopped
+|`/mfe/core/`, `/mfe/strategic/`, `/mfe/tactical/`, `/mfe/npcs/`, `/mfe/items/`, `/mfe/spells/` |The remote's container, or its dev server on the host (`:8089`, `:8082`, `:8083`, `:8084`, `:8088`, `:8087`) when the container is stopped
+|`/mfe/assets/` |`rmu-mfe-assets` (images and locales), or `make start` in `rmu-mfe-assets` (`:4000`)
+|`/api/core/`, `/api/strategic/`, `/api/tactical/` |Core, Strategic, Tactical APIs
+|`/api/items/`, `/api/npcs/`, `/api/npc-names/`, `/api/spells/` |Items, NPCs, NPC Names, Spells APIs
+|`/api/attack/`, `/api/attack-tables/` |Attack, Attack Tables APIs
+|`/api/users/`, `/api/media/` |Users, Media APIs
 |`/sso/` |Keycloak
-|`/core/`, `/strategic/`, `/tactical/` |Core, Strategic, Tactical APIs
-|`/items/`, `/npcs/`, `/npc-names/`, `/spells/` |Items, NPCs, NPC Names, Spells APIs
-|`/attack/`, `/attack-tables/` |Attack, Attack Tables APIs
-|`/users/`, `/media/` |Users, Media APIs
 |===
 
-The prefix is stripped, so `http://localhost/core/v1/races` reaches `http://rmu-api-core:3001/v1/races`. Upstreams are resolved per request: the gateway starts with any subset of services, and a stopped one answers `502`. Routes are in `compose/config/nginx/default.conf`.
+The prefix is stripped, so `http://localhost/api/core/v1/races` reaches `http://rmu-api-core:3001/v1/races`. The APIs live under `/api/` so that `/core/...`, `/strategic/...` stay free for the shell's routes. Upstreams are resolved per request: the gateway starts with any subset of services, and a stopped one answers `502`. Any other `/mfe/<name>/` answers `404` until its MFE is added.
+
+== Working on one MFE
+
+Everything runs from containers except the MFE you are working on, which runs from source with the debugger attached. The gateway switches to the dev server on its own when the container is stopped, so nothing else is restarted or reconfigured.
+
+[source,bash]
+----
+make up                     # with mfes and gateway in COMPOSE_PROFILES
+make mfe-dev s=core         # docker compose stop rmu-mfe-core
+# VS Code in rmu-mfe-core: F5 "Debug core in the shell (gateway)"
+#   runs `npm run start:live` (:8089) and opens Chrome at http://localhost/core
+make mfe-container s=core   # back to the image
+----
+
+* Always open http://localhost, not the dev server port: the shell's configuration (`env-config.js`) uses gateway paths such as `/mfe/core/` and `/api/core/v1`.
+* Inside the shell, a remote reads the shell's configuration, so the remote's own `.env` only matters when it is opened standalone.
+* HMR connects straight to the dev server (`ws://localhost:<port>/ws`), not through the gateway.
+* If a remote is not available at all (container stopped and no dev server), only its route shows "Module not available".
+
+Images are built locally until the MFE repos publish them: `make docker-build` in each `rmu-mfe-*` repository tags `labcabrera/rmu-mfe-<name>:local`. Select them with `RMU_MFE_<NAME>_VERSION=local` in `.env`. The same works for `s=shell`, `s=strategic`, `s=tactical`, `s=npcs`, `s=items`, `s=spells` and `s=assets`.
 
 == Observability
 
@@ -154,10 +177,11 @@ OTEL_SERVICE_NAME: rmu-api-<name>
 
 == Troubleshooting
 
+* *A stopped MFE does not fall back to its dev server*: the gateway reaches the host through `host.docker.internal` (`host-gateway`). Check that the dev server listens on `0.0.0.0` and that a host firewall (ufw) allows traffic from the Docker bridge to its port.
 * *`rmu-network` already exists*: the network was created by hand with `docker network create`. Run `docker compose --profile '*' down && docker network rm rmu-network` once and start again.
 * *Kafka from the host bootstraps but then fails*: use `localhost:9093`. Port 9092 advertises `rmu-kafka-broker:9092`, which only resolves inside the Compose network.
 * *MongoDB does not start on Linux 6.19+*: MongoDB 8.0 is affected by link:https://jira.mongodb.org/browse/SERVER-121912[SERVER-121912]. The service sets `GLIBC_TUNABLES=glibc.pthread.rseq=1` to avoid it.
-* *APIs reject every token*: the realm has not been provisioned, or `KEYCLOAK_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`.
+* *APIs reject every token*: the realm has not been provisioned, or `RMU_IAM_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`.
 
 == Initialization data
 

@@ -1,17 +1,82 @@
-# React micro-frontends served as static nginx images, one per rmu-mfe-* repository.
+# React micro-frontends as static nginx images, one per rmu-mfe-* repository. They publish no
+# host port: the gateway (profile gateway) serves the shell at / and each remote at /mfe/<name>/,
+# so the dev server of an MFE can take over its route when its container is stopped
+# (`make mfe-dev s=<name>`). See docs/architecture/frontends.adoc.
 #
-# No MFE publishes a static image yet: the current Dockerfiles run the webpack dev server,
-# and webpack bakes the RMU_* URLs into the bundle at build time. Until each repo publishes
-# labcabrera/rmu-mfe-<name>:<version> with runtime configuration, run the MFEs from source
-# with `make mfes-dev`. See docs/architecture/frontends.adoc for the image contract.
-#
-# Expected shape of each service once the images exist:
-#
-#   rmu-mfe-shell:
-#     image: labcabrera/rmu-mfe-shell:${RMU_MFE_SHELL_VERSION:-latest}
-#     container_name: rmu-mfe-shell
-#     profiles:
-#       - mfes
-#     ports:
-#       - "8080:80"
-services: {}
+# Each image renders its runtime configuration (env-config.js) from these variables. The shell's
+# configuration is the one in effect inside the browser, so it carries the URLs of every remote and
+# API. Paths are relative to the gateway origin, so they do not change between environments; only
+# Keycloak and the assets come from .env (RMU_MFE_*).
+x-mfe-env: &mfe-env
+  RMU_IAM_URI: ${RMU_MFE_IAM_URI:-http://localhost:8090}
+  RMU_IAM_REALM: ${RMU_IAM_REALM:-rmu}
+  RMU_IAM_CLIENT_ID: ${RMU_MFE_IAM_CLIENT_ID:-rmu-client-front}
+  RMU_MFE_ASSETS_URI: ${RMU_MFE_ASSETS_URI:-/mfe/assets/}
+  RMU_MFE_I18N_URI: ${RMU_MFE_I18N_URI:-}
+  RMU_MFE_CORE_PUBLIC_PATH: /mfe/core/
+  RMU_MFE_STRATEGIC_PUBLIC_PATH: /mfe/strategic/
+  RMU_MFE_TACTICAL_PUBLIC_PATH: /mfe/tactical/
+  RMU_MFE_NPCS_PUBLIC_PATH: /mfe/npcs/
+  RMU_MFE_ITEMS_PUBLIC_PATH: /mfe/items/
+  RMU_MFE_SPELLS_PUBLIC_PATH: /mfe/spells/
+  RMU_API_CORE_URI: /api/core/v1
+  RMU_API_STRATEGIC_URI: /api/strategic/v1
+  RMU_API_TACTICAL_URI: /api/tactical/v1
+  RMU_API_ATTACK_TABLES_URI: /api/attack-tables/v1
+  RMU_API_ITEMS_URI: /api/items/v1
+  RMU_API_NPC_NAMES_URI: /api/npc-names/v1
+  RMU_API_NPCS_URI: /api/npcs/v1
+  RMU_API_SPELLS_URI: /api/spells/v1
+  RMU_API_USERS_URI: /api/users/v1
+  RMU_API_MEDIA_URI: /api/media/v1
+  RMU_SHELL_CONTACT_URI: ${RMU_SHELL_CONTACT_URI:-}
+  RMU_SHELL_CONTACT_EMAIL: ${RMU_SHELL_CONTACT_EMAIL:-}
+
+x-mfe-common: &mfe-common
+  profiles:
+    - mfes
+  environment: *mfe-env
+
+services:
+  rmu-mfe-shell:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-shell:${RMU_MFE_SHELL_VERSION:-latest}
+    container_name: rmu-mfe-shell
+
+  rmu-mfe-core:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-core:${RMU_MFE_CORE_VERSION:-latest}
+    container_name: rmu-mfe-core
+
+  rmu-mfe-strategic:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-strategic:${RMU_MFE_STRATEGIC_VERSION:-latest}
+    container_name: rmu-mfe-strategic
+
+  rmu-mfe-tactical:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-tactical:${RMU_MFE_TACTICAL_VERSION:-latest}
+    container_name: rmu-mfe-tactical
+
+  rmu-mfe-npcs:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-npcs:${RMU_MFE_NPCS_VERSION:-latest}
+    container_name: rmu-mfe-npcs
+
+  # No published image yet: build it with `make docker-build` in the repository (tag `local`).
+  rmu-mfe-items:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-items:${RMU_MFE_ITEMS_VERSION:-local}
+    container_name: rmu-mfe-items
+
+  rmu-mfe-spells:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-spells:${RMU_MFE_SPELLS_VERSION:-local}
+    container_name: rmu-mfe-spells
+
+  # Images and locales (no runtime configuration). Served at /mfe/assets/.
+  rmu-mfe-assets:
+    image: labcabrera/rmu-mfe-assets:${RMU_MFE_ASSETS_VERSION:-latest}
+    container_name: rmu-mfe-assets
+    profiles:
+      - mfes

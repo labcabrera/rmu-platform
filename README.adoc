@@ -30,7 +30,7 @@ cp .env.example .env
 make up                 # infrastructure, APIs, MFEs and tools (COMPOSE_PROFILES in .env)
 
 cp terraform/stacks/keycloak-local/terraform.tfvars.example terraform/stacks/keycloak-local/terraform.tfvars
-make tf-keycloak-apply  # realm, clients, groups and users in http://localhost:8090
+make keycloak-init      # realm, clients, groups and users in http://localhost:8090
 ----
 
 `make help` lists every target. See link:docs/local-development.adoc[Local development] for profiles, endpoints and running services from source.
