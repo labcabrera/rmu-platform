@@ -46,7 +46,7 @@ keycloak-init: ## Create/update the local Keycloak realm with terraform, no prom
 mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<workspace> optional)
 	scripts/start-mfes-dev.sh $(BASE_DIR)
 
-mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|npcs|assets) so the gateway uses its dev server
+mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|npcs|items|spells|assets) so the gateway uses its dev server
 	@test -n "$(s)" || { echo "Usage: make mfe-dev s=<name>" >&2; exit 1; }
 	docker compose stop rmu-mfe-$(s)
 	@echo "rmu-mfe-$(s) stopped. Start its dev server (F5 in VS Code, or 'make start' in rmu-mfe-$(s)) and open http://localhost/"

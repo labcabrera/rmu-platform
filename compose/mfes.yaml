@@ -63,6 +63,17 @@ services:
     image: labcabrera/rmu-mfe-npcs:${RMU_MFE_NPCS_VERSION:-latest}
     container_name: rmu-mfe-npcs
 
+  # No published image yet: build it with `make docker-build` in the repository (tag `local`).
+  rmu-mfe-items:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-items:${RMU_MFE_ITEMS_VERSION:-local}
+    container_name: rmu-mfe-items
+
+  rmu-mfe-spells:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-spells:${RMU_MFE_SPELLS_VERSION:-local}
+    container_name: rmu-mfe-spells
+
   # Images and locales (no runtime configuration). Served at /mfe/assets/.
   rmu-mfe-assets:
     image: labcabrera/rmu-mfe-assets:${RMU_MFE_ASSETS_VERSION:-latest}

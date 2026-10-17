@@ -90,14 +90,13 @@
 			import mfe_upstream
 		}
 	}
-	# items and spells have no image yet: only their dev server on the host (npm run start).
 	handle_path /mfe/items/* {
-		reverse_proxy host.docker.internal:8088 {
+		reverse_proxy rmu-mfe-items:80 host.docker.internal:8088 {
 			import mfe_upstream
 		}
 	}
 	handle_path /mfe/spells/* {
-		reverse_proxy host.docker.internal:8087 {
+		reverse_proxy rmu-mfe-spells:80 host.docker.internal:8087 {
 			import mfe_upstream
 		}
 	}

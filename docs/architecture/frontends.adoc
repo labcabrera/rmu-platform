@@ -53,7 +53,7 @@ Domain MFEs read `RMU_API_<NAME>_URI` for the APIs they call and `RMU_MFE_ASSETS
 |Mode |How
 
 |Compose, `mfes` profile
-|shell, core, strategic, tactical, npcs and assets run from static nginx images behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. Design: `specs/001-mfes-in-compose` in the workspace root.
+|shell, core, strategic, tactical, npcs, items, spells and assets run from static nginx images behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. Design: `specs/001-mfes-in-compose` in the workspace root.
 
 |Development, all from source
 |`make mfes-dev` opens one terminal tab per checked-out MFE running `npm run start:live`, plus the assets server. Open them through the gateway (http://localhost) with the containers stopped. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
