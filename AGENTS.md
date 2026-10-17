@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
   `.env.example` enables `infrastructure,apis,mfes,gateway,tools` by default.
 - `Makefile`: the entry point. Run `make help` to list the targets.
-- `scripts/`: `mongo-backup.sh`, `mongo-restore.sh` and `start-mfes-dev.sh`.
+- `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js`) and `start-mfes-dev.sh`.
 - `terraform/`: Keycloak realm/clients/groups/users via the `mrparkers/keycloak` provider. It holds `modules/keycloak` plus one state per stack in `stacks/<name>/`. Only `keycloak-local` exists for now.
 - `docs/`: AsciiDoc documentation (`index.adoc` is the map), including `architecture/diagrams/c4-context.plantuml`, the authoritative map of which MFE/API talks to what.
 - `specs/`: numbered change specs (`NNN-<objective>/{spec.md,plan.md}`).
@@ -32,6 +32,7 @@ make config                     # docker compose config -q + list active service
 make down / ps / logs s=<svc>   # act on every profile (--profile '*'); down keeps volumes
 make mongo-backup               # -> backups/mongo-<date>.archive.gz (gitignored)
 make mongo-restore f=<file>     # drops and restores the collections in the archive; asks first
+make mongo-migrate f=<script>   # run a scripts/migrations/*.js file with mongosh (DRY_RUN=1 to only count)
 make keycloak-init              # terraform apply -auto-approve of terraform/stacks/keycloak-local, needs terraform.tfvars
 make mfe-dev s=core             # stop rmu-mfe-core: the gateway falls back to its dev server on the host
 make mfe-container s=core       # serve it from the container again
