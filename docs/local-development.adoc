@@ -17,7 +17,7 @@ The local stack runs with Docker Compose from the root of this repository. `comp
 ----
 cp .env.example .env     # local-only credentials and defaults
 make up                  # starts the profiles in COMPOSE_PROFILES
-make tf-keycloak-apply   # once Keycloak answers on http://localhost:8090
+make keycloak-init       # once Keycloak answers on http://localhost:8090
 ----
 
 Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfvars` from its `.example`; see link:operations/keycloak-terraform.adoc[]. The APIs start before the realm exists and fail token validation until it has been applied.

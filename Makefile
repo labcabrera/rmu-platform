@@ -2,7 +2,7 @@ TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 .DEFAULT_GOAL := help
 .PHONY: help config up up-infra up-apis down ps logs mongo-backup mongo-restore \
-	tf-keycloak-plan tf-keycloak-apply mfes-dev mfe-dev mfe-container
+	keycloak-init mfes-dev mfe-dev mfe-container
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -39,13 +39,9 @@ mongo-restore: ## Restore a dump into the local Mongo (f=<archive>, drops the re
 	@test -n "$(f)" || { echo "Usage: make mongo-restore f=backups/<file>" >&2; exit 1; }
 	scripts/mongo-restore.sh "$(f)"
 
-tf-keycloak-plan: ## terraform plan for the local Keycloak (needs terraform.tfvars)
+keycloak-init: ## Create/update the local Keycloak realm with terraform, no prompt (needs terraform.tfvars)
 	terraform -chdir=$(TF_KEYCLOAK) init -input=false
-	terraform -chdir=$(TF_KEYCLOAK) plan
-
-tf-keycloak-apply: ## terraform apply for the local Keycloak (needs terraform.tfvars)
-	terraform -chdir=$(TF_KEYCLOAK) init -input=false
-	terraform -chdir=$(TF_KEYCLOAK) apply
+	terraform -chdir=$(TF_KEYCLOAK) apply -input=false -auto-approve
 
 mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<workspace> optional)
 	scripts/start-mfes-dev.sh $(BASE_DIR)

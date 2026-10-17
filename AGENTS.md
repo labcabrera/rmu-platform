@@ -32,7 +32,7 @@ make config                     # docker compose config -q + list active service
 make down / ps / logs s=<svc>   # act on every profile (--profile '*'); down keeps volumes
 make mongo-backup               # -> backups/mongo-<date>.archive.gz (gitignored)
 make mongo-restore f=<file>     # drops and restores the collections in the archive; asks first
-make tf-keycloak-plan / tf-keycloak-apply   # terraform/stacks/keycloak-local, needs terraform.tfvars
+make keycloak-init              # terraform apply -auto-approve of terraform/stacks/keycloak-local, needs terraform.tfvars
 make mfe-dev s=core             # stop rmu-mfe-core: the gateway falls back to its dev server on the host
 make mfe-container s=core       # serve it from the container again
 make mfes-dev [BASE_DIR=...]    # gnome-terminal tab per rmu-mfe-* checkout running npm run start:live

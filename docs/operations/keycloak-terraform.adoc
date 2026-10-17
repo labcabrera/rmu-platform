@@ -24,8 +24,7 @@ Start the infrastructure (`make up-infra`) and wait for http://localhost:8090. T
 cd terraform/stacks/keycloak-local
 cp terraform.tfvars.example terraform.tfvars   # set passwords, users and the client secret
 cd -
-make tf-keycloak-plan
-make tf-keycloak-apply
+make keycloak-init   # terraform init + apply -auto-approve, no confirmation prompt
 ----
 
 * `rmu_client_secret` must match `RMU_IAM_CLIENT_SECRET` in `.env`, which the APIs use.
@@ -48,5 +47,6 @@ Before this layout, the configuration lived directly in `terraform/`. Resource a
 ----
 mv terraform/terraform.tfstate* terraform/terraform.tfvars terraform/stacks/keycloak-local/
 rm -rf terraform/.terraform
-make tf-keycloak-plan    # should report no changes
+terraform -chdir=terraform/stacks/keycloak-local init
+terraform -chdir=terraform/stacks/keycloak-local plan    # should report no changes
 ----
