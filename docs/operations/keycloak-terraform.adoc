@@ -28,7 +28,7 @@ make tf-keycloak-plan
 make tf-keycloak-apply
 ----
 
-* `rmu_client_secret` must match `KEYCLOAK_CLIENT_SECRET` in `.env`, which the APIs use.
+* `rmu_client_secret` must match `RMU_IAM_CLIENT_SECRET` in `.env`, which the APIs use.
 * The variable defaults only allow `localhost` and `127.0.0.1` as redirect URIs and web origins for the SPA. To open the shell from another machine on the LAN, add its address to `rmu_client_front_valid_redirect_uris` and `rmu_client_front_web_origins` in `terraform.tfvars`.
 * State is local (`terraform.tfstate` in the stack folder, gitignored). After `docker compose --profile '*' down -v` the Keycloak database is gone, but the state still lists the resources. The next `plan` reports them as deleted outside Terraform, and `apply` recreates them.
 

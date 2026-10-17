@@ -28,20 +28,23 @@ Shell variables:
 |===
 |Variable |Purpose
 
-|`KC_URL`, `KC_REALM`, `KC_CLIENT_ID`
+|`RMU_IAM_URI`, `RMU_IAM_REALM`, `RMU_IAM_CLIENT_ID`
 |Keycloak and the public PKCE client `rmu-client-front`. Locally `http://localhost:8090`, `rmu`, `rmu-client-front`.
 
-|`RMU_MFE_ASSETS`, `RMU_MFE_I18N_BASE_URL`
-|Static assets and locales served by `rmu-mfe-assets` (`http://localhost:4000/`).
+|`RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`
+|Static assets and locales served by `rmu-mfe-assets` (`/mfe/assets/` through the gateway).
 
 |`RMU_MFE_<NAME>_PUBLIC_PATH`
-|Where each remote is served, with a trailing slash. For example `http://localhost:8089/` for core.
+|Where each remote is served, with a trailing slash. For example `/mfe/core/` for core.
 
-|`RMU_API_USERS_URL`, `RMU_API_MEDIA_URL`
-|APIs called by the shell itself.
+|`RMU_API_<NAME>_URI`
+|APIs, behind the gateway at `/api/<name>/v1`. The remotes read them from the shell's configuration.
+
+|`RMU_SHELL_CONTACT_URI`, `RMU_SHELL_CONTACT_EMAIL`
+|Contact page (optional).
 |===
 
-Domain MFEs read `RMU_API_<DOMAIN>_URL` for the APIs they call, `RMU_MFE_ASSETS`, and their own public path. `rmu-mfe-tactical` takes its dev server port from `PORT`.
+Domain MFEs read `RMU_API_<NAME>_URI` for the APIs they call and `RMU_MFE_ASSETS_URI`. Inside the shell they use the shell's values; their own `.env` only applies when they are opened standalone on their dev server port. Naming rules: link:configuration.adoc[].
 
 == Where the MFEs run
 
@@ -49,22 +52,23 @@ Domain MFEs read `RMU_API_<DOMAIN>_URL` for the APIs they call, `RMU_MFE_ASSETS`
 |===
 |Mode |How
 
-|Development (today)
-|`make mfes-dev` opens one terminal tab per checked-out MFE running `npm run start:live`, plus the assets server. The shell's `RMU_MFE_*_PUBLIC_PATH` variables point at the dev server ports. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
+|Compose, `mfes` profile
+|shell, core, strategic, tactical, npcs and assets run from static nginx images behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. Design: `specs/001-mfes-in-compose` in the workspace root.
 
-|Compose, `mfes` profile (shell and core)
-|Each MFE runs from a static nginx image behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. The other MFEs still run with `make mfes-dev`. Design: `specs/001-mfes-in-compose` in the workspace root.
+|Development, all from source
+|`make mfes-dev` opens one terminal tab per checked-out MFE running `npm run start:live`, plus the assets server. Open them through the gateway (http://localhost) with the containers stopped. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
 
 |AWS (planned)
-|The same static bundles on S3 behind CloudFront.
+|The same images on EC2 behind the gateway, or the same bundles on S3 behind CloudFront.
 |===
 
 == Static image contract
 
-No MFE publishes a static image yet: the current Dockerfiles run the webpack dev server. For an MFE to join the `mfes` profile, its repository needs to publish `labcabrera/rmu-mfe-<name>:<version>` that:
+Each MFE repository builds `labcabrera/rmu-mfe-<name>` with `make docker-build` (tag `local`) and publishes it with `make docker-push IMAGE_TAG=<version>`. The image:
 
-* builds the production bundle (`npm run build`) and serves `dist/` with nginx on port 80;
-* takes the URLs at *runtime* instead of build time, for example with an entrypoint that writes the `RMU_*` / `KC_*` environment into a `config.js` loaded before the bundle. Otherwise the same image cannot be used locally and on AWS;
-* sends CORS headers for `<name>-app.js` and its chunks, since the shell loads them from another origin.
+* builds the production bundle and serves `dist/` with nginx on port 80 (`rmu-react-shared-lib` comes from a BuildKit named context until it is published);
+* takes its URLs at runtime: `docker/40-env-config.sh` renders `public/env-config.template.js` into `env-config.js` from the container environment;
+* uses `publicPath: 'auto'` (remotes), so it works under any prefix (`/mfe/<name>/`, a dev server, a CDN);
+* sends `Cache-Control: no-cache` (chunk names carry no content hash yet) and an open CORS header.
 
-Once an image exists, add its service to `compose/mfes.yaml` with `profiles: [mfes]` and an `RMU_MFE_<NAME>_VERSION` variable, following the commented example in that file.
+To add an MFE: its service in `compose/mfes.yaml` (`<<: *mfe-common` and an `RMU_MFE_<NAME>_VERSION` variable), its `/mfe/<name>/` route with the dev server fallback in `compose/config/caddy/Caddyfile`, and `RMU_MFE_<NAME>_PUBLIC_PATH` in the shell.

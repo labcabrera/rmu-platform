@@ -29,7 +29,7 @@ services:
     ports:
       - "8092:8081"
     environment:
-      ME_CONFIG_MONGODB_URL: ${MONGO_BASE_URI}/?authSource=admin
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/?authSource=admin
       ME_CONFIG_BASICAUTH_ENABLED: true
       ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER:-admin}
       ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin}

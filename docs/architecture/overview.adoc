@@ -15,7 +15,7 @@ The source of the diagram is link:diagrams/c4-context.plantuml[]. Render the PNG
 ** *MongoDB*: one database per API (`rmu-core`, `rmu-strategic`, ...) on a shared instance.
 ** *Kafka*: domain events between APIs.
 ** *Keycloak*: OIDC provider, backed by *PostgreSQL*. See link:auth.adoc[].
-** *S3*: images managed by the Media API, published under `MEDIA_ASSETS_URI`.
+** *S3*: images managed by the Media API, published under `RMU_MEDIA_S3_PUBLIC_BASE_URI`.
 
 == Call flow
 

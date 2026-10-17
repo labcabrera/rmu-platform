@@ -55,15 +55,17 @@ Local endpoints: Keycloak `http://localhost:8090`, Kafka UI `:8091`, Mongo Expre
   - `rmu-client-front`: public PKCE S256 client for the SPA.
 
   A `groups` client scope puts group membership into tokens as the `groups` claim (non-full-path). The groups (`rmu-admin`, `rmu-core-law`, `rmu-spell-law`, `rmu-treasure-law`, `rmu-creature-law-i`) gate access to rulebook content.
-- **API env convention**: every API is configured through `RMU_*` variables (`RMU_MONGO_<DOMAIN>_URI`, `RMU_IAM_JWK_URI`, `RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID/SECRET`, `RMU_KAFKA_BROKERS/CLIENT_ID/CONSUMER_GROUP_ID`, `RMU_API_<OTHER>_URI`), derived from the shared values in `.env`. Images are `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. A new service needs `compose/apis.yaml`, the gateway route, `docs/architecture/services.adoc`, and the C4 diagram.
-- **Media**: `rmu-api-media` stores images in S3, using the `AWS_*` and `MEDIA_ASSETS_URI` values from `.env`.
+- **Env convention** (`docs/architecture/configuration.adoc`): `RMU_` prefix, `_URI` suffix for every URL, `RMU_API_<NAME>_URI`, `RMU_MONGO_<NAME>_URI`, `RMU_IAM_*`, `RMU_KAFKA_*`, `RMU_<NAME>_<SETTING>`; same names in APIs, MFEs and compose. The platform `.env` passes shared values under the name the services read (`RMU_IAM_CLIENT_ID`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`), builds Mongo URIs from `MONGO_USER`/`MONGO_PASSWORD`, and keeps browser values as `RMU_MFE_*`. `compose/apis.yaml` still sets a few `legacy` names for older images. Images are `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. A new service needs `compose/apis.yaml`, the gateway route, `docs/architecture/services.adoc`, and the C4 diagram.
+- **Media**: `rmu-api-media` stores images in S3, using the `RMU_MEDIA_S3_*` values from `.env`.
 
 ## Gotchas
 
 - Before wiring an env var, check what the API actually reads (its `.env.example`, or the Joi schema in `app.module.ts`). Known exceptions:
-  - users reads `RMU_IAM_JWKS_URI` (with an S) and `RMU_IAM_ADMIN_BASE_URL`.
-  - tactical requires `RMU_API_ATTACK_URI` and reads `RMU_API_NPC_URI`.
-  - attack (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE`, and `RMU_API_ATTACK_TABLES_URL`.
+  - users also reads `RMU_IAM_ADMIN_URI` (Keycloak admin REST base, `.../admin/realms/<realm>`).
+  - tactical requires `RMU_API_ATTACK_URI` and `RMU_API_NPCS_URI`.
+  - attack (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE`, and `RMU_API_ATTACK_TABLES_URI`.
+  - npcs (not checked out) still reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
+  - Published images of users, tactical, attack and media still read older names; `compose/apis.yaml` sets them as `legacy` until those APIs release (`docs/architecture/configuration.adoc`).
 - The `apis` and `tools` profiles must always be enabled together with `infrastructure`. They `depends_on` mongo/kafka, so without it Compose fails with `depends on undefined service`.
 - Relative paths in `compose/*.yaml` (bind mounts) resolve against `compose/`, not the repo root. Variable interpolation still uses the root `.env`.
 - The gateway (Caddy) resolves upstreams per request, so it starts with any subset of services running. Each MFE route lists the container first and `host.docker.internal:<dev port>` second with `lb_policy first`: a stopped container falls back to the dev server. Keep that pattern and the `handle /mfe/*` 404, which stops unknown remotes from getting the shell's `index.html`.

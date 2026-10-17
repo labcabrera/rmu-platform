@@ -50,11 +50,11 @@ tf-keycloak-apply: ## terraform apply for the local Keycloak (needs terraform.tf
 mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<workspace> optional)
 	scripts/start-mfes-dev.sh $(BASE_DIR)
 
-mfe-dev: .env ## Stop the container of one MFE (s=<shell|core>) so the gateway uses its dev server
-	@test -n "$(s)" || { echo "Usage: make mfe-dev s=<shell|core>" >&2; exit 1; }
+mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|npcs|assets) so the gateway uses its dev server
+	@test -n "$(s)" || { echo "Usage: make mfe-dev s=<name>" >&2; exit 1; }
 	docker compose stop rmu-mfe-$(s)
 	@echo "rmu-mfe-$(s) stopped. Start its dev server (F5 in VS Code, or 'make start' in rmu-mfe-$(s)) and open http://localhost/"
 
-mfe-container: .env ## Serve one MFE (s=<shell|core>) from its container again
-	@test -n "$(s)" || { echo "Usage: make mfe-container s=<shell|core>" >&2; exit 1; }
+mfe-container: .env ## Serve one MFE (s=<name>) from its container again
+	@test -n "$(s)" || { echo "Usage: make mfe-container s=<name>" >&2; exit 1; }
 	docker compose up -d rmu-mfe-$(s)

@@ -1,7 +1,8 @@
 # Local gateway: one origin (http://localhost) for the shell, the remote MFEs, the APIs and Keycloak.
 #
 #   /                 rmu-mfe-shell            fallback: dev server on the host :8080
-#   /mfe/<name>/      rmu-mfe-<name>           fallback: dev server on the host (core :8089)
+#   /mfe/<name>/      rmu-mfe-<name>           fallback: dev server on the host (core :8089, strategic :8082,
+#                                              tactical :8083, npcs :8084, assets :4000)
 #   /api/<name>/      rmu-api-<name>:<port>
 #   /sso/             rmu-keycloak:8080
 #
@@ -59,7 +60,7 @@
 		reverse_proxy rmu-api-media:3011
 	}
 
-	# Keycloak under a path prefix. The SPA uses Keycloak directly on :8090 (KC_URL); this route
+	# Keycloak under a path prefix. The SPA uses Keycloak directly on :8090 (RMU_MFE_IAM_URI); this route
 	# mirrors the old nginx one (redirects and cookies rewritten to /sso/).
 	redir /sso /sso/ 301
 	handle_path /sso/* {
@@ -71,6 +72,27 @@
 
 	handle_path /mfe/core/* {
 		reverse_proxy rmu-mfe-core:80 host.docker.internal:8089 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/strategic/* {
+		reverse_proxy rmu-mfe-strategic:80 host.docker.internal:8082 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/tactical/* {
+		reverse_proxy rmu-mfe-tactical:80 host.docker.internal:8083 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/npcs/* {
+		reverse_proxy rmu-mfe-npcs:80 host.docker.internal:8084 {
+			import mfe_upstream
+		}
+	}
+	# Images and locales. Fallback: `make start` (python3 local-start.py) in rmu-mfe-assets.
+	handle_path /mfe/assets/* {
+		reverse_proxy rmu-mfe-assets:80 host.docker.internal:4000 {
 			import mfe_upstream
 		}
 	}

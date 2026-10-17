@@ -5,43 +5,67 @@
 #
 # Each image renders its runtime configuration (env-config.js) from these variables. The shell's
 # configuration is the one in effect inside the browser, so it carries the URLs of every remote and
-# API. Paths are relative to the gateway origin, so they do not change between environments.
+# API. Paths are relative to the gateway origin, so they do not change between environments; only
+# Keycloak and the assets come from .env (RMU_MFE_*).
 x-mfe-env: &mfe-env
-  KC_URL: ${RMU_MFE_KC_URL:-http://localhost:8090}
-  KC_REALM: ${KEYCLOAK_REALM}
-  KC_CLIENT_ID: ${RMU_MFE_KC_CLIENT_ID:-rmu-client-front}
-  RMU_MFE_ASSETS: ${RMU_MFE_ASSETS_URL:-http://localhost:4000/}
-  RMU_MFE_I18N_BASE_URL: ${RMU_MFE_I18N_BASE_URL:-}
+  RMU_IAM_URI: ${RMU_MFE_IAM_URI:-http://localhost:8090}
+  RMU_IAM_REALM: ${RMU_IAM_REALM:-rmu}
+  RMU_IAM_CLIENT_ID: ${RMU_MFE_IAM_CLIENT_ID:-rmu-client-front}
+  RMU_MFE_ASSETS_URI: ${RMU_MFE_ASSETS_URI:-/mfe/assets/}
+  RMU_MFE_I18N_URI: ${RMU_MFE_I18N_URI:-}
   RMU_MFE_CORE_PUBLIC_PATH: /mfe/core/
   RMU_MFE_STRATEGIC_PUBLIC_PATH: /mfe/strategic/
   RMU_MFE_TACTICAL_PUBLIC_PATH: /mfe/tactical/
   RMU_MFE_NPCS_PUBLIC_PATH: /mfe/npcs/
   RMU_MFE_ITEMS_PUBLIC_PATH: /mfe/items/
   RMU_MFE_SPELLS_PUBLIC_PATH: /mfe/spells/
-  RMU_API_CORE_URL: /api/core/v1
-  RMU_API_STRATEGIC_URL: /api/strategic/v1
-  RMU_API_TACTICAL_URL: /api/tactical/v1
-  RMU_API_ITEMS_URL: /api/items/v1
-  RMU_API_ATTACK_TABLES_URL: /api/attack-tables/v1
-  RMU_API_NPC_NAMES_URL: /api/npc-names/v1
-  RMU_API_NPCS_URL: /api/npcs/v1
-  RMU_API_SPELLS_URL: /api/spells/v1
-  RMU_API_USERS_URL: /api/users/v1
-  RMU_API_MEDIA_URL: /api/media/v1
-  REACT_APP_CONTACT_API: ${RMU_MFE_CONTACT_API:-}
-  REACT_APP_CONTACT_EMAIL: ${RMU_MFE_CONTACT_EMAIL:-}
+  RMU_API_CORE_URI: /api/core/v1
+  RMU_API_STRATEGIC_URI: /api/strategic/v1
+  RMU_API_TACTICAL_URI: /api/tactical/v1
+  RMU_API_ATTACK_TABLES_URI: /api/attack-tables/v1
+  RMU_API_ITEMS_URI: /api/items/v1
+  RMU_API_NPC_NAMES_URI: /api/npc-names/v1
+  RMU_API_NPCS_URI: /api/npcs/v1
+  RMU_API_SPELLS_URI: /api/spells/v1
+  RMU_API_USERS_URI: /api/users/v1
+  RMU_API_MEDIA_URI: /api/media/v1
+  RMU_SHELL_CONTACT_URI: ${RMU_SHELL_CONTACT_URI:-}
+  RMU_SHELL_CONTACT_EMAIL: ${RMU_SHELL_CONTACT_EMAIL:-}
+
+x-mfe-common: &mfe-common
+  profiles:
+    - mfes
+  environment: *mfe-env
 
 services:
   rmu-mfe-shell:
+    <<: *mfe-common
     image: labcabrera/rmu-mfe-shell:${RMU_MFE_SHELL_VERSION:-latest}
     container_name: rmu-mfe-shell
-    profiles:
-      - mfes
-    environment: *mfe-env
 
   rmu-mfe-core:
+    <<: *mfe-common
     image: labcabrera/rmu-mfe-core:${RMU_MFE_CORE_VERSION:-latest}
     container_name: rmu-mfe-core
+
+  rmu-mfe-strategic:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-strategic:${RMU_MFE_STRATEGIC_VERSION:-latest}
+    container_name: rmu-mfe-strategic
+
+  rmu-mfe-tactical:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-tactical:${RMU_MFE_TACTICAL_VERSION:-latest}
+    container_name: rmu-mfe-tactical
+
+  rmu-mfe-npcs:
+    <<: *mfe-common
+    image: labcabrera/rmu-mfe-npcs:${RMU_MFE_NPCS_VERSION:-latest}
+    container_name: rmu-mfe-npcs
+
+  # Images and locales (no runtime configuration). Served at /mfe/assets/.
+  rmu-mfe-assets:
+    image: labcabrera/rmu-mfe-assets:${RMU_MFE_ASSETS_VERSION:-latest}
+    container_name: rmu-mfe-assets
     profiles:
       - mfes
-    environment: *mfe-env

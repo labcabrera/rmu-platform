@@ -25,7 +25,7 @@ Keycloak is the OIDC provider. Its configuration (realm, clients, groups and ini
 |The shell (`KC_CLIENT_ID`). Authorization code flow only; no direct grants.
 |===
 
-The `rmu-client` secret comes from `rmu_client_secret` in `terraform.tfvars` and must match `KEYCLOAK_CLIENT_SECRET` in `.env`.
+The `rmu-client` secret comes from `rmu_client_secret` in `terraform.tfvars` and must match `RMU_IAM_CLIENT_SECRET` in `.env`.
 
 == Groups and claims
 

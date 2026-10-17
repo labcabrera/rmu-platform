@@ -38,7 +38,7 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`mfes`
 |`compose/mfes.yaml`
-|Micro-frontends as static images (shell and core so far), served through the gateway; see link:architecture/frontends.adoc[].
+|Micro-frontends as static images (shell, core, strategic, tactical, npcs, assets), served through the gateway; see link:architecture/frontends.adoc[].
 
 |`tools`
 |`compose/tools.yaml`
@@ -132,7 +132,8 @@ The `gateway` profile runs Caddy on port 80 (`RMU_GATEWAY_PORT`). It is the sing
 |Path |Upstream
 
 |`/` |`rmu-mfe-shell`, or its dev server on the host (`:8080`) when the container is stopped
-|`/mfe/core/` |`rmu-mfe-core`, or its dev server on the host (`:8089`) when the container is stopped
+|`/mfe/core/`, `/mfe/strategic/`, `/mfe/tactical/`, `/mfe/npcs/` |The remote's container, or its dev server on the host (`:8089`, `:8082`, `:8083`, `:8084`) when the container is stopped
+|`/mfe/assets/` |`rmu-mfe-assets` (images and locales), or `make start` in `rmu-mfe-assets` (`:4000`)
 |`/api/core/`, `/api/strategic/`, `/api/tactical/` |Core, Strategic, Tactical APIs
 |`/api/items/`, `/api/npcs/`, `/api/npc-names/`, `/api/spells/` |Items, NPCs, NPC Names, Spells APIs
 |`/api/attack/`, `/api/attack-tables/` |Attack, Attack Tables APIs
@@ -160,7 +161,7 @@ make mfe-container s=core   # back to the image
 * HMR connects straight to the dev server (`ws://localhost:<port>/ws`), not through the gateway.
 * If a remote is not available at all (container stopped and no dev server), only its route shows "Module not available".
 
-Images are built locally until the MFE repos publish them: `make docker-build` in `rmu-mfe-shell` and `rmu-mfe-core` tags `labcabrera/rmu-mfe-<name>:local`. Select them with `RMU_MFE_SHELL_VERSION=local` and `RMU_MFE_CORE_VERSION=local` in `.env`. Static assets and locales still come from `rmu-mfe-assets` (`python3 local-start.py`, port 4000).
+Images are built locally until the MFE repos publish them: `make docker-build` in each `rmu-mfe-*` repository tags `labcabrera/rmu-mfe-<name>:local`. Select them with `RMU_MFE_<NAME>_VERSION=local` in `.env`. The same works for `s=shell`, `s=strategic`, `s=tactical`, `s=npcs` and `s=assets`.
 
 == Observability
 
@@ -180,7 +181,7 @@ OTEL_SERVICE_NAME: rmu-api-<name>
 * *`rmu-network` already exists*: the network was created by hand with `docker network create`. Run `docker compose --profile '*' down && docker network rm rmu-network` once and start again.
 * *Kafka from the host bootstraps but then fails*: use `localhost:9093`. Port 9092 advertises `rmu-kafka-broker:9092`, which only resolves inside the Compose network.
 * *MongoDB does not start on Linux 6.19+*: MongoDB 8.0 is affected by link:https://jira.mongodb.org/browse/SERVER-121912[SERVER-121912]. The service sets `GLIBC_TUNABLES=glibc.pthread.rseq=1` to avoid it.
-* *APIs reject every token*: the realm has not been provisioned, or `KEYCLOAK_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`.
+* *APIs reject every token*: the realm has not been provisioned, or `RMU_IAM_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`.
 
 == Initialization data
 
