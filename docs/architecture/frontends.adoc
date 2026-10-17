@@ -52,8 +52,8 @@ Domain MFEs read `RMU_API_<DOMAIN>_URL` for the APIs they call, `RMU_MFE_ASSETS`
 |Development (today)
 |`make mfes-dev` opens one terminal tab per checked-out MFE running `npm run start:live`, plus the assets server. The shell's `RMU_MFE_*_PUBLIC_PATH` variables point at the dev server ports. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
 
-|Compose, `mfes` profile (planned)
-|Each MFE runs from a static nginx image published by its own repository. `compose/mfes.yaml` is ready for the services but defines none yet.
+|Compose, `mfes` profile (shell and core)
+|Each MFE runs from a static nginx image behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. The other MFEs still run with `make mfes-dev`. Design: `specs/001-mfes-in-compose` in the workspace root.
 
 |AWS (planned)
 |The same static bundles on S3 behind CloudFront.

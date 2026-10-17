@@ -119,7 +119,7 @@ The IAM, Kafka and `LOG_LEVEL` blocks are YAML anchors (`x-iam-env`, `x-kafka-en
 * *Attack* (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE` and `RMU_API_ATTACK_TABLES_URL`.
 * *Media* reads its S3 settings from the `AWS_*` and `MEDIA_ASSETS_URI` values.
 
-When adding a service, follow the same pattern and add it to this table, `compose/apis.yaml`, the gateway routes (`compose/config/nginx/default.conf`) and the context diagram.
+When adding a service, follow the same pattern and add it to this table, `compose/apis.yaml`, the gateway routes (`compose/config/caddy/Caddyfile`) and the context diagram.
 
 == Micro-frontends
 
@@ -187,6 +187,6 @@ See link:frontends.adoc[] for the Module Federation contract.
 |Kafka (KRaft) |`confluentinc/cp-kafka:7.4.0` |9092, 9093 (host), 9094 |`infrastructure`
 |Kafka UI |`provectuslabs/kafka-ui` |8091 |`tools`
 |Mongo Express |`mongo-express:1.0` |8092 |`tools`
-|Gateway |`nginx:1.27-alpine` |80 (`RMU_GATEWAY_PORT`) |`gateway`
+|Gateway |`caddy:2.10-alpine` |80 (`RMU_GATEWAY_PORT`) |`gateway`
 |Grafana + OTel |`grafana/otel-lgtm` |3000, 4317, 4318 |`observability`
 |===

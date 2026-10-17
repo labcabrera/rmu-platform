@@ -2,7 +2,7 @@ TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 .DEFAULT_GOAL := help
 .PHONY: help config up up-infra up-apis down ps logs mongo-backup mongo-restore \
-	tf-keycloak-plan tf-keycloak-apply mfes-dev
+	tf-keycloak-plan tf-keycloak-apply mfes-dev mfe-dev mfe-container
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -49,3 +49,12 @@ tf-keycloak-apply: ## terraform apply for the local Keycloak (needs terraform.tf
 
 mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<workspace> optional)
 	scripts/start-mfes-dev.sh $(BASE_DIR)
+
+mfe-dev: .env ## Stop the container of one MFE (s=<shell|core>) so the gateway uses its dev server
+	@test -n "$(s)" || { echo "Usage: make mfe-dev s=<shell|core>" >&2; exit 1; }
+	docker compose stop rmu-mfe-$(s)
+	@echo "rmu-mfe-$(s) stopped. Start its dev server (F5 in VS Code, or 'make start' in rmu-mfe-$(s)) and open http://localhost/"
+
+mfe-container: .env ## Serve one MFE (s=<shell|core>) from its container again
+	@test -n "$(s)" || { echo "Usage: make mfe-container s=<shell|core>" >&2; exit 1; }
+	docker compose up -d rmu-mfe-$(s)

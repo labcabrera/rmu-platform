@@ -9,12 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `compose.yaml`: only `include:`s the files under `compose/`, one per layer. Every service belongs to a profile:
   - `compose/infrastructure.yaml` (`infrastructure`): mongo, postgres, keycloak, kafka, and the volumes.
   - `compose/apis.yaml` (`apis`): every API, with `x-api-common`/`x-iam-env`/`x-kafka-env`/`x-log-env` anchors.
-  - `compose/mfes.yaml` (`mfes`): empty until the MFE repos publish static images.
+  - `compose/mfes.yaml` (`mfes`): shell and core as static nginx images, no host ports, runtime config through an `x-mfe-env` anchor.
   - `compose/tools.yaml` (`tools`): kafka-ui, mongo-express.
-  - `compose/gateway.yaml` (`gateway`): nginx, with its routes in `compose/config/nginx/default.conf`.
+  - `compose/gateway.yaml` (`gateway`): Caddy, with its routes in `compose/config/caddy/Caddyfile`. Shell at `/`, remotes at `/mfe/<name>/`, APIs at `/api/<name>/`, Keycloak at `/sso/`.
   - `compose/observability.yaml` (`observability`): `grafana/otel-lgtm`.
 
-  `.env.example` enables `infrastructure,apis,mfes,tools` by default.
+  `.env.example` enables `infrastructure,apis,mfes,gateway,tools` by default.
 - `Makefile`: the entry point. Run `make help` to list the targets.
 - `scripts/`: `mongo-backup.sh`, `mongo-restore.sh` and `start-mfes-dev.sh`.
 - `terraform/`: Keycloak realm/clients/groups/users via the `mrparkers/keycloak` provider. It holds `modules/keycloak` plus one state per stack in `stacks/<name>/`. Only `keycloak-local` exists for now.
@@ -33,6 +33,8 @@ make down / ps / logs s=<svc>   # act on every profile (--profile '*'); down kee
 make mongo-backup               # -> backups/mongo-<date>.archive.gz (gitignored)
 make mongo-restore f=<file>     # drops and restores the collections in the archive; asks first
 make tf-keycloak-plan / tf-keycloak-apply   # terraform/stacks/keycloak-local, needs terraform.tfvars
+make mfe-dev s=core             # stop rmu-mfe-core: the gateway falls back to its dev server on the host
+make mfe-container s=core       # serve it from the container again
 make mfes-dev [BASE_DIR=...]    # gnome-terminal tab per rmu-mfe-* checkout running npm run start:live
 
 docker compose --profile infrastructure --profile tools up -d   # --profile replaces COMPOSE_PROFILES
@@ -64,7 +66,8 @@ Local endpoints: Keycloak `http://localhost:8090`, Kafka UI `:8091`, Mongo Expre
   - attack (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE`, and `RMU_API_ATTACK_TABLES_URL`.
 - The `apis` and `tools` profiles must always be enabled together with `infrastructure`. They `depends_on` mongo/kafka, so without it Compose fails with `depends on undefined service`.
 - Relative paths in `compose/*.yaml` (bind mounts) resolve against `compose/`, not the repo root. Variable interpolation still uses the root `.env`.
-- The gateway resolves upstreams per request (`resolver 127.0.0.11` + `set $upstream`), so nginx starts with any subset of APIs running. Keep that pattern when adding routes: a static `proxy_pass http://host:port/` makes nginx refuse to start when the host is not running.
+- The gateway (Caddy) resolves upstreams per request, so it starts with any subset of services running. Each MFE route lists the container first and `host.docker.internal:<dev port>` second with `lb_policy first`: a stopped container falls back to the dev server. Keep that pattern and the `handle /mfe/*` 404, which stops unknown remotes from getting the shell's `index.html`.
+- MFE images take their URLs at runtime (`env-config.js` from the container environment). The shell's config is the one in effect in the browser, so it carries every remote and API URL, as gateway-relative paths.
 - The default network is named `rmu-network` (declared in the root `compose.yaml`), so containers started outside Compose (`make docker-run` in an API repo) can join it. If it was created by hand with `docker network create`, Compose rejects it: run `docker compose --profile '*' down && docker network rm rmu-network` once.
 - Kafka from the host must use `localhost:9093` (`PLAINTEXT_HOST`). Connecting to `localhost:9092` bootstraps but then receives `rmu-kafka-broker:9092` as the advertised address, which the host cannot resolve.
 - Terraform state is local and per stack (`terraform/stacks/<stack>/terraform.tfstate`). `.terraform.lock.hcl` is versioned. After `down -v`, `plan` shows the Keycloak resources as deleted outside Terraform, and `apply` recreates them.
