@@ -133,6 +133,7 @@ The `gateway` profile runs Caddy on port 80 (`RMU_GATEWAY_PORT`). It is the sing
 
 |`/` |`rmu-mfe-shell`, or its dev server on the host (`:8080`) when the container is stopped
 |`/mfe/core/`, `/mfe/strategic/`, `/mfe/tactical/`, `/mfe/npcs/` |The remote's container, or its dev server on the host (`:8089`, `:8082`, `:8083`, `:8084`) when the container is stopped
+|`/mfe/items/`, `/mfe/spells/` |Only the dev server on the host (`:8088`, `:8087`): these MFEs have no image yet, so they answer `502` until `npm run start` runs in their repository
 |`/mfe/assets/` |`rmu-mfe-assets` (images and locales), or `make start` in `rmu-mfe-assets` (`:4000`)
 |`/api/core/`, `/api/strategic/`, `/api/tactical/` |Core, Strategic, Tactical APIs
 |`/api/items/`, `/api/npcs/`, `/api/npc-names/`, `/api/spells/` |Items, NPCs, NPC Names, Spells APIs

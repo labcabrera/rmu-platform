@@ -90,6 +90,17 @@
 			import mfe_upstream
 		}
 	}
+	# items and spells have no image yet: only their dev server on the host (npm run start).
+	handle_path /mfe/items/* {
+		reverse_proxy host.docker.internal:8088 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/spells/* {
+		reverse_proxy host.docker.internal:8087 {
+			import mfe_upstream
+		}
+	}
 	# Images and locales. Fallback: `make start` (python3 local-start.py) in rmu-mfe-assets.
 	handle_path /mfe/assets/* {
 		reverse_proxy rmu-mfe-assets:80 host.docker.internal:4000 {
