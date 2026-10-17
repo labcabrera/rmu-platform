@@ -26,6 +26,25 @@ make mongo-restore f=backups/mongo-2026-10-17-112046.archive.gz
 * The `admin` database is skipped, so the root user created by the container is kept.
 * The script asks for confirmation; `scripts/mongo-restore.sh -y <file>` skips it.
 
+== Migrations
+
+Data migrations are mongosh scripts in `scripts/migrations/`, run inside the `rmu-mongo` container. They are idempotent, so running one twice changes nothing. Take a backup first.
+
+[source,bash]
+----
+make mongo-backup
+make mongo-migrate f=scripts/migrations/001-relative-asset-urls.js DRY_RUN=1   # only count
+make mongo-migrate f=scripts/migrations/001-relative-asset-urls.js
+----
+
+[options="header",cols="1,3"]
+|===
+|Script |What it does
+
+|`001-relative-asset-urls.js`
+|Turns absolute image URLs (`https://assets.labcabrera.com/...`, `http://localhost:4000/...`) into paths relative to `rmu-mfe-assets` in every `imageUrl` and in the media images. See link:../architecture/configuration.adoc#_asset_paths[Asset paths].
+|===
+
 == Options
 
 [options="header",cols="1,3"]

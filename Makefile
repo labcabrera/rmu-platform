@@ -1,7 +1,7 @@
 TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 .DEFAULT_GOAL := help
-.PHONY: help config up up-infra up-apis down ps logs mongo-backup mongo-restore \
+.PHONY: help config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
 	keycloak-init mfes-dev mfe-dev mfe-container
 
 help: ## Show available targets
@@ -38,6 +38,10 @@ mongo-backup: ## Dump the local Mongo into backups/
 mongo-restore: ## Restore a dump into the local Mongo (f=<archive>, drops the restored collections)
 	@test -n "$(f)" || { echo "Usage: make mongo-restore f=backups/<file>" >&2; exit 1; }
 	scripts/mongo-restore.sh "$(f)"
+
+mongo-migrate: ## Run a migration script against the local Mongo (f=scripts/migrations/<file>.js, DRY_RUN=1 to only count)
+	@test -n "$(f)" || { echo "Usage: make mongo-migrate f=scripts/migrations/<file>.js" >&2; exit 1; }
+	DRY_RUN="$(DRY_RUN)" scripts/mongo-migrate.sh "$(f)"
 
 keycloak-init: ## Create/update the local Keycloak realm with terraform, no prompt (needs terraform.tfvars)
 	terraform -chdir=$(TF_KEYCLOAK) init -input=false
