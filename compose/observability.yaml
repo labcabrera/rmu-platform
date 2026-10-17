@@ -14,6 +14,13 @@ services:
       - "4318:4318"   # OTLP HTTP
     volumes:
       - rmu-otel-data:/data
+    # Grafana's health endpoint, up once the bundled services have started.
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   rmu-otel-data:

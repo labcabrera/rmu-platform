@@ -32,10 +32,21 @@ x-mfe-env: &mfe-env
   RMU_SHELL_CONTACT_URI: ${RMU_SHELL_CONTACT_URI:-}
   RMU_SHELL_CONTACT_EMAIL: ${RMU_SHELL_CONTACT_EMAIL:-}
 
+# nginx images (busybox wget). env-config.js only exists once docker/40-env-config.sh has rendered
+# the runtime configuration; its content is checked because nginx answers any missing path with the
+# SPA's index.html (200). 127.0.0.1 because localhost resolves to ::1, where nginx does not listen.
+x-mfe-healthcheck: &mfe-healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 5s
+  test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/env-config.js | grep -q __RMU_CONFIG__"]
+
 x-mfe-common: &mfe-common
   profiles:
     - mfes
   environment: *mfe-env
+  healthcheck: *mfe-healthcheck
 
 services:
   rmu-mfe-shell:
@@ -80,3 +91,6 @@ services:
     container_name: rmu-mfe-assets
     profiles:
       - mfes
+    healthcheck:
+      <<: *mfe-healthcheck
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/locales/common_en.json"]

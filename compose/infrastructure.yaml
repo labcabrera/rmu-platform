@@ -35,6 +35,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB_KEYCLOAK}
     volumes:
       - rmu-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rmu-keycloak:
     image: quay.io/keycloak/keycloak:26.3
@@ -42,6 +48,9 @@ services:
     container_name: rmu-keycloak
     profiles:
       - infrastructure
+    depends_on:
+      rmu-postgres:
+        condition: service_healthy
     command:
       - start
       - --features=scripts
@@ -61,8 +70,22 @@ services:
       KC_LOG_LEVEL: INFO
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
+      # /health/* on the management port 9000 (not published).
+      KC_HEALTH_ENABLED: true
     volumes:
       - rmu-keycloak-data:/opt/keycloak/data
+    # The image has no curl or wget: plain HTTP request through bash's /dev/tcp.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          head -1 <&3 | grep -q ' 200 '
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   rmu-kafka:
     image: confluentinc/cp-kafka:7.4.0
