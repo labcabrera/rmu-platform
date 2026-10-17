@@ -1,6 +1,5 @@
 # Terraform state and provider cache
 .terraform/
-.terraform.lock.hcl
 
 # Secret variable files — never commit real credentials
 terraform.tfvars

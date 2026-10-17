@@ -1,0 +1,45 @@
+= Authentication and authorization
+:toc: left
+
+Keycloak is the OIDC provider. Its configuration (realm, clients, groups and initial users) is managed with Terraform; see link:../operations/keycloak-terraform.adoc[].
+
+== Realm
+
+* Name `rmu`, stored in PostgreSQL (`rmu-postgres`).
+* Self-registration enabled, login with email allowed.
+* Access tokens last 24 hours.
+* Locally Keycloak listens on http://localhost:8090 (admin console credentials: `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` in `.env`). Inside the Compose network it is `http://rmu-keycloak:8080`.
+
+== Clients
+
+[options="header",cols="1,1,3"]
+|===
+|Client |Type |Used by
+
+|`rmu-client`
+|Confidential
+|The APIs. They validate JWTs against the realm JWKS (`RMU_IAM_JWK_URI`) and obtain service-to-service tokens with the client credentials (`RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`). Its service account has the `realm-admin` role, which `rmu-api-users` needs to manage users.
+
+|`rmu-client-front`
+|Public, PKCE S256
+|The shell (`KC_CLIENT_ID`). Authorization code flow only; no direct grants.
+|===
+
+The `rmu-client` secret comes from `rmu_client_secret` in `terraform.tfvars` and must match `KEYCLOAK_CLIENT_SECRET` in `.env`.
+
+== Groups and claims
+
+A `groups` client scope adds the user's group membership to the tokens as the `groups` claim, with plain names (not full paths). The groups gate access to rulebook content:
+
+[options="header",cols="1,3"]
+|===
+|Group |Grants
+
+|`rmu-admin` |Administration.
+|`rmu-core-law` |Core Law content.
+|`rmu-spell-law` |Spell Law content.
+|`rmu-treasure-law` |Treasure Law content.
+|`rmu-creature-law-i` |Creature Law I content.
+|===
+
+Terraform creates a primary user that belongs to every group, and a guest user with no groups.

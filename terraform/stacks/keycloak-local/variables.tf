@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 
 variable "keycloak_url" {
-  description = "Base URL of the Keycloak instance (e.g. http://localhost:8080)."
+  description = "Base URL of the Keycloak instance (e.g. http://localhost:8090)."
   type        = string
 }
 
@@ -50,7 +50,7 @@ variable "rmu_client_web_origins" {
 }
 
 variable "rmu_client_front_valid_redirect_uris" {
-  description = "List of valid redirect URIs for rmu-client-front."
+  description = "List of valid redirect URIs for rmu-client-front. Add LAN addresses in terraform.tfvars."
   type        = list(string)
   default = [
     "http://localhost:3000/*",
@@ -62,17 +62,12 @@ variable "rmu_client_front_valid_redirect_uris" {
     "http://127.0.0.1:3001/*",
     "http://127.0.0.1:3002/*",
     "http://127.0.0.1:3003/*",
-    "http://127.0.0.1:5173/*",
-    "http://192.168.1.107:3000/*",
-    "http://192.168.1.107:3001/*",
-    "http://192.168.1.107:3002/*",
-    "http://192.168.1.107:3003/*",
-    "http://192.168.1.107:5173/*"
+    "http://127.0.0.1:5173/*"
   ]
 }
 
 variable "rmu_client_front_web_origins" {
-  description = "List of allowed web origins for rmu-client-front (CORS)."
+  description = "List of allowed web origins for rmu-client-front (CORS). Add LAN addresses in terraform.tfvars."
   type        = list(string)
   default = [
     "http://localhost:3000",
@@ -84,12 +79,7 @@ variable "rmu_client_front_web_origins" {
     "http://127.0.0.1:3001",
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3003",
-    "http://127.0.0.1:5173",
-    "http://192.168.1.107:3000",
-    "http://192.168.1.107:3001",
-    "http://192.168.1.107:3002",
-    "http://192.168.1.107:3003",
-    "http://192.168.1.107:5173"
+    "http://127.0.0.1:5173"
   ]
 }
 

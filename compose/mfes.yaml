@@ -1,0 +1,17 @@
+# React micro-frontends served as static nginx images, one per rmu-mfe-* repository.
+#
+# No MFE publishes a static image yet: the current Dockerfiles run the webpack dev server,
+# and webpack bakes the RMU_* URLs into the bundle at build time. Until each repo publishes
+# labcabrera/rmu-mfe-<name>:<version> with runtime configuration, run the MFEs from source
+# with `make mfes-dev`. See docs/architecture/frontends.adoc for the image contract.
+#
+# Expected shape of each service once the images exist:
+#
+#   rmu-mfe-shell:
+#     image: labcabrera/rmu-mfe-shell:${RMU_MFE_SHELL_VERSION:-latest}
+#     container_name: rmu-mfe-shell
+#     profiles:
+#       - mfes
+#     ports:
+#       - "8080:80"
+services: {}

@@ -1,0 +1,25 @@
+= RMU Engine documentation
+:toc: left
+
+Documentation map for the RMU Engine platform. `rmu-platform` describes how the application is run and deployed; each service's code, Dockerfile and image live in its own `labcabrera/rmu-*` repository.
+
+== Architecture
+
+* link:architecture/overview.adoc[Overview]: context diagram, call flow between services, Kafka events.
+* link:architecture/services.adoc[Services]: catalog of APIs and micro-frontends with repository, port, database and image.
+* link:architecture/frontends.adoc[Frontends]: Module Federation contract, remotes and environment variables.
+* link:architecture/auth.adoc[Authentication]: Keycloak realm, clients, groups and token claims.
+
+== Running the platform
+
+* link:local-development.adoc[Local development]: Compose profiles, common combinations, running an API or MFE from source.
+
+== Operations
+
+* link:operations/mongo-backup-restore.adoc[MongoDB backup and restore].
+* link:operations/keycloak-terraform.adoc[Keycloak with Terraform].
+
+== Decisions and specs
+
+* link:adr/[Architecture decision records].
+* link:../specs/[Specs]: numbered change proposals (`NNN-<objective>/{spec.md,plan.md}`).

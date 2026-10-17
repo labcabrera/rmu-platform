@@ -1,0 +1,20 @@
+# Grafana, Loki, Tempo, Prometheus and an OTel collector in a single container, with the
+# datasources already provisioned. APIs export OTLP to rmu-otel:4317 (gRPC) or :4318 (HTTP);
+# instrumenting each API is tracked in its own repository.
+services:
+  rmu-otel:
+    image: grafana/otel-lgtm:${OTEL_LGTM_VERSION:-latest}
+    hostname: rmu-otel
+    container_name: rmu-otel
+    profiles:
+      - observability
+    ports:
+      - "3000:3000"   # Grafana (admin/admin)
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    volumes:
+      - rmu-otel-data:/data
+
+volumes:
+  rmu-otel-data:
+    driver: local

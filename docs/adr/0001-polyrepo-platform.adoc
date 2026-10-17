@@ -1,0 +1,28 @@
+= ADR 0001: Polyrepo with a platform repository
+
+* *Status:* Accepted
+* *Date:* 2026-10-17
+* *Context spec:* link:../../specs/001-platform-reorganization/spec.md[001 Platform repository reorganization]
+
+== Context
+
+RMU Engine is made of about a dozen APIs (NestJS, Python, Node.js) and seven micro-frontends (Webpack Module Federation). Each one already lives in its own `labcabrera/rmu-*` repository, with its own release flow (semantic-release from `develop` to `master`) and its own image.
+
+What was missing was a single place describing how all of them run together. `rmu-platform` had grown several divergent Compose files, a hardcoded client secret, scripts tied to one machine, and documentation that described tooling no longer in use (Kubernetes, Argo CD, Minikube).
+
+== Decision
+
+* Keep the *polyrepo*. No monorepo, and no application code in `rmu-platform`.
+* `rmu-platform` is the *single source of truth for running and deploying* the application:
+** local development with Docker Compose (`compose/`), one file per layer, selected with profiles;
+** Keycloak configuration and, later, AWS infrastructure with Terraform (`terraform/`), one state per stack;
+** the project documentation (`docs/`) and the change specs (`specs/`).
+* Services are consumed *by image and version* only. Versions are pinned in one place (`.env`, `RMU_API_<NAME>_VERSION`) instead of relying on `:latest`.
+* There is *one definition per service*. Local development and the future EC2 deployment share the same Compose files; environment differences go into overrides.
+* Kubernetes, Argo CD and Minikube are out of scope.
+
+== Consequences
+
+* A change that spans services needs one PR per repository, plus one here to wire it (Compose, gateway routes, docs).
+* Cross-repo contracts must be written down, because no compiler checks them: the `RMU_*` environment convention, the Module Federation remotes, Kafka topic names, and the static image contract for MFEs. They live under `docs/architecture/`.
+* Releasing a service does not change what the platform runs until its version is bumped in `.env`.

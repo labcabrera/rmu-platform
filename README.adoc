@@ -1,8 +1,6 @@
 = RMU Engine Platform
 :linkattrs:
 :icons: font
-:toc: left
-:toclevels: 3
 
 image:https://img.shields.io/badge/license-GPL3.0-green.svg[License,link="https://www.gnu.org/licenses/gpl-3.0.html"]
 image:https://img.shields.io/badge/rolemaster-rmu-green.svg[Rolemaster,link="http://ironcrown.co.uk/unified-rolemaster/"]
@@ -13,311 +11,62 @@ image:https://img.shields.io/badge/rolemaster-rmu-green.svg[Rolemaster,link="htt
 </a>
 ++++
 
-RMU Online is a project that implements link:http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified] through a distributed set of APIs, shared libraries, and micro-frontends.
+*RMU Engine* is an online assistant for playing link:http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified]. It is built from independent APIs (NestJS, Python, Node.js) and React micro-frontends (Webpack Module Federation), each in its own `labcabrera/rmu-*` repository.
 
-This repository is the platform entry point. It documents the solution, links to the modules that compose it, and provides local orchestration assets for infrastructure, APIs, and supporting services.
+This repository holds no application code. It describes *how the application is run and deployed*: the local Docker Compose stack, the Keycloak configuration in Terraform, and the project documentation.
 
 WARNING: *This application is an independent fan project for Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
 *All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
 
-== What This Repository Contains
+image::docs/architecture/diagrams/c4-context.png[RMU Context Diagram]
 
-The RMU Platform repository is intentionally informational and operational. The implementation of each bounded domain lives in its own repository, while this repository keeps the global view of the solution.
+== Quickstart
 
-Main responsibilities:
-
-* Link to each API, micro-frontend, and shared module.
-* Describe the platform architecture and runtime dependencies.
-* Provide Docker Compose files for local infrastructure and API execution.
-* Keep deployment-oriented assets such as Kubernetes, Argo CD, Minikube, MongoDB backup, and AWS notes.
-* Centralize diagrams and high-level documentation for contributors.
-
-== Architecture Overview
-
-image::diagrams/c4-context.png[RMU Context Diagram]
-
-*RMU Engine* is an online assistant for playing *Rolemaster Unified* games.
-
-The application is divided into APIs developed in *NestJS*, *Python*, and *Express/Node.js*, along with micro-frontends developed in *React* using *Webpack Module Federation*. The shell handles authentication and shared application composition, while each MFE owns a specific domain such as core rules, strategic play, tactical play, items, NPCs, and spells.
-
-The platform uses *MongoDB* for domain persistence, *Kafka* for event communication between services, and *Keycloak* as the OIDC identity and access management provider. Some local Compose profiles also include *PostgreSQL* for Keycloak storage and *Kafka UI* for event inspection.
-
-== Modules
-
-=== API Modules
-
-[options="header"]
-|===
-|Module |Repository |Stack
-
-|API Core
-|link:https://github.com/labcabrera/rmu-api-core[]
-|NestJS
-
-|API Strategic
-|link:https://github.com/labcabrera/rmu-api-strategic[]
-|NestJS
-
-|API Tactical
-|link:https://github.com/labcabrera/rmu-api-tactical[]
-|NestJS
-
-|API Attack
-|link:https://github.com/labcabrera/rmu-api-attack[]
-|Python
-
-|API Attack Tables
-|link:https://github.com/labcabrera/rmu-api-attack-tables[]
-|Node.js
-
-|API Items
-|link:https://github.com/labcabrera/rmu-api-items[]
-|NestJS
-
-|API Spells
-|link:https://github.com/labcabrera/rmu-api-spells[]
-|NestJS
-
-|API NPCs
-|link:https://github.com/labcabrera/rmu-api-npcs[]
-|NestJS
-
-|API NPC Names
-|link:https://github.com/labcabrera/rmu-api-npc-names[]
-|Node.js
-
-|API Users
-|link:https://github.com/labcabrera/rmu-api-users[]
-|NestJS
-
-|API Media
-|link:https://github.com/labcabrera/rmu-api-media[]
-|NestJS
-
-
-|===
-
-=== Micro-Frontend Modules
-
-[options="header"]
-|===
-|Module |Repository |Stack
-
-|MFE Shell
-|link:https://github.com/labcabrera/rmu-mfe-shell[]
-|React
-
-|MFE Core
-|link:https://github.com/labcabrera/rmu-mfe-core[]
-|React
-
-|MFE Strategic
-|link:https://github.com/labcabrera/rmu-mfe-strategic[]
-|React
-
-|MFE Tactical
-|link:https://github.com/labcabrera/rmu-mfe-tactical[]
-|React
-
-|MFE NPCs
-|link:https://github.com/labcabrera/rmu-mfe-npcs[]
-|React
-
-|MFE Spells
-|link:https://github.com/labcabrera/rmu-mfe-spells[]
-|React
-
-|React Shared Library
-|link:https://github.com/labcabrera/rmu-react-shared-lib[]
-|React
-
-|MFE Assets
-|link:https://github.com/labcabrera/rmu-mfe-assets[]
-|Static assets
-|===
-
-== Resurces
-
-* `compose.yaml`: Docker Compose definition of the local stack, organized in profiles (infrastructure, APIs, frontend).
-* `terraform/`: Terraform scripts for AWS infrastructure provisioning and shared Keycloak configuration for local and AWS instances.
-* `diagrams/`: Architecture diagrams and their source files.
-
-To deploy the project locally on a local Kubernetes cluster, we have the following Minikube-based resources (_WIP_):
-
-* `minikube/`: Helper scripts for running the platform on Minikube local Kubernetes
-* `argocd/`: Argo CD application descriptors for GitOps deployment.
-* `k8s/`: Kubernetes manifests for deployment on cloud or local clusters.
-
-== Running Locally With Docker Compose
-
-=== Prerequisites
-
-Install the following tools before starting the platform locally:
-
-* Docker Engine or Docker Desktop.
-* Docker Compose v2.
-* A local clone of this repository.
-* Access to the Docker images referenced by `compose.yaml`.
-
-=== Environment
-
-`compose.yaml` reads its variables from the `.env` file in the repository root. Create it from the example:
+Requirements: Docker with Compose 2.20+, GNU Make and Terraform 1.6+.
 
 [source,bash]
 ----
 cp .env.example .env
+make up                 # infrastructure, APIs, MFEs and tools (COMPOSE_PROFILES in .env)
+
+cp terraform/stacks/keycloak-local/terraform.tfvars.example terraform/stacks/keycloak-local/terraform.tfvars
+make tf-keycloak-apply  # realm, clients, groups and users in http://localhost:8090
 ----
 
-The file contains development credentials and local-only defaults for MongoDB, PostgreSQL, Keycloak, Kafka UI, OIDC integration, and media storage.
+`make help` lists every target. See link:docs/local-development.adoc[Local development] for profiles, endpoints and running services from source.
 
-=== Profiles
+== Repository layout
 
-Every service in `compose.yaml` belongs to one of these profiles:
-
-[options="header"]
+[options="header",cols="1,3"]
 |===
-|Profile |Services
+|Path |Contents
 
-|`infrastructure`
-|MongoDB, PostgreSQL, Keycloak, Kafka, and Kafka UI.
+|`compose.yaml`, `compose/`
+|Local stack, one file per layer: infrastructure, tools, APIs, MFEs, gateway, observability.
 
-|`apis`
-|Backend API containers, built from the published `labcabrera/rmu-api-*` images.
+|`terraform/`
+|Keycloak provisioning (`modules/keycloak`, `stacks/keycloak-local`).
 
-|`frontend`
-|React micro-frontends (no services defined yet).
-|===
+|`scripts/`
+|MongoDB backup and restore, starting the MFEs from source.
 
-The active profiles are set with `COMPOSE_PROFILES` in `.env` as a comma-separated list:
+|`docs/`
+|Project documentation. Start at link:docs/index.adoc[].
 
-[source,bash]
-----
-# Infrastructure only, for example to run the APIs from source
-COMPOSE_PROFILES=infrastructure
-
-# Full backend stack (default in .env.example)
-COMPOSE_PROFILES=infrastructure,apis
-----
-
-IMPORTANT: The `apis` profile must always be enabled together with `infrastructure`. The APIs depend on the MongoDB and Kafka services. With `apis` alone, Compose fails with `depends on undefined service`.
-
-=== Start The Stack
-
-[source,bash]
-----
-docker compose up -d
-----
-
-To use different profiles for a single run without editing `.env`, pass them on the command line. `--profile` replaces the value of `COMPOSE_PROFILES`:
-
-[source,bash]
-----
-docker compose --profile infrastructure up -d
-----
-
-To list the services enabled by the current profiles:
-
-[source,bash]
-----
-docker compose config --services
-----
-
-Infrastructure endpoints:
-
-[options="header"]
-|===
-|Service |URL
-
-|Keycloak
-|link:http://localhost:8090[]
-
-|Kafka UI
-|link:http://localhost:8091[]
-
-|MongoDB
-|`mongodb://localhost:27017`
-
-|Kafka (from the host)
-|`localhost:9093`
+|`specs/`
+|Numbered change proposals (`NNN-<objective>/{spec.md,plan.md}`).
 |===
 
-API endpoints (`apis` profile):
+== Documentation
 
-[options="header"]
-|===
-|Service |Local port
-
-|Core API
-|`3001`
-
-|Strategic API
-|`3002`
-
-|Tactical API
-|`3003`
-
-|Attack Tables API
-|`3005`
-
-|Items API
-|`3006`
-
-|NPC Names API
-|`3007`
-
-|NPCs API
-|`3008`
-
-|Spells API
-|`3009`
-
-|Users API
-|`3010`
-
-|Media API
-|`3011`
-|===
-
-NOTE: MongoDB 8.0 refuses to start on Linux kernels 6.19 and newer (link:https://jira.mongodb.org/browse/SERVER-121912[SERVER-121912]). `compose.yaml` sets `GLIBC_TUNABLES=glibc.pthread.rseq=1` on the MongoDB service to avoid this, and the setting is harmless on older kernels.
-
-==== Terraform Keycloak Setup
-
-The same Terraform configuration manages the realm, groups, clients, and users in
-either the local instance or the Keycloak instance deployed on AWS. For the local
-instance, run:
-
-[source,bash]
-----
-cd terraform/keycloak
-cp environments/local.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
-----
-
-For AWS, first apply the infrastructure in `terraform/`, wait for the `auth`
-endpoint to become available, and then use
-`terraform/keycloak/environments/keycloak-aws.tfvars.example`. See
-link:terraform/keycloak/README.adoc[] for both workflows and legacy state migration.
-
-=== Stop The Stack
-
-[source,bash]
-----
-docker compose down
-----
-
-To remove persisted local data as well, add `-v` after confirming that you no longer need the local volumes.
-
-=== Initialization Data Notice
-
-WARNING: Some initialization data is intentionally not available in this public repository because it may contain copyrighted Rolemaster Unified material owned by Iron Crown Enterprises.
-
-As a result, a fresh local environment may start successfully but lack part of the game reference content needed for complete functional usage. Contributors should use legally obtained materials only for personal testing and must not submit copyrighted data, tables, text, or derived protected content to this repository.
-
-== API Collection
-
-The Postman collection linked at the top of this README provides a convenient starting point for exploring the available APIs. Depending on the local profile and seed data available in your environment, some requests may require manual configuration of authentication tokens, base URLs, or test data.
+* link:docs/architecture/overview.adoc[Architecture overview]
+* link:docs/architecture/services.adoc[Services catalog]: every API and MFE, with repository, port and image.
+* link:docs/architecture/frontends.adoc[Frontends]
+* link:docs/architecture/auth.adoc[Authentication]
+* link:docs/local-development.adoc[Local development]
+* link:docs/operations/mongo-backup-restore.adoc[MongoDB backup and restore]
+* link:docs/operations/keycloak-terraform.adoc[Keycloak with Terraform]
+* link:docs/adr/[Architecture decision records]
 
 == License
 

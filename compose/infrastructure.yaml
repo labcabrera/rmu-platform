@@ -1,0 +1,111 @@
+# Shared infrastructure: every API depends on MongoDB and Kafka, and Keycloak issues the tokens.
+services:
+  rmu-mongo:
+    image: mongo:8.0
+    hostname: rmu-mongo
+    container_name: rmu-mongo
+    profiles:
+      - infrastructure
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      # Kernel 6.19+ breaks tcmalloc's rseq usage (SERVER-121912). Let glibc own rseq
+      # so mongod falls back to a safe allocator mode; harmless on older kernels.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
+    volumes:
+      - rmu-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  rmu-postgres:
+    image: postgres:16
+    hostname: rmu-postgres
+    container_name: rmu-postgres
+    profiles:
+      - infrastructure
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_KEYCLOAK}
+    volumes:
+      - rmu-postgres-data:/var/lib/postgresql/data
+
+  rmu-keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    hostname: rmu-keycloak
+    container_name: rmu-keycloak
+    profiles:
+      - infrastructure
+    command:
+      - start
+      - --features=scripts
+      - --http-enabled=true
+      - --hostname=${KC_HOSTNAME}
+    ports:
+      - "8090:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL_HOST: rmu-postgres
+      KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_LOG_LEVEL: INFO
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: true
+    volumes:
+      - rmu-keycloak-data:/opt/keycloak/data
+
+  rmu-kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    hostname: rmu-kafka-broker
+    container_name: rmu-kafka-broker
+    profiles:
+      - infrastructure
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://rmu-kafka-broker:9092,PLAINTEXT_HOST://localhost:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093,CONTROLLER://0.0.0.0:9094'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@rmu-kafka-broker:9094'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: localhost
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    volumes:
+      - rmu-kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '>/dev/tcp/localhost/9092 && echo ok || exit 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  rmu-mongo-data:
+    driver: local
+  rmu-keycloak-data:
+    driver: local
+  rmu-postgres-data:
+    driver: local
+  rmu-kafka-data:
+    driver: local

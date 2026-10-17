@@ -1,0 +1,192 @@
+= Services catalog
+:toc: left
+
+Every service lives in its own repository and publishes its own image. `rmu-platform` consumes the images in `compose/apis.yaml`, with versions pinned through `RMU_API_<NAME>_VERSION` in `.env`.
+
+== APIs
+
+[options="header",cols="2,1,2,2,3"]
+|===
+|Service |Port |Mongo database |Calls |Repository / image
+
+|Core
+|3001
+|`rmu-core`
+|-
+|link:https://github.com/labcabrera/rmu-api-core[rmu-api-core] +
+`labcabrera/rmu-api-core`
+
+|Strategic
+|3002
+|`rmu-strategic`
+|Core, Items
+|link:https://github.com/labcabrera/rmu-api-strategic[rmu-api-strategic] +
+`labcabrera/rmu-api-strategic`
+
+|Tactical
+|3003
+|`rmu-tactical`
+|Core, Strategic, Items, NPCs, Attack
+|link:https://github.com/labcabrera/rmu-api-tactical[rmu-api-tactical] +
+`labcabrera/rmu-api-tactical`
+
+|Attack Tables
+|3005
+|-
+|-
+|link:https://github.com/labcabrera/rmu-api-attack-tables[rmu-api-attack-tables] +
+`labcabrera/rmu-api-attack-tables`
+
+|Items
+|3006
+|`rmu-items`
+|Core
+|link:https://github.com/labcabrera/rmu-api-items[rmu-api-items] +
+`labcabrera/rmu-api-items`
+
+|NPC Names
+|3007
+|-
+|-
+|link:https://github.com/labcabrera/rmu-api-npc-names[rmu-api-npc-names] +
+`labcabrera/rmu-api-npc-names`
+
+|NPCs
+|3008
+|`rmu-npcs`
+|Core, Items, Attack Tables
+|link:https://github.com/labcabrera/rmu-api-npcs[rmu-api-npcs] +
+`labcabrera/rmu-api-npcs`
+
+|Spells
+|3009
+|`rmu-spells`
+|Core
+|link:https://github.com/labcabrera/rmu-api-spells[rmu-api-spells] +
+`labcabrera/rmu-api-spells`
+
+|Users
+|3010
+|`rmu-users`
+|Keycloak admin API
+|link:https://github.com/labcabrera/rmu-api-users[rmu-api-users] +
+`labcabrera/rmu-api-users`
+
+|Media
+|3011
+|`rmu-media`
+|S3
+|link:https://github.com/labcabrera/rmu-api-media[rmu-api-media] +
+`labcabrera/rmu-api-media`
+
+|Attack
+|8000
+|`rmu-attack`
+|Attack Tables
+|link:https://github.com/labcabrera/rmu-api-attack[rmu-api-attack] +
+`labcabrera/rmu-api-attack`
+|===
+
+All APIs except Attack Tables and NPC Names depend on MongoDB, and the NestJS ones also on Kafka.
+
+=== Environment convention
+
+APIs are configured through `RMU_*` variables. In `compose/apis.yaml` they are built from the shared values in `.env`:
+
+[options="header",cols="2,3"]
+|===
+|Variable |Value
+
+|`RMU_MONGO_<DOMAIN>_URI`
+|`${MONGO_BASE_URI}/rmu-<domain>?authSource=admin`
+
+|`RMU_IAM_JWK_URI`, `RMU_IAM_TOKEN_URI`
+|`${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/{certs,token}`
+
+|`RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`
+|The confidential `rmu-client` (`KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`).
+
+|`RMU_KAFKA_BROKERS`, `RMU_KAFKA_CLIENT_ID`, `RMU_KAFKA_CONSUMER_GROUP_ID`
+|`${KAFKA_BROKERS}`, `rmu-api-<name>`, `rmu-api-<name>-consumer`.
+
+|`RMU_API_<OTHER>_URI`
+|`http://rmu-api-<other>:<port>/v1`
+|===
+
+The IAM, Kafka and `LOG_LEVEL` blocks are YAML anchors (`x-iam-env`, `x-kafka-env`, `x-log-env`) merged into each service. Exceptions:
+
+* *Users* reads `RMU_IAM_JWKS_URI` (with an S) and `RMU_IAM_ADMIN_BASE_URL`.
+* *Attack* (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE` and `RMU_API_ATTACK_TABLES_URL`.
+* *Media* reads its S3 settings from the `AWS_*` and `MEDIA_ASSETS_URI` values.
+
+When adding a service, follow the same pattern and add it to this table, `compose/apis.yaml`, the gateway routes (`compose/config/nginx/default.conf`) and the context diagram.
+
+== Micro-frontends
+
+[options="header",cols="2,1,2,3"]
+|===
+|Module |Dev port |Remote / exposes |Repository
+
+|Shell
+|8080
+|host, exposes `./i18n`
+|link:https://github.com/labcabrera/rmu-mfe-shell[rmu-mfe-shell]
+
+|Core
+|8089
+|`core` / `./CoreApp`
+|link:https://github.com/labcabrera/rmu-mfe-core[rmu-mfe-core]
+
+|Strategic
+|8082
+|`strategic` / `./StrategicApp`
+|link:https://github.com/labcabrera/rmu-mfe-strategic[rmu-mfe-strategic]
+
+|Tactical
+|8083
+|`tactical` / `./TacticalApp`
+|link:https://github.com/labcabrera/rmu-mfe-tactical[rmu-mfe-tactical]
+
+|NPCs
+|8084
+|`npcs` / `./NpcsApp`
+|link:https://github.com/labcabrera/rmu-mfe-npcs[rmu-mfe-npcs]
+
+|Spells
+|8087
+|`spells` / `./SpellsApp`
+|link:https://github.com/labcabrera/rmu-mfe-spells[rmu-mfe-spells]
+
+|Items
+|8088
+|`items` / `./ItemsApp`
+|link:https://github.com/labcabrera/rmu-mfe-items[rmu-mfe-items]
+
+|Assets
+|4000
+|static files (images, locales)
+|link:https://github.com/labcabrera/rmu-mfe-assets[rmu-mfe-assets]
+
+|React shared library
+|-
+|`@labcabrera-rmu/rmu-react-shared-lib`
+|link:https://github.com/labcabrera/rmu-react-shared-lib[rmu-react-shared-lib]
+|===
+
+See link:frontends.adoc[] for the Module Federation contract.
+
+== Infrastructure
+
+[options="header",cols="2,2,2,2"]
+|===
+|Service |Image |Host port |Compose profile
+
+|MongoDB |`mongo:8.0` |27017 |`infrastructure`
+|PostgreSQL (Keycloak storage) |`postgres:16` |- |`infrastructure`
+|Keycloak |`quay.io/keycloak/keycloak:26.3` |8090 |`infrastructure`
+|Kafka (KRaft) |`confluentinc/cp-kafka:7.4.0` |9092, 9093 (host), 9094 |`infrastructure`
+|Kafka UI |`provectuslabs/kafka-ui` |8091 |`tools`
+|Mongo Express |`mongo-express:1.0` |8092 |`tools`
+|Gateway |`nginx:1.27-alpine` |80 (`RMU_GATEWAY_PORT`) |`gateway`
+|Grafana + OTel |`grafana/otel-lgtm` |3000, 4317, 4318 |`observability`
+|===

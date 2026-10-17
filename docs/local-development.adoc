@@ -1,0 +1,164 @@
+= Local development
+:toc: left
+:toclevels: 3
+
+The local stack runs with Docker Compose from the root of this repository. `compose.yaml` only includes the files under `compose/`, one per layer, and every service belongs to a profile.
+
+== Prerequisites
+
+* Docker Engine or Docker Desktop with Compose 2.20 or newer (`include:` support).
+* GNU Make.
+* Terraform 1.6 or newer, to provision Keycloak.
+* For running services from source: Node.js and the `rmu-*` checkouts next to this repository.
+
+== First run
+
+[source,bash]
+----
+cp .env.example .env     # local-only credentials and defaults
+make up                  # starts the profiles in COMPOSE_PROFILES
+make tf-keycloak-apply   # once Keycloak answers on http://localhost:8090
+----
+
+Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfvars` from its `.example`; see link:operations/keycloak-terraform.adoc[]. The APIs start before the realm exists and fail token validation until it has been applied.
+
+== Profiles
+
+[options="header",cols="1,2,3"]
+|===
+|Profile |File |Services
+
+|`infrastructure`
+|`compose/infrastructure.yaml`
+|MongoDB, PostgreSQL, Keycloak, Kafka.
+
+|`apis`
+|`compose/apis.yaml`
+|Every backend API, from the published `labcabrera/rmu-api-*` images.
+
+|`mfes`
+|`compose/mfes.yaml`
+|Micro-frontends as static images. None yet; see link:architecture/frontends.adoc[].
+
+|`tools`
+|`compose/tools.yaml`
+|Kafka UI, Mongo Express.
+
+|`gateway`
+|`compose/gateway.yaml`
+|nginx with the same path routing as the future AWS ALB.
+
+|`observability`
+|`compose/observability.yaml`
+|Grafana, Loki, Tempo, Prometheus and an OTel collector (`grafana/otel-lgtm`).
+|===
+
+`COMPOSE_PROFILES` in `.env` selects what `docker compose up -d` starts. The default is `infrastructure,apis,mfes,tools`. On the command line, `--profile` replaces it for that run.
+
+IMPORTANT: `apis` and `tools` depend on services of `infrastructure`. Without it, Compose fails with `depends on undefined service`. The `make up-*` targets add it for you.
+
+=== Common combinations
+
+[options="header",cols="2,3"]
+|===
+|Goal |Command
+
+|Everything in `COMPOSE_PROFILES`
+|`make up`
+
+|Only the infrastructure, to run APIs from source
+|`make up-infra`
+
+|Infrastructure and APIs
+|`make up-apis`
+
+|Infrastructure and tools
+|`docker compose --profile infrastructure --profile tools up -d`
+
+|Add the gateway or observability to what is running
+|`docker compose --profile gateway up -d`
+
+|Validate the files and list the active services
+|`make config`
+|===
+
+`make down`, `make ps` and `make logs [s=<service>]` act on every profile, so nothing is left running by accident. `make down` keeps the volumes; `docker compose --profile '*' down -v` also deletes the local data.
+
+== Endpoints
+
+[options="header",cols="2,3"]
+|===
+|Service |Address
+
+|Keycloak |http://localhost:8090
+|MongoDB |`mongodb://admin:admin@localhost:27017/?authSource=admin`
+|Kafka from the host |`localhost:9093`
+|Kafka UI |http://localhost:8091
+|Mongo Express |http://localhost:8092
+|Gateway |http://localhost (`RMU_GATEWAY_PORT`)
+|Grafana |http://localhost:3000 (admin/admin)
+|OTLP |`localhost:4317` (gRPC), `localhost:4318` (HTTP)
+|APIs |`http://localhost:<port>/v1`, ports in link:architecture/services.adoc[]
+|===
+
+== Image versions
+
+Each API image is `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. `latest` is fine for day-to-day work; set explicit versions in `.env` to reproduce a release or a bug.
+
+== Running an API from source
+
+. Start everything else, then stop the container of the API you are working on, for example `docker compose stop rmu-api-core`.
+. In the API repository, copy `.env.example` to `.env`. From the host, use `localhost` addresses: Mongo `localhost:27017`, Keycloak `http://localhost:8090`, Kafka `localhost:9093`.
+. `npm run start:dev`.
+
+Other containers still call `http://rmu-api-core:3001`, which no longer resolves. To exercise those calls, run the API as a container built from your checkout and attached to the `rmu-network` network. `rmu-api-core` and `rmu-api-media` do this with `make docker-build docker-run`.
+
+== Running the MFEs from source
+
+[source,bash]
+----
+make mfes-dev                        # MFEs next to this repository
+make mfes-dev BASE_DIR=~/src/rmu     # elsewhere
+----
+
+It opens a `gnome-terminal` tab per checked-out MFE running `npm run start:live`, plus `rmu-mfe-assets`. Without `gnome-terminal`, it prints the commands to run by hand. Point the shell's `RMU_MFE_*_PUBLIC_PATH` variables at the dev server ports; see link:architecture/frontends.adoc[].
+
+== Gateway
+
+The `gateway` profile runs nginx on port 80 with one path prefix per service, the same prefixes the AWS ALB will use:
+
+[options="header",cols="1,2"]
+|===
+|Prefix |Upstream
+
+|`/sso/` |Keycloak
+|`/core/`, `/strategic/`, `/tactical/` |Core, Strategic, Tactical APIs
+|`/items/`, `/npcs/`, `/npc-names/`, `/spells/` |Items, NPCs, NPC Names, Spells APIs
+|`/attack/`, `/attack-tables/` |Attack, Attack Tables APIs
+|`/users/`, `/media/` |Users, Media APIs
+|===
+
+The prefix is stripped, so `http://localhost/core/v1/races` reaches `http://rmu-api-core:3001/v1/races`. Upstreams are resolved per request: the gateway starts with any subset of services, and a stopped one answers `502`. Routes are in `compose/config/nginx/default.conf`.
+
+== Observability
+
+The `observability` profile runs `grafana/otel-lgtm` with the Loki, Prometheus, Tempo and Pyroscope datasources already provisioned. Grafana is at http://localhost:3000 (admin/admin).
+
+APIs are not instrumented yet. Once an API supports OpenTelemetry, configure it with the standard variables:
+
+[source,yaml]
+----
+OTEL_EXPORTER_OTLP_ENDPOINT: http://rmu-otel:4317
+OTEL_SERVICE_NAME: rmu-api-<name>
+----
+
+== Troubleshooting
+
+* *`rmu-network` already exists*: the network was created by hand with `docker network create`. Run `docker compose --profile '*' down && docker network rm rmu-network` once and start again.
+* *Kafka from the host bootstraps but then fails*: use `localhost:9093`. Port 9092 advertises `rmu-kafka-broker:9092`, which only resolves inside the Compose network.
+* *MongoDB does not start on Linux 6.19+*: MongoDB 8.0 is affected by link:https://jira.mongodb.org/browse/SERVER-121912[SERVER-121912]. The service sets `GLIBC_TUNABLES=glibc.pthread.rseq=1` to avoid it.
+* *APIs reject every token*: the realm has not been provisioned, or `KEYCLOAK_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`.
+
+== Initialization data
+
+WARNING: Some initialization data is intentionally not in this public repository, because it may contain copyrighted Rolemaster Unified material owned by Iron Crown Enterprises. A fresh environment starts, but lacks part of the reference content. Restore it from a backup of your own (link:operations/mongo-backup-restore.adoc[]) and never commit it.

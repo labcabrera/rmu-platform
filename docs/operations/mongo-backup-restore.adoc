@@ -1,0 +1,38 @@
+= MongoDB backup and restore
+
+Both scripts run `mongodump` / `mongorestore` inside the `rmu-mongo` container, so no Mongo tools are needed on the host. Credentials are read from `MONGO_USER` and `MONGO_PASSWORD`, from the environment or from `.env`.
+
+Dumps go to `backups/`, which is gitignored. They may contain copyrighted reference data: keep them out of git.
+
+== Backup
+
+[source,bash]
+----
+make mongo-backup
+# or, with an explicit file name
+scripts/mongo-backup.sh backups/before-migration.archive.gz
+----
+
+The archive holds every database (`rmu-core`, `rmu-strategic`, ...) in `mongodump --archive --gzip` format. By default it is named `backups/mongo-<date>-<time>.archive.gz`. If the dump fails, the partial file is removed.
+
+== Restore
+
+[source,bash]
+----
+make mongo-restore f=backups/mongo-2026-10-17-112046.archive.gz
+----
+
+* Every collection in the archive is *dropped and replaced* (`--drop`). Collections not in the archive are left alone.
+* The `admin` database is skipped, so the root user created by the container is kept.
+* The script asks for confirmation; `scripts/mongo-restore.sh -y <file>` skips it.
+
+== Options
+
+[options="header",cols="1,3"]
+|===
+|Variable |Default
+
+|`MONGO_CONTAINER` |`rmu-mongo`
+|`MONGO_USER`, `MONGO_PASSWORD` |Values in `.env`
+|`BACKUP_DIR` |`backups/` (backup only)
+|===

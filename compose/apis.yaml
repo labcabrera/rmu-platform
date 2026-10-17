@@ -1,0 +1,190 @@
+# Backend APIs, consumed as published images. Pin versions with RMU_API_<NAME>_VERSION in .env.
+# Every API depends on rmu-mongo and rmu-kafka, so enable this profile together with
+# `infrastructure`. Services call each other at http://rmu-api-<name>:<port>/v1.
+
+# Mongo + Kafka dependency shared by every API that persists data or publishes events.
+x-api-common: &api-common
+  profiles:
+    - apis
+  depends_on:
+    rmu-mongo:
+      condition: service_healthy
+    rmu-kafka:
+      condition: service_healthy
+
+x-iam-env: &iam-env
+  RMU_IAM_JWK_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+  RMU_IAM_TOKEN_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token
+  RMU_IAM_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+  RMU_IAM_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+
+x-kafka-env: &kafka-env
+  RMU_KAFKA_BROKERS: ${KAFKA_BROKERS}
+  RMU_KAFKA_DEFAULT_PARTITIONS: 1
+
+x-log-env: &log-env
+  LOG_LEVEL: ${LOG_LEVEL}
+
+services:
+  rmu-api-core:
+    <<: *api-common
+    image: labcabrera/rmu-api-core:${RMU_API_CORE_VERSION:-latest}
+    container_name: rmu-api-core
+    ports:
+      - "3001:3001"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3001
+      RMU_MONGO_CORE_URI: ${MONGO_BASE_URI}/rmu-core?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-core
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-core-consumer
+
+  rmu-api-strategic:
+    <<: *api-common
+    image: labcabrera/rmu-api-strategic:${RMU_API_STRATEGIC_VERSION:-latest}
+    container_name: rmu-api-strategic
+    ports:
+      - "3002:3002"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3002
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
+      RMU_MONGO_STRATEGIC_URI: ${MONGO_BASE_URI}/rmu-strategic?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-strategic
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-strategic-consumer
+
+  rmu-api-tactical:
+    <<: *api-common
+    image: labcabrera/rmu-api-tactical:${RMU_API_TACTICAL_VERSION:-latest}
+    container_name: rmu-api-tactical
+    ports:
+      - "3003:3003"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3003
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_STRATEGIC_URI: http://rmu-api-strategic:3002/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
+      RMU_API_ATTACK_URI: http://rmu-api-attack:8000/v1
+      RMU_API_NPC_URI: http://rmu-api-npcs:3008/v1
+      RMU_MONGO_TACTICAL_URI: ${MONGO_BASE_URI}/rmu-tactical?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-tactical
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-tactical-consumer
+
+  rmu-api-attack:
+    image: labcabrera/rmu-api-attack:${RMU_API_ATTACK_VERSION:-latest}
+    container_name: rmu-api-attack
+    profiles:
+      - apis
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *log-env
+      RMU_MONGO_ATTACK_URI: ${MONGO_BASE_URI}/rmu-attack?authSource=admin
+      RMU_MONGO_ATTACK_DATABASE: rmu-attack
+      RMU_API_ATTACK_TABLES_URL: http://rmu-api-attack-tables:3005/v1
+
+  rmu-api-attack-tables:
+    image: labcabrera/rmu-api-attack-tables:${RMU_API_ATTACK_TABLES_VERSION:-latest}
+    container_name: rmu-api-attack-tables
+    profiles:
+      - apis
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+
+  rmu-api-items:
+    <<: *api-common
+    image: labcabrera/rmu-api-items:${RMU_API_ITEMS_VERSION:-latest}
+    container_name: rmu-api-items
+    ports:
+      - "3006:3006"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3006
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_MONGO_ITEMS_URI: ${MONGO_BASE_URI}/rmu-items?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-items
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-items-consumer
+
+  rmu-api-npc-names:
+    image: labcabrera/rmu-api-npc-names:${RMU_API_NPC_NAMES_VERSION:-latest}
+    container_name: rmu-api-npc-names
+    profiles:
+      - apis
+    ports:
+      - "3007:3007"
+
+  rmu-api-npcs:
+    <<: *api-common
+    image: labcabrera/rmu-api-npcs:${RMU_API_NPCS_VERSION:-latest}
+    container_name: rmu-api-npcs
+    ports:
+      - "3008:3008"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3008
+      RMU_MONGO_NPCS_URI: ${MONGO_BASE_URI}/rmu-npcs?authSource=admin
+      RMU_IAM_BASE_URL: ${KEYCLOAK_BASE_URI}
+      RMU_KAFKA_PARTITION_COUNT: '1'
+      RMU_KAFKA_CLIENT_ID: rmu-api-npcs
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
+      RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
+
+  rmu-api-spells:
+    <<: *api-common
+    image: labcabrera/rmu-api-spells:${RMU_API_SPELLS_VERSION:-latest}
+    container_name: rmu-api-spells
+    ports:
+      - "3009:3009"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3009
+      RMU_API_CORE_URI: http://rmu-api-core:3001/v1
+      RMU_MONGO_SPELLS_URI: ${MONGO_BASE_URI}/rmu-spells?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-spells
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-spells-consumer
+
+  rmu-api-users:
+    <<: *api-common
+    image: labcabrera/rmu-api-users:${RMU_API_USERS_VERSION:-latest}
+    container_name: rmu-api-users
+    ports:
+      - "3010:3010"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3010
+      RMU_MONGO_USERS_URI: ${MONGO_BASE_URI}/rmu-users?authSource=admin
+      # rmu-api-users reads RMU_IAM_JWKS_URI (with an S), unlike the other APIs.
+      RMU_IAM_JWKS_URI: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      RMU_IAM_ADMIN_BASE_URL: ${KEYCLOAK_BASE_URI}/realms/${KEYCLOAK_REALM}
+      RMU_KAFKA_CLIENT_ID: rmu-api-users
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-users-consumer
+
+  rmu-api-media:
+    <<: *api-common
+    image: labcabrera/rmu-api-media:${RMU_API_MEDIA_VERSION:-latest}
+    container_name: rmu-api-media
+    ports:
+      - "3011:3011"
+    environment:
+      <<: [*iam-env, *kafka-env, *log-env]
+      PORT: 3011
+      RMU_MONGO_MEDIA_URI: ${MONGO_BASE_URI}/rmu-media?authSource=admin
+      RMU_KAFKA_CLIENT_ID: rmu-api-media
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-media-consumer
+      RMU_MEDIA_S3_REGION: ${AWS_S3_REGION}
+      RMU_MEDIA_S3_BUCKET: ${AWS_S3_BUCKET}
+      RMU_MEDIA_S3_BASE_FOLDER: ${AWS_S3_BASE_FOLDER}
+      RMU_MEDIA_S3_IMAGE_FOLDER: ${AWS_S3_IMAGE_FOLDER}
+      RMU_MEDIA_S3_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      RMU_MEDIA_S3_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      RMU_MEDIA_S3_FORCE_PATH_STYLE: true
+      RMU_MEDIA_IMAGE_MAX_WIDTH: 2048
+      RMU_MEDIA_S3_PUBLIC_BASE_URL: ${MEDIA_ASSETS_URI}

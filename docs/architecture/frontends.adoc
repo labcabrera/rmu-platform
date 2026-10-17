@@ -1,0 +1,70 @@
+= Frontends
+:toc: left
+
+The UI is a set of React applications composed at runtime with *Webpack Module Federation*. Each one lives in its own `rmu-mfe-*` repository (see link:services.adoc#_micro_frontends[the catalog]).
+
+== Module Federation contract
+
+* `rmu-mfe-shell` is the *host*. It handles the OIDC login (`react-oidc-context`), the layout and the routes, and exposes `./i18n` to the remotes.
+* Each domain MFE is a *remote* named after its domain (`core`, `strategic`, `tactical`, `npcs`, `items`, `spells`). It publishes `<name>-app.js` and exposes `./<Name>App`, for example `core/CoreApp`.
+* The shell loads each remote from `<RMU_MFE_<NAME>_PUBLIC_PATH><name>-app.js` and mounts it lazily under `/<name>/*`.
+* React, MUI, emotion, react-router, react-oidc-context/oidc-client-ts and i18next are shared *singletons*. A remote's versions must stay compatible with the shell's `package.json`.
+* Shared UI components come from `@labcabrera-rmu/rmu-react-shared-lib`, which is not on npm: each MFE links it with `make link-shared-lib`.
+
+When adding an MFE, update together:
+
+. the `remotes` block in the shell's `webpack.config.ts`,
+. the route in the shell's `App.tsx`,
+. the `RMU_MFE_<NAME>_PUBLIC_PATH` variable in the shell's `.env.example`,
+. the catalog in link:services.adoc[], and the context diagram.
+
+== Configuration
+
+Webpack reads `.env.<mode>` (for example `.env.development`) and falls back to `.env`. The values are baked into the bundle at build time.
+
+Shell variables:
+
+[options="header",cols="2,3"]
+|===
+|Variable |Purpose
+
+|`KC_URL`, `KC_REALM`, `KC_CLIENT_ID`
+|Keycloak and the public PKCE client `rmu-client-front`. Locally `http://localhost:8090`, `rmu`, `rmu-client-front`.
+
+|`RMU_MFE_ASSETS`, `RMU_MFE_I18N_BASE_URL`
+|Static assets and locales served by `rmu-mfe-assets` (`http://localhost:4000/`).
+
+|`RMU_MFE_<NAME>_PUBLIC_PATH`
+|Where each remote is served, with a trailing slash. For example `http://localhost:8089/` for core.
+
+|`RMU_API_USERS_URL`, `RMU_API_MEDIA_URL`
+|APIs called by the shell itself.
+|===
+
+Domain MFEs read `RMU_API_<DOMAIN>_URL` for the APIs they call, `RMU_MFE_ASSETS`, and their own public path. `rmu-mfe-tactical` takes its dev server port from `PORT`.
+
+== Where the MFEs run
+
+[options="header",cols="1,3"]
+|===
+|Mode |How
+
+|Development (today)
+|`make mfes-dev` opens one terminal tab per checked-out MFE running `npm run start:live`, plus the assets server. The shell's `RMU_MFE_*_PUBLIC_PATH` variables point at the dev server ports. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
+
+|Compose, `mfes` profile (planned)
+|Each MFE runs from a static nginx image published by its own repository. `compose/mfes.yaml` is ready for the services but defines none yet.
+
+|AWS (planned)
+|The same static bundles on S3 behind CloudFront.
+|===
+
+== Static image contract
+
+No MFE publishes a static image yet: the current Dockerfiles run the webpack dev server. For an MFE to join the `mfes` profile, its repository needs to publish `labcabrera/rmu-mfe-<name>:<version>` that:
+
+* builds the production bundle (`npm run build`) and serves `dist/` with nginx on port 80;
+* takes the URLs at *runtime* instead of build time, for example with an entrypoint that writes the `RMU_*` / `KC_*` environment into a `config.js` loaded before the bundle. Otherwise the same image cannot be used locally and on AWS;
+* sends CORS headers for `<name>-app.js` and its chunks, since the shell loads them from another origin.
+
+Once an image exists, add its service to `compose/mfes.yaml` with `profiles: [mfes]` and an `RMU_MFE_<NAME>_VERSION` variable, following the commented example in that file.

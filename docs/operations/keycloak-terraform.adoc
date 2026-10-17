@@ -1,0 +1,52 @@
+= Keycloak with Terraform
+:toc: left
+
+The realm, clients, groups and initial users (described in link:../architecture/auth.adoc[]) are provisioned with Terraform and the `mrparkers/keycloak` provider.
+
+== Layout
+
+[source]
+----
+terraform/
+├── modules/keycloak/        # realm, clients, client scope, groups, users
+└── stacks/
+    └── keycloak-local/      # the module against the local Keycloak (http://localhost:8090)
+----
+
+Each stack has its own state, so applying one never touches the others. Future stacks (`keycloak-aws`, `aws-*`) will reuse the same modules. `.terraform.lock.hcl` is versioned, so everyone gets the same provider build.
+
+== Local Keycloak
+
+Start the infrastructure (`make up-infra`) and wait for http://localhost:8090. Then:
+
+[source,bash]
+----
+cd terraform/stacks/keycloak-local
+cp terraform.tfvars.example terraform.tfvars   # set passwords, users and the client secret
+cd -
+make tf-keycloak-plan
+make tf-keycloak-apply
+----
+
+* `rmu_client_secret` must match `KEYCLOAK_CLIENT_SECRET` in `.env`, which the APIs use.
+* The variable defaults only allow `localhost` and `127.0.0.1` as redirect URIs and web origins for the SPA. To open the shell from another machine on the LAN, add its address to `rmu_client_front_valid_redirect_uris` and `rmu_client_front_web_origins` in `terraform.tfvars`.
+* State is local (`terraform.tfstate` in the stack folder, gitignored). After `docker compose --profile '*' down -v` the Keycloak database is gone, but the state still lists the resources. The next `plan` reports them as deleted outside Terraform, and `apply` recreates them.
+
+== Checks
+
+[source,bash]
+----
+terraform fmt -check -recursive terraform
+terraform -chdir=terraform/stacks/keycloak-local validate
+----
+
+== Migrating from the old layout
+
+Before this layout, the configuration lived directly in `terraform/`. Resource addresses did not change (`module.keycloak.*`), so moving the state is enough:
+
+[source,bash]
+----
+mv terraform/terraform.tfstate* terraform/terraform.tfvars terraform/stacks/keycloak-local/
+rm -rf terraform/.terraform
+make tf-keycloak-plan    # should report no changes
+----

@@ -1,5 +1,5 @@
 module "keycloak" {
-  source = "./modules/keycloak"
+  source = "../../modules/keycloak"
 
   realm_name         = var.realm_name
   realm_display_name = var.realm_display_name
