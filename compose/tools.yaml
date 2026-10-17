@@ -1,7 +1,7 @@
 # Optional development tools. They depend on infrastructure services, so enable this
 # profile together with `infrastructure`.
 services:
-  kafka-ui:
+  rmu-kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: rmu-kafka-ui
     profiles:
@@ -18,7 +18,7 @@ services:
       SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USER}
       SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD}
 
-  mongo-express:
+  rmu-mongo-express:
     image: mongo-express:1.0
     container_name: rmu-mongo-express
     profiles:

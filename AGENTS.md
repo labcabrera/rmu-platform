@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `compose/infrastructure.yaml` (`infrastructure`): mongo, postgres, keycloak, kafka, and the volumes.
   - `compose/apis.yaml` (`apis`): every API, with `x-api-common`/`x-iam-env`/`x-kafka-env`/`x-log-env` anchors.
   - `compose/mfes.yaml` (`mfes`): shell and core as static nginx images, no host ports, runtime config through an `x-mfe-env` anchor.
-  - `compose/tools.yaml` (`tools`): kafka-ui, mongo-express.
+  - `compose/tools.yaml` (`tools`): rmu-kafka-ui, rmu-mongo-express.
   - `compose/gateway.yaml` (`gateway`): Caddy, with its routes in `compose/config/caddy/Caddyfile`. Shell at `/`, remotes at `/mfe/<name>/`, APIs at `/api/<name>/`, Keycloak at `/sso/`.
   - `compose/observability.yaml` (`observability`): `grafana/otel-lgtm`.
 
