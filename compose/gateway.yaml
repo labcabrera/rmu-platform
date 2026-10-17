@@ -14,3 +14,10 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    # busybox wget; 127.0.0.1 because localhost resolves to ::1 first.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2020/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

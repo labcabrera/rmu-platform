@@ -117,3 +117,9 @@
 		}
 	}
 }
+
+# Container healthcheck (compose/gateway.yaml). The admin API is off, so this port only answers
+# OK; it is not published on the host.
+:2020 {
+	respond "OK" 200
+}
