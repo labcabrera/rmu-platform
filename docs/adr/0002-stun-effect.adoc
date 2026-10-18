@@ -1,0 +1,40 @@
+= ADR 0002: What being stunned does in tactical combat
+
+* *Status:* Proposed
+* *Date:* 2026-10-18
+* *Context spec:* workspace spec 003, combat plugin refactor (`specs/003-combat-plugin-refactor/` in the workspace meta-repo) (decision D9)
+
+== Context
+
+Criticals and fumbles give the `stunned` effect with a number of rounds and, often, a value (`Stunned -25`, `Stunned -50`). `rmu-api-tactical` stores the effect in the actor round (`status`, `value`, `rounds`) and shows it on the board with its value. Apart from that, the effect does nothing:
+
+* *No penalty.* Before spec 003, `applyStunPenalty()` added a `stunned` penalty with a hard-coded value of 0. Decision D9 removed it ("being stunned has no penalty, apparently"), so the effect's value is ignored.
+* *No restriction.* A stunned actor can declare attacks, parry and move as usual. The declaration dialogs only pre-select "target stunned" (+20 to the attacker) from the target's effects.
+* *Duration.* `addEffect()` adds one round to every `stunned` effect, whatever its source (`//TODO required used action points to calculate stunning effects`). Upkeep then takes one round off each effect at the start of every round. See ADR 0003.
+* *Stacking.* Two stuns are stored as two effects (`isUnique` and `isStackable` don't cover `stunned`), and the board shows both, e.g. `Stunned -25 (3 rnds)` and `Stunned -50 (2 rnds)`.
+* *Delay.* The fumble and critical tables return `delay` and `condition` for effects. The apply handler drops them when it builds `ActorRoundEffect(status, value, rounds)`.
+
+Observed on 2026-10-18 in the "test" game: Capiran with two stuns (−25 for 3 rounds, −50 for 2 rounds) still had full parry options, and none of the values reached a roll.
+
+== Questions to decide
+
+. *What does the value mean?* Options:
+.. informative only (current behaviour, D9);
+.. a penalty while the stun lasts, added as `penalty-stunned` by the `actor-penalties` plugin (to attacks, parry and maneuvers);
+.. something else (e.g. a cap on the OB or on the action points).
+. *What can a stunned actor do?* Attack, parry, move, cast, or only some of them, and with which limit (action points per round, no parry, parry only).
+. *How do several stuns combine?* Keep the worst value, add the values, extend the rounds, or keep them separate (current).
+. *`delay` and `condition`*: should they be stored on the effect and respected by upkeep (an effect that starts later, or that only applies under a condition)?
+
+== Proposed direction
+
+Keep the rule decision in one place:
+
+* model the stun's effects in the actor round domain (`ActorRound`), next to the other penalties, so that every consumer reads the same answer;
+* expose what the stun does to the combat flow through plugins (a penalty through `actor-penalties`, a restriction through a validation of the declaration or the parry options), with no special cases in the handlers;
+* store `delay` and `condition` on `ActorRoundEffect` if they are kept.
+
+== Consequences
+
+* Until this ADR is decided, the stun value stays informative and stunned actors keep acting normally.
+* Whatever is decided needs unit tests on `ActorRound` (stacking, upkeep) and on the plugins it adds, and a check of existing data: actor rounds already store several `stunned` effects.

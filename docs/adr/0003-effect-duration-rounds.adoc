@@ -1,0 +1,37 @@
+= ADR 0003: How many rounds an effect lasts (fumble stun stored with one more round)
+
+* *Status:* Proposed
+* *Date:* 2026-10-18
+* *Context spec:* workspace spec 003, combat plugin refactor (`specs/003-combat-plugin-refactor/` in the workspace meta-repo)
+* *Related:* link:0002-stun-effect.adoc[ADR 0002: What being stunned does]
+
+== Context
+
+The fumble and critical tables (`rmu-api-attack-tables`) return each effect with a number of rounds, and the result's text says the same ("two rounds"). `rmu-api-tactical` stores a different number:
+
+* `ActorRound.addEffect()` adds one round to every `stunned` effect, with the comment `//TODO required used action points to calculate stunning effects`. It doesn't distinguish fumbles from criticals.
+* `ActorRound.applyUpkeep()` runs when the next round starts and takes one round off every effect with rounds, removing those that reach 0.
+
+Observed on 2026-10-18 in the "test" game: a fumble whose result is "stunned for two rounds" was stored as `Stunned -25 (3 rnds)` on the attacker. A critical with "stunned 1 round" was stored with 2.
+
+With the extra round, an effect applied during round N lasts the rest of round N plus the number of full rounds in the table. Without it, it would lose a round at the start of round N + 1 and only last the rest of round N plus one fewer full round. So the extra round is a workaround for "when does the count start", not a rule of its own, and it is applied only to stun.
+
+== Questions to decide
+
+. *When does an effect's count start?* Options:
+.. the next full round (the effect lasts N full rounds after the current one): store the table's number and have upkeep skip effects added during the round that is ending;
+.. the current round counts as the first: store the table's number and keep upkeep as it is;
+.. it depends on the action points left in the round when the effect lands (the TODO), which needs the phase/AP at the moment of applying.
+. *Which effects does it apply to?* Only stun (current), or every effect with rounds (bleeding has no rounds; penalties and other statuses do).
+. *What is shown?* The board should show the rounds left as the rule counts them, so that it matches the table's text right after applying.
+
+== Proposed direction
+
+* Store the table's number of rounds unchanged, so the stored value always matches the text.
+* Record the round (and, if needed, the phase) the effect was applied in (`appliedRound`), and let upkeep decide whether the effect consumes a round, instead of adding one up front.
+* Apply the same rule to every effect with rounds.
+
+== Consequences
+
+* Existing actor rounds keep the extra round already stored; a data fix (or tolerance in upkeep for effects without `appliedRound`) is needed when this is implemented.
+* Unit tests on `ActorRound`: an effect of N rounds applied in round R is active in rounds R..R+N and gone at R+N+1 (or whatever the decision is), for stun and for another effect.

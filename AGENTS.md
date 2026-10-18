@@ -63,7 +63,7 @@ Local endpoints: Keycloak `http://localhost:8090`, Kafka UI `:8091`, Mongo Expre
 
 - Before wiring an env var, check what the API actually reads (its `.env.example`, or the Joi schema in `app.module.ts`). Known exceptions:
   - users also reads `RMU_IAM_ADMIN_URI` (Keycloak admin REST base, `.../admin/realms/<realm>`).
-  - tactical requires `RMU_API_ATTACK_URI` and `RMU_API_NPCS_URI`.
+  - tactical requires `RMU_API_ATTACK_TABLES_URI` and `RMU_API_NPCS_URI`. Since the combat plugin refactor (workspace spec 003) it computes attacks itself and no longer calls rmu-api-attack; older images still read `RMU_API_ATTACK_URI` (kept in compose as legacy).
   - attack (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE`, and `RMU_API_ATTACK_TABLES_URI`.
   - npcs (not checked out) still reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
   - Published images of users, tactical, attack and media still read older names; `compose/apis.yaml` sets them as `legacy` until those APIs release (`docs/architecture/configuration.adoc`).

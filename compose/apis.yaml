@@ -92,6 +92,9 @@ services:
       RMU_API_STRATEGIC_URI: http://rmu-api-strategic:3002/v1
       RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
       RMU_API_NPCS_URI: http://rmu-api-npcs:3008/v1
+      RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
+      # legacy: read by rmu-api-tactical images before the combat plugin refactor (spec 003), which
+      # delegated the attack calculation to rmu-api-attack.
       RMU_API_ATTACK_URI: http://rmu-api-attack:8000/v1
       # legacy: read by rmu-api-tactical images before feature/env-vars-alignment.
       RMU_API_NPC_URI: http://rmu-api-npcs:3008/v1
