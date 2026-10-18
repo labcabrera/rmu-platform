@@ -20,7 +20,12 @@ export default defineConfig({
     {
       name: 'responsive',
       dependencies: ['setup'],
+      testIgnore: /combat-flow\.spec\.ts/,
       use: { storageState: '.auth/user.json' },
     },
+    // Opt-in: it changes the first tactical game (spec 005). `make e2e-combat` or RMU_E2E_COMBAT=1.
+    ...(process.env.RMU_E2E_COMBAT
+      ? [{ name: 'combat', dependencies: ['setup'], testMatch: /combat-flow\.spec\.ts/, use: { storageState: '.auth/user.json' } }]
+      : []),
   ],
 });

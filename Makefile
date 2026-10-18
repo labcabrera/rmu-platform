@@ -2,7 +2,7 @@ TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 .DEFAULT_GOAL := help
 .PHONY: e2e help config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
-	keycloak-init mfes-dev mfe-dev mfe-container
+	keycloak-init mfes-dev mfe-dev mfe-container e2e-combat
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -61,3 +61,6 @@ mfe-container: .env ## Serve one MFE (s=<name>) from its container again
 
 e2e: ## Responsive smoke test of the web against the running stack (needs RMU_E2E_USER and RMU_E2E_PASSWORD)
 	cd e2e && npm ci --ignore-scripts && npx playwright test
+
+e2e-combat: ## Combat flow test (spec 005) on the first tactical game: it changes the game (needs RMU_E2E_USER and RMU_E2E_PASSWORD)
+	cd e2e && npm ci --ignore-scripts && RMU_E2E_COMBAT=1 npx playwright test --project=combat

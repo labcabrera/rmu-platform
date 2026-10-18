@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test';
-import { listRoutes, staticRoutes, viewports } from './routes';
+import { listRoutes, presets, staticRoutes, viewports } from './routes';
 
 // Visible text that is only an i18n key (kebab-case, at least two words): a translation is missing.
 const I18N_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)+$/;
@@ -93,17 +93,29 @@ for (const [name, viewport] of Object.entries(viewports)) {
       });
     }
 
-    // The combat board is the densest page. It is opened by URL: its button on the game view starts the game.
-    test('combat dashboard of the first tactical game', async ({ page }) => {
-      await page.goto('/tactical/games');
-      await settle(page);
-      const firstCard = page.locator('.MuiCardActionArea-root').first();
-      test.skip((await firstCard.count()) === 0, 'no tactical games');
-      await firstCard.click();
-      await page.waitForURL(/\/view\//);
-      await page.goto(page.url().replace('/games/view/', '/combat/'));
-      await settle(page);
-      await check(page);
-    });
+    // The combat board is the densest page, so it is checked in every theme preset, with the side panel open
+    // on the first actor (spec 005). It is opened by URL: its button on the game view starts the game.
+    for (const preset of presets) {
+      test(`combat dashboard of the first tactical game (${preset})`, async ({ page }) => {
+        await page.addInitScript(
+          (value) => localStorage.setItem('rmuTheme', value),
+          JSON.stringify({ preset, mode: preset === 'codex' ? 'light' : 'dark', density: 'comfortable' })
+        );
+        await page.goto('/tactical/games');
+        await settle(page);
+        const firstCard = page.locator('.MuiCardActionArea-root').first();
+        test.skip((await firstCard.count()) === 0, 'no tactical games');
+        await firstCard.click();
+        await page.waitForURL(/\/view\//);
+        await page.goto(page.url().replace('/games/view/', '/combat/'));
+        await settle(page);
+        await check(page);
+        const actor = page.locator('[aria-pressed]').first();
+        if ((await actor.count()) === 0) return;
+        await actor.click();
+        await settle(page);
+        await check(page);
+      });
+    }
   });
 }

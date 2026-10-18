@@ -19,6 +19,9 @@ export const listRoutes = [
 
 export const staticRoutes = ['/', '/core', '/strategic', '/tactical', '/spells', '/user-profile'];
 
+// Theme presets of spec 004: the combat screen (spec 005) is checked in each of them.
+export const presets = ['slate', 'codex', 'arcane', 'ember'];
+
 export const viewports = {
   mobile: { width: 390, height: 844 },
   tablet: { width: 820, height: 1180 },
