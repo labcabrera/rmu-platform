@@ -1,7 +1,7 @@
 TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 .DEFAULT_GOAL := help
-.PHONY: help config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
+.PHONY: e2e help config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
 	keycloak-init mfes-dev mfe-dev mfe-container
 
 help: ## Show available targets
@@ -58,3 +58,6 @@ mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|
 mfe-container: .env ## Serve one MFE (s=<name>) from its container again
 	@test -n "$(s)" || { echo "Usage: make mfe-container s=<name>" >&2; exit 1; }
 	docker compose up -d rmu-mfe-$(s)
+
+e2e: ## Responsive smoke test of the web against the running stack (needs RMU_E2E_USER and RMU_E2E_PASSWORD)
+	cd e2e && npm ci --ignore-scripts && npx playwright test

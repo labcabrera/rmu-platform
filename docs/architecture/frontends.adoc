@@ -9,7 +9,7 @@ The UI is a set of React applications composed at runtime with *Webpack Module F
 * Each domain MFE is a *remote* named after its domain (`core`, `strategic`, `tactical`, `npcs`, `items`, `spells`). It publishes `<name>-app.js` and exposes `./<Name>App`, for example `core/CoreApp`.
 * The shell loads each remote from `<RMU_MFE_<NAME>_PUBLIC_PATH><name>-app.js` and mounts it lazily under `/<name>/*`.
 * React, MUI, emotion, react-router, react-oidc-context/oidc-client-ts and i18next are shared *singletons*. A remote's versions must stay compatible with the shell's `package.json`.
-* Shared UI components come from `@labcabrera-rmu/rmu-react-shared-lib`, which is not on npm: each MFE links it with `make link-shared-lib`.
+* Shared UI components come from `@labcabrera-rmu/rmu-react-shared-lib`, which is not on npm. Each MFE declares it as `file:../rmu-react-shared-lib` in `package.json`, so `npm install` links the sibling checkout. `make link-shared-lib` builds the lib's `dist/` and runs that install. Webpack resolves the lib's peer dependencies (react, MUI…) from the MFE's own `node_modules` (`resolve.modules`), so each bundle keeps a single copy.
 
 When adding an MFE, update together:
 
