@@ -6,10 +6,17 @@ import { expect, Page, test } from '@playwright/test';
 
 const notified = (page: Page, text: RegExp) => expect(page.getByRole('alert').filter({ hasText: text })).toBeVisible();
 
-/** Opens the action palette of the n-th actor that can declare, and picks an entry by its name. */
+/** Closes the resolution dialog (the side panel keeps the action's summary). */
+const closeDialog = (page: Page) => page.keyboard.press('Escape');
+
+/**
+ * Opens the action palette of the n-th actor that can declare, picks an entry by its name, and opens the
+ * resolution dialog from the side panel (declaring only shows the action there).
+ */
 const declare = async (page: Page, actorIndex: number, entry: RegExp) => {
   await page.getByRole('button', { name: /^declare$/i }).nth(actorIndex).click();
   await page.getByRole('menuitem', { name: entry }).click();
+  await page.getByRole('button', { name: /^resolve .+/i }).click();
 };
 
 /**
@@ -56,6 +63,7 @@ test('initiative, movement, melee attack, generic action, log and next phase', a
   await page.getByRole('radiogroup', { name: /pace/i }).getByRole('radio').first().click();
   await page.getByRole('button', { name: /^resolve$/i }).click();
   await notified(page, /movement resolved/i);
+  await closeDialog(page);
 
   // Melee attack of the second actor: first target, prepare, parry if asked, rolls, apply.
   await declare(page, 1, /melee attack/i);
@@ -71,17 +79,19 @@ test('initiative, movement, melee attack, generic action, log and next phase', a
   await rollUntil(page, /^apply$/i);
   await page.getByRole('button', { name: /^apply$/i }).click();
   await notified(page, /attack applied/i);
+  await closeDialog(page);
 
   // Generic action of the third actor.
-  await declare(page, 2, /stand up/i);
+  await declare(page, 2, /^dodge$/i);
   await page.getByRole('button', { name: /^complete$/i }).click();
   await notified(page, /completed/i);
+  await closeDialog(page);
 
   // The log lists the three actions.
   await page.getByRole('tab', { name: /log/i }).click();
   await expect(page.getByText(/normal movement|movement/i).first()).toBeVisible();
   await expect(page.getByText(/melee attack/i).first()).toBeVisible();
-  await expect(page.getByText(/stand up/i).first()).toBeVisible();
+  await expect(page.getByText(/dodge/i).first()).toBeVisible();
 
   // Next phase, confirming what is left pending.
   await page.getByRole('tab', { name: /board/i }).click();
