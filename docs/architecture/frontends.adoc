@@ -29,7 +29,7 @@ Shell variables:
 |Variable |Purpose
 
 |`RMU_IAM_URI`, `RMU_IAM_REALM`, `RMU_IAM_CLIENT_ID`
-|Keycloak and the public PKCE client `rmu-client-front`. Locally `http://localhost:8090`, `rmu`, `rmu-client-front`.
+|Keycloak and the public PKCE client `rmu-client-front`. Locally `http://localhost/sso` (through the gateway, on the shell's origin), `rmu`, `rmu-client-front`.
 
 |`RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`
 |Static assets and locales served by `rmu-mfe-assets` (`/mfe/assets/` through the gateway).

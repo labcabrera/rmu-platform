@@ -66,11 +66,15 @@ services:
       KC_DB_URL_DATABASE: ${POSTGRES_DB_KEYCLOAK}
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # Public URL, also the token issuer (RMU_IAM_ISSUER_URI). The backchannel stays dynamic, so the
+      # APIs reach Keycloak at http://rmu-keycloak:8080/sso and the issuer is still the public URL.
       KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: true
+      KC_HTTP_RELATIVE_PATH: /sso
       KC_LOG_LEVEL: INFO
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
-      # /health/* on the management port 9000 (not published).
+      # /sso/health/* on the management port 9000 (not published; it inherits the relative path).
       KC_HEALTH_ENABLED: true
     volumes:
       - rmu-keycloak-data:/opt/keycloak/data
@@ -80,7 +84,7 @@ services:
         - CMD-SHELL
         - >-
           exec 3<>/dev/tcp/127.0.0.1/9000 &&
-          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          printf 'GET /sso/health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
           head -1 <&3 | grep -q ' 200 '
       interval: 10s
       timeout: 5s
@@ -122,6 +126,23 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+  # Local SMTP for Keycloak (password reset, email verification): every mail is caught and shown in
+  # the web UI (http://localhost:${MAILPIT_UI_PORT}). Keycloak sends to rmu-mailpit:1025.
+  rmu-mailpit:
+    image: axllent/mailpit:v1.27
+    hostname: rmu-mailpit
+    container_name: rmu-mailpit
+    profiles:
+      - infrastructure
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   rmu-mongo-data:

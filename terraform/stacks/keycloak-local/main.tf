@@ -4,6 +4,13 @@ module "keycloak" {
   realm_name         = var.realm_name
   realm_display_name = var.realm_display_name
 
+  api_audience         = var.api_audience
+  google_client_id     = var.google_client_id
+  google_client_secret = var.google_client_secret
+  smtp_host            = var.smtp_host
+  smtp_port            = var.smtp_port
+  smtp_from            = var.smtp_from
+
   rmu_client_secret                    = var.rmu_client_secret
   rmu_client_valid_redirect_uris       = var.rmu_client_valid_redirect_uris
   rmu_client_web_origins               = var.rmu_client_web_origins

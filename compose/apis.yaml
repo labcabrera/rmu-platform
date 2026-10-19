@@ -36,6 +36,8 @@ x-api-common: &api-common
   restart: on-failure:5
 
 x-iam-env: &iam-env
+  RMU_IAM_ISSUER_URI: ${RMU_IAM_ISSUER_URI}
+  RMU_IAM_AUDIENCE: ${RMU_IAM_AUDIENCE}
   RMU_IAM_JWK_URI: ${RMU_IAM_BASE_URI}/realms/${RMU_IAM_REALM}/protocol/openid-connect/certs
   RMU_IAM_TOKEN_URI: ${RMU_IAM_BASE_URI}/realms/${RMU_IAM_REALM}/protocol/openid-connect/token
   RMU_IAM_CLIENT_ID: ${RMU_IAM_CLIENT_ID}

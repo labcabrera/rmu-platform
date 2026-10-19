@@ -4,7 +4,7 @@
 #   /mfe/<name>/      rmu-mfe-<name>           fallback: dev server on the host (core :8089, strategic :8082,
 #                                              tactical :8083, npcs :8084, assets :4000)
 #   /api/<name>/      rmu-api-<name>:<port>
-#   /sso/             rmu-keycloak:8080
+#   /sso/             rmu-keycloak:8080/sso/  (path kept: Keycloak runs with KC_HTTP_RELATIVE_PATH=/sso)
 #
 # handle_path strips the prefix, so /api/core/v1/races reaches rmu-api-core:3001/v1/races.
 # Upstreams are resolved when a request is proxied, so Caddy starts with any subset of services.
@@ -60,14 +60,12 @@
 		reverse_proxy rmu-api-media:3011
 	}
 
-	# Keycloak under a path prefix. The SPA uses Keycloak directly on :8090 (RMU_MFE_IAM_URI); this route
-	# mirrors the old nginx one (redirects and cookies rewritten to /sso/).
+	# Keycloak on the same origin as the shell, so its session cookies are first-party and the silent
+	# sign-in (prompt=none) is not blocked. Keycloak itself serves /sso (KC_HTTP_RELATIVE_PATH) and
+	# builds its public URLs from KC_HOSTNAME, so nothing is rewritten here.
 	redir /sso /sso/ 301
-	handle_path /sso/* {
-		reverse_proxy rmu-keycloak:8080 {
-			header_down Location ^/ /sso/
-			header_down Set-Cookie "Path=/" "Path=/sso/"
-		}
+	handle /sso/* {
+		reverse_proxy rmu-keycloak:8080
 	}
 
 	handle_path /mfe/core/* {

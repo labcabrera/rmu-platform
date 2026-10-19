@@ -1,14 +1,47 @@
 = Authentication and authorization
 :toc: left
 
-Keycloak is the OIDC provider. Its configuration (realm, clients, groups and initial users) is managed with Terraform; see link:../operations/keycloak-terraform.adoc[].
+Keycloak is the OIDC provider. Its configuration (realm, clients, scopes, groups, Google login and initial users) is managed with Terraform; see link:../operations/keycloak-terraform.adoc[]. The design is in spec 006 (identity and sessions).
+
+== Where Keycloak is served
+
+Keycloak runs under the `/sso` path (`KC_HTTP_RELATIVE_PATH`):
+
+* *Browser*: http://localhost/sso, through the gateway, on the same origin as the shell. Its session cookies are first-party, so the silent sign-in (`prompt=none`) is not blocked by third-party cookie rules.
+* *Containers*: `http://rmu-keycloak:8080/sso` (`RMU_IAM_BASE_URI`). The backchannel is dynamic (`KC_HOSTNAME_BACKCHANNEL_DYNAMIC`), so the APIs fetch the JWKS and tokens there.
+* *Host*: http://localhost:8090/sso, for the admin console, Terraform and APIs started with `npm run start:dev`. The admin console credentials are `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` in `.env`.
+
+Every token is issued by `http://localhost/sso/realms/rmu` (`KC_HOSTNAME`, `RMU_IAM_ISSUER_URI`), wherever it was requested.
 
 == Realm
 
 * Name `rmu`, stored in PostgreSQL (`rmu-postgres`).
-* Self-registration enabled, login with email allowed.
-* Access tokens last 24 hours.
-* Locally Keycloak listens on http://localhost:8090 (admin console credentials: `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` in `.env`). Inside the Compose network it is `http://rmu-keycloak:8080`.
+* Self-registration open to anyone. Login with username or email. Local registrations must verify their email when SMTP is configured (Mailpit locally, at http://localhost:8025).
+* Password policy `length(8) and notUsername`. Brute-force detection is on, with a temporary lockout after 10 failures.
+* Login page in English and Spanish.
+* Login and admin events are kept for 7 days.
+
+== Sessions
+
+[options="header",cols="2,1,1"]
+|===
+|Setting |Without "Remember me" |With "Remember me"
+
+|Session idle timeout |30 min |30 days
+|Session max lifespan |10 h |90 days
+|Session cookie |Browser session |Persistent
+|===
+
+* Access tokens last 15 minutes. The shell renews them with the refresh token (`automaticSilentRenew`).
+* The shell keeps its tokens in sessionStorage. A new tab, or the browser after a restart, gets new tokens with a silent sign-in, as long as the Keycloak session cookie is alive.
+* No offline tokens: logging out (`signoutRedirect`) ends the Keycloak session, and the next login asks for credentials again.
+
+== Google login
+
+* Identity provider `google`. The email is trusted, and the profile is imported on the first login only (`sync_mode = IMPORT`).
+* The credentials in `terraform.tfvars` are placeholders until the application is installed. The button is shown, but Google rejects the sign-in.
+* First login through Google uses the `rmu first broker login` flow. It asks only for missing profile attributes, and then either creates the user or, when an account with the same email exists, links Google to it with no password prompt. Accepted risk: whoever controls a Google address gets the account with that email.
+* The `identity_provider` claim carries the broker alias (`google`). It is absent for local logins.
 
 == Clients
 
@@ -18,14 +51,30 @@ Keycloak is the OIDC provider. Its configuration (realm, clients, groups and ini
 
 |`rmu-client`
 |Confidential
-|The APIs. They validate JWTs against the realm JWKS (`RMU_IAM_JWK_URI`) and obtain service-to-service tokens with the client credentials (`RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`). Its service account has the `realm-admin` role, which `rmu-api-users` needs to manage users.
+|The APIs. They validate JWTs against the realm JWKS (`RMU_IAM_JWK_URI`) and obtain service-to-service tokens with the client credentials (`RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`). Its service account has the `realm-admin` role. `rmu-api-users` needs it only as a fallback, to find users who never opened RMU, and to add users to groups.
 
 |`rmu-client-front`
 |Public, PKCE S256
-|The shell (`KC_CLIENT_ID`). Authorization code flow only; no direct grants.
+|The shell (`RMU_IAM_CLIENT_ID`). Authorization code flow only, no direct grants.
 |===
 
-The `rmu-client` secret comes from `rmu_client_secret` in `terraform.tfvars` and must match `RMU_IAM_CLIENT_SECRET` in `.env`.
+The `rmu-client` secret comes from `rmu_client_secret` in `terraform.tfvars`, and must match `RMU_IAM_CLIENT_SECRET` in `.env`. Redirect URIs and web origins allow the gateway (`http://localhost`) and the shell dev server (`:8080`). Post-logout redirects follow the redirect URIs (`+`).
+
+== Token validation
+
+Both clients have the `rmu-api` client scope as a default scope. It adds:
+
+* the audience `rmu-api` (`RMU_IAM_AUDIENCE`);
+* the `identity_provider` claim.
+
+Every NestJS API checks the signature (`RMU_IAM_JWK_URI`), the issuer (`RMU_IAM_ISSUER_URI`) and the audience (`RMU_IAM_AUDIENCE`), and maps `id = sub` and `roles = groups`. Any other token gets a 401.
+
+== Users
+
+`rmu-api-users` keeps the RMU profile: display name, avatar, settings and features.
+
+* It creates and refreshes the profile from the claims of the token in `GET /v1/users/me`, with no call to Keycloak.
+* The Keycloak username is never shown or changed by RMU.
 
 == Groups and claims
 

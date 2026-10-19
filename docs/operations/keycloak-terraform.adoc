@@ -1,23 +1,23 @@
 = Keycloak with Terraform
 :toc: left
 
-The realm, clients, groups and initial users (described in link:../architecture/auth.adoc[]) are provisioned with Terraform and the `mrparkers/keycloak` provider.
+The realm, clients, client scopes, groups, Google login, first-broker-login flow and initial users (described in link:../architecture/auth.adoc[]) are provisioned with Terraform and the `mrparkers/keycloak` provider.
 
 == Layout
 
 [source]
 ----
 terraform/
-├── modules/keycloak/        # realm, clients, client scope, groups, users
+├── modules/keycloak/        # realm, events, clients, client scopes, groups, Google, users
 └── stacks/
-    └── keycloak-local/      # the module against the local Keycloak (http://localhost:8090)
+    └── keycloak-local/      # the module against the local Keycloak (http://localhost:8090/sso)
 ----
 
 Each stack has its own state, so applying one never touches the others. Future stacks (`keycloak-aws`, `aws-*`) will reuse the same modules. `.terraform.lock.hcl` is versioned, so everyone gets the same provider build.
 
 == Local Keycloak
 
-Start the infrastructure (`make up-infra`) and wait for http://localhost:8090. Then:
+Start the infrastructure (`make up-infra`) and wait for http://localhost:8090/sso. Keycloak runs under `/sso`, so the provider uses `keycloak_base_path = "/sso"`. Then:
 
 [source,bash]
 ----
@@ -28,8 +28,22 @@ make keycloak-init   # terraform init + apply -auto-approve, no confirmation pro
 ----
 
 * `rmu_client_secret` must match `RMU_IAM_CLIENT_SECRET` in `.env`, which the APIs use.
-* The variable defaults only allow `localhost` and `127.0.0.1` as redirect URIs and web origins for the SPA. To open the shell from another machine on the LAN, add its address to `rmu_client_front_valid_redirect_uris` and `rmu_client_front_web_origins` in `terraform.tfvars`.
+* Redirect URIs and web origins allow the gateway (`http://localhost`) and the shell dev server (`:8080`). There are no wildcards. To open the shell from another machine on the LAN, add its address to `rmu_client_front_valid_redirect_uris` and `rmu_client_front_web_origins` in `terraform.tfvars`.
+* The realm sends mail through the Mailpit container (`smtp_host = "rmu-mailpit"`). Its web UI is http://localhost:8025. With `smtp_host = ""` the realm has no SMTP, and email verification is off.
 * State is local (`terraform.tfstate` in the stack folder, gitignored). After `docker compose --profile '*' down -v` the Keycloak database is gone, but the state still lists the resources. The next `plan` reports them as deleted outside Terraform, and `apply` recreates them.
+
+== Google login
+
+The `google` identity provider is always created. Until the application is installed, `google_client_id` and `google_client_secret` hold placeholders: the button is shown on the login page, but Google rejects the sign-in.
+
+To enable it:
+
+. In Google Cloud Console, go to _APIs & Services → Credentials_ and create an _OAuth client ID_ of type _Web application_.
+. Add the authorized redirect URI `<public Keycloak URL>/realms/rmu/broker/google/endpoint`. Locally that is `http://localhost/sso/realms/rmu/broker/google/endpoint`. Use one client per environment.
+. Configure the OAuth consent screen with the scopes `openid`, `email` and `profile`.
+. Put the client ID and secret in `terraform.tfvars` (gitignored) and run `make keycloak-init`.
+
+The first Google login of a user goes through the `rmu first broker login` flow. If an account with the same email exists, Google is linked to it automatically. See link:../architecture/auth.adoc[].
 
 == Checks
 

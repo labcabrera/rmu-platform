@@ -10,19 +10,60 @@ resource "keycloak_realm" "rmu" {
   registration_allowed           = true
   registration_email_as_username = false
   reset_password_allowed         = true
-  remember_me                    = false
-  verify_email                   = false
+  remember_me                    = true
+  verify_email                   = var.smtp_host != ""
   login_with_email_allowed       = true
   duplicate_emails_allowed       = false
 
-  ssl_required = "external"
+  ssl_required    = "external"
+  password_policy = "length(8) and notUsername"
 
-  access_token_lifespan                   = "24h"
-  access_token_lifespan_for_implicit_flow = "24h"
+  # Short access tokens, renewed with the refresh token. "Remember me" makes the session cookie
+  # persistent and stretches the session; without it the session ends after 30 min idle.
+  access_token_lifespan                   = "15m"
+  access_token_lifespan_for_implicit_flow = "15m"
   sso_session_idle_timeout                = "30m"
   sso_session_max_lifespan                = "10h"
+  sso_session_idle_timeout_remember_me    = "720h"
+  sso_session_max_lifespan_remember_me    = "2160h"
   offline_session_idle_timeout            = "720h"
   offline_session_max_lifespan_enabled    = false
+
+  internationalization {
+    supported_locales = ["en", "es"]
+    default_locale    = "en"
+  }
+
+  security_defenses {
+    brute_force_detection {
+      permanent_lockout  = false
+      max_login_failures = 10
+    }
+  }
+
+  dynamic "smtp_server" {
+    for_each = var.smtp_host == "" ? [] : [1]
+    content {
+      host              = var.smtp_host
+      port              = var.smtp_port
+      from              = var.smtp_from
+      from_display_name = var.realm_display_name
+      ssl               = false
+      starttls          = false
+    }
+  }
+}
+
+# Login and admin events, kept for a week for troubleshooting.
+resource "keycloak_realm_events" "rmu" {
+  realm_id = keycloak_realm.rmu.id
+
+  events_enabled    = true
+  events_expiration = 604800
+  events_listeners  = ["jboss-logging"]
+
+  admin_events_enabled         = true
+  admin_events_details_enabled = false
 }
 
 # -----------------------------------------------------------------------------
@@ -77,6 +118,41 @@ resource "keycloak_openid_group_membership_protocol_mapper" "groups_mapper" {
 }
 
 # -----------------------------------------------------------------------------
+# Client scope: rmu-api (audience checked by every API, and how the user signed in)
+# -----------------------------------------------------------------------------
+
+resource "keycloak_openid_client_scope" "rmu_api" {
+  realm_id               = keycloak_realm.rmu.id
+  name                   = "rmu-api"
+  description            = "Adds the RMU APIs audience and the identity provider of the session to the token."
+  include_in_token_scope = false
+}
+
+resource "keycloak_openid_audience_protocol_mapper" "rmu_api_audience" {
+  realm_id        = keycloak_realm.rmu.id
+  client_scope_id = keycloak_openid_client_scope.rmu_api.id
+  name            = "rmu-api-audience"
+
+  included_custom_audience = var.api_audience
+  add_to_id_token          = false
+  add_to_access_token      = true
+}
+
+# Keycloak stores the broker alias (e.g. google) in the identity_provider session note. Local logins
+# have no note, so the claim is absent.
+resource "keycloak_openid_user_session_note_protocol_mapper" "rmu_api_identity_provider" {
+  realm_id        = keycloak_realm.rmu.id
+  client_scope_id = keycloak_openid_client_scope.rmu_api.id
+  name            = "identity-provider"
+
+  claim_name          = "identity_provider"
+  claim_value_type    = "String"
+  session_note        = "identity_provider"
+  add_to_id_token     = true
+  add_to_access_token = true
+}
+
+# -----------------------------------------------------------------------------
 # Client: rmu-client (confidential / authentication enabled)
 # -----------------------------------------------------------------------------
 
@@ -96,6 +172,9 @@ resource "keycloak_openid_client" "rmu_client" {
 
   valid_redirect_uris = var.rmu_client_valid_redirect_uris
   web_origins         = var.rmu_client_web_origins
+
+  # "+" allows the same URIs as valid_redirect_uris after logout.
+  valid_post_logout_redirect_uris = ["+"]
 }
 
 resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
@@ -108,7 +187,8 @@ resource "keycloak_openid_client_default_scopes" "rmu_client_default_scopes" {
     "email",
     "roles",
     "web-origins",
-    keycloak_openid_client_scope.groups.name,
+    keycloak_openid_client_scope.groups.name, keycloak_openid_client_scope.groups.name,
+    keycloak_openid_client_scope.rmu_api.name,
   ]
 }
 
@@ -154,6 +234,9 @@ resource "keycloak_openid_client" "rmu_client_front" {
 
   valid_redirect_uris = var.rmu_client_front_valid_redirect_uris
   web_origins         = var.rmu_client_front_web_origins
+
+  # "+" allows the same URIs as valid_redirect_uris after logout.
+  valid_post_logout_redirect_uris = ["+"]
 }
 
 resource "keycloak_openid_client_default_scopes" "rmu_client_front_default_scopes" {
@@ -166,8 +249,80 @@ resource "keycloak_openid_client_default_scopes" "rmu_client_front_default_scope
     "email",
     "roles",
     "web-origins",
-    keycloak_openid_client_scope.groups.name,
+    keycloak_openid_client_scope.groups.name, keycloak_openid_client_scope.groups.name,
+    keycloak_openid_client_scope.rmu_api.name,
   ]
+}
+
+# -----------------------------------------------------------------------------
+# Google login
+# -----------------------------------------------------------------------------
+
+# First login through a broker: ask only for missing profile attributes, then create the user or, when
+# an account with the same email exists, link to it with no password prompt (spec 006: accepted risk,
+# Google verifies its emails and local registrations verify theirs).
+resource "keycloak_authentication_flow" "first_broker_login" {
+  realm_id    = keycloak_realm.rmu.id
+  alias       = "rmu first broker login"
+  description = "First broker login that links an existing account with the same email automatically."
+  provider_id = "basic-flow"
+}
+
+resource "keycloak_authentication_execution" "first_broker_login_review_profile" {
+  realm_id          = keycloak_realm.rmu.id
+  parent_flow_alias = keycloak_authentication_flow.first_broker_login.alias
+  authenticator     = "idp-review-profile"
+  requirement       = "REQUIRED"
+}
+
+resource "keycloak_authentication_execution_config" "first_broker_login_review_profile" {
+  realm_id     = keycloak_realm.rmu.id
+  execution_id = keycloak_authentication_execution.first_broker_login_review_profile.id
+  alias        = "rmu-review-profile-missing"
+  config = {
+    "update.profile.on.first.login" = "missing"
+  }
+}
+
+resource "keycloak_authentication_subflow" "first_broker_login_user" {
+  realm_id          = keycloak_realm.rmu.id
+  parent_flow_alias = keycloak_authentication_flow.first_broker_login.alias
+  alias             = "rmu first broker login user"
+  provider_id       = "basic-flow"
+  requirement       = "REQUIRED"
+
+  depends_on = [keycloak_authentication_execution.first_broker_login_review_profile]
+}
+
+resource "keycloak_authentication_execution" "first_broker_login_create_user" {
+  realm_id          = keycloak_realm.rmu.id
+  parent_flow_alias = keycloak_authentication_subflow.first_broker_login_user.alias
+  authenticator     = "idp-create-user-if-unique"
+  requirement       = "ALTERNATIVE"
+}
+
+resource "keycloak_authentication_execution" "first_broker_login_auto_link" {
+  realm_id          = keycloak_realm.rmu.id
+  parent_flow_alias = keycloak_authentication_subflow.first_broker_login_user.alias
+  authenticator     = "idp-auto-link"
+  requirement       = "ALTERNATIVE"
+
+  depends_on = [keycloak_authentication_execution.first_broker_login_create_user]
+}
+
+# The credentials are placeholders until the application is installed: the button is shown, and
+# Google rejects the sign-in until real ones are set in terraform.tfvars (docs/operations/keycloak-terraform.adoc).
+resource "keycloak_oidc_google_identity_provider" "google" {
+  realm         = keycloak_realm.rmu.id
+  client_id     = var.google_client_id
+  client_secret = var.google_client_secret
+
+  trust_email                   = true
+  sync_mode                     = "IMPORT"
+  hide_on_login_page            = false
+  first_broker_login_flow_alias = keycloak_authentication_flow.first_broker_login.alias
+
+  depends_on = [keycloak_authentication_execution.first_broker_login_auto_link]
 }
 
 # -----------------------------------------------------------------------------

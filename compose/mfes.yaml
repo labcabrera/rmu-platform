@@ -8,7 +8,7 @@
 # API. Paths are relative to the gateway origin, so they do not change between environments; only
 # Keycloak and the assets come from .env (RMU_MFE_*).
 x-mfe-env: &mfe-env
-  RMU_IAM_URI: ${RMU_MFE_IAM_URI:-http://localhost:8090}
+  RMU_IAM_URI: ${RMU_MFE_IAM_URI:-http://localhost/sso}
   RMU_IAM_REALM: ${RMU_IAM_REALM:-rmu}
   RMU_IAM_CLIENT_ID: ${RMU_MFE_IAM_CLIENT_ID:-rmu-client-front}
   RMU_MFE_ASSETS_URI: ${RMU_MFE_ASSETS_URI:-/mfe/assets/}
