@@ -26,7 +26,7 @@ Every RMU service is configured through environment variables that follow one na
 |`RMU_MONGO_TACTICAL_URI`
 
 |`RMU_IAM_*`
-|Keycloak. APIs: `RMU_IAM_JWK_URI`, `RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`, and `RMU_IAM_ADMIN_URI` (users). MFEs: `RMU_IAM_URI`, `RMU_IAM_REALM`, `RMU_IAM_CLIENT_ID`.
+|Keycloak. APIs: `RMU_IAM_JWK_URI`, `RMU_IAM_ISSUER_URI`, `RMU_IAM_AUDIENCE`, `RMU_IAM_TOKEN_URI`, `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`, and `RMU_IAM_ADMIN_URI` (users). MFEs: `RMU_IAM_URI`, `RMU_IAM_REALM`, `RMU_IAM_CLIENT_ID`.
 |`RMU_IAM_JWK_URI`
 
 |`RMU_KAFKA_*`
@@ -53,7 +53,7 @@ Each `.env.example` is grouped in the same order: server, MongoDB, Keycloak, Kaf
 The platform `.env` holds the inputs of `compose/*.yaml`, grouped in the same blocks as `.env.example`: compose, infrastructure, tools, gateway, API shared settings, media, MFE public values, image versions.
 
 * When a value is passed to the services as is, it keeps the name the services read: `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`, `LOG_LEVEL`.
-* `RMU_IAM_BASE_URI` and `RMU_IAM_REALM` build the Keycloak endpoints of the APIs.
+* `RMU_IAM_BASE_URI` (`http://rmu-keycloak:8080/sso`) and `RMU_IAM_REALM` build the Keycloak endpoints of the APIs. `RMU_IAM_ISSUER_URI` is the public issuer (`http://localhost/sso/realms/rmu`), and `RMU_IAM_AUDIENCE` (`rmu-api`) is the audience every API checks.
 * The Mongo connection strings are built from `MONGO_USER` and `MONGO_PASSWORD`.
 * `RMU_MFE_*` are the values that differ for the browser: `RMU_MFE_IAM_URI`, `RMU_MFE_IAM_CLIENT_ID`, `RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`. The remote and API paths of the MFEs are fixed gateway paths in `compose/mfes.yaml`.
 

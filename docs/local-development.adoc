@@ -17,7 +17,7 @@ The local stack runs with Docker Compose from the root of this repository. `comp
 ----
 cp .env.example .env     # local-only credentials and defaults
 make up                  # starts the profiles in COMPOSE_PROFILES
-make keycloak-init       # once Keycloak answers on http://localhost:8090
+make keycloak-init       # once Keycloak answers on http://localhost:8090/sso
 ----
 
 Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfvars` from its `.example`; see link:operations/keycloak-terraform.adoc[]. The APIs start before the realm exists and fail token validation until it has been applied.
@@ -30,7 +30,7 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`infrastructure`
 |`compose/infrastructure.yaml`
-|MongoDB, PostgreSQL, Keycloak, Kafka.
+|MongoDB, PostgreSQL, Keycloak, Kafka, Mailpit.
 
 |`apis`
 |`compose/apis.yaml`
@@ -90,7 +90,8 @@ IMPORTANT: `apis` and `tools` depend on services of `infrastructure`. Without it
 |===
 |Service |Address
 
-|Keycloak |http://localhost:8090
+|Keycloak |http://localhost/sso (gateway), http://localhost:8090/sso (admin console)
+|Mailpit (realm mail) |http://localhost:8025
 |MongoDB |`mongodb://admin:admin@localhost:27017/?authSource=admin`
 |Kafka from the host |`localhost:9093`
 |Kafka UI |http://localhost:8091
@@ -108,7 +109,7 @@ Each API image is `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`.
 == Running an API from source
 
 . Start everything else, then stop the container of the API you are working on, for example `docker compose stop rmu-api-core`.
-. In the API repository, copy `.env.example` to `.env`. From the host, use `localhost` addresses: Mongo `localhost:27017`, Keycloak `http://localhost:8090`, Kafka `localhost:9093`.
+. In the API repository, copy `.env.example` to `.env`. From the host, use `localhost` addresses: Mongo `localhost:27017`, Keycloak `http://localhost:8090/sso` for the JWKS and token URIs, the issuer `http://localhost/sso/realms/rmu` (`RMU_IAM_ISSUER_URI`) and the audience `rmu-api` (`RMU_IAM_AUDIENCE`), Kafka `localhost:9093`.
 . `npm run start:dev`.
 
 Other containers still call `http://rmu-api-core:3001`, which no longer resolves. To exercise those calls, run the API as a container built from your checkout and attached to the `rmu-network` network. `rmu-api-core` and `rmu-api-media` do this with `make docker-build docker-run`.
@@ -181,7 +182,8 @@ OTEL_SERVICE_NAME: rmu-api-<name>
 * *`rmu-network` already exists*: the network was created by hand with `docker network create`. Run `docker compose --profile '*' down && docker network rm rmu-network` once and start again.
 * *Kafka from the host bootstraps but then fails*: use `localhost:9093`. Port 9092 advertises `rmu-kafka-broker:9092`, which only resolves inside the Compose network.
 * *MongoDB does not start on Linux 6.19+*: MongoDB 8.0 is affected by link:https://jira.mongodb.org/browse/SERVER-121912[SERVER-121912]. The service sets `GLIBC_TUNABLES=glibc.pthread.rseq=1` to avoid it.
-* *APIs reject every token*: the realm has not been provisioned, or `RMU_IAM_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`.
+* *APIs reject every token*: the realm has not been provisioned, `RMU_IAM_CLIENT_SECRET` in `.env` does not match `rmu_client_secret` in `terraform.tfvars`, or the API's `RMU_IAM_ISSUER_URI` / `RMU_IAM_AUDIENCE` do not match the token (`iss` must be `http://localhost/sso/realms/rmu`, `aud` must contain `rmu-api`).
+* *Login asks for credentials in every new tab*: open the shell through the gateway (http://localhost), so the Keycloak cookie is first-party, and check "Remember me" to keep the session after closing the browser.
 
 == Initialization data
 

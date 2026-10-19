@@ -100,6 +100,9 @@ APIs are configured through `RMU_*` variables. In `compose/apis.yaml` they are b
 |`RMU_MONGO_<DOMAIN>_URI`
 |`mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-<domain>?authSource=admin`
 
+|`RMU_IAM_ISSUER_URI`, `RMU_IAM_AUDIENCE`
+|`${RMU_IAM_ISSUER_URI}`, `${RMU_IAM_AUDIENCE}` from `.env` (public issuer and `rmu-api`)
+
 |`RMU_IAM_JWK_URI`, `RMU_IAM_TOKEN_URI`
 |`${RMU_IAM_BASE_URI}/realms/${RMU_IAM_REALM}/protocol/openid-connect/{certs,token}`
 
@@ -184,7 +187,8 @@ See link:frontends.adoc[] for the Module Federation contract.
 
 |MongoDB |`mongo:8.0` |27017 |`infrastructure`
 |PostgreSQL (Keycloak storage) |`postgres:16` |- |`infrastructure`
-|Keycloak |`quay.io/keycloak/keycloak:26.3` |8090 |`infrastructure`
+|Keycloak |`quay.io/keycloak/keycloak:26.3` |8090 (`/sso`) |`infrastructure`
+|Mailpit (Keycloak SMTP) |`axllent/mailpit` |8025 (UI) |`infrastructure`
 |Kafka (KRaft) |`confluentinc/cp-kafka:7.4.0` |9092, 9093 (host), 9094 |`infrastructure`
 |Kafka UI |`provectuslabs/kafka-ui` |8091 |`tools`
 |Mongo Express |`mongo-express:1.0` |8092 |`tools`
