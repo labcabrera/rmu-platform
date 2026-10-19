@@ -20,9 +20,11 @@ export default defineConfig({
     {
       name: 'responsive',
       dependencies: ['setup'],
-      testIgnore: /combat-flow\.spec\.ts/,
+      testIgnore: /(combat-flow|session)\.spec\.ts/,
       use: { storageState: '.auth/user.json' },
     },
+    // Remembered sessions (spec 006): signs in by itself, with no stored state.
+    { name: 'session', testMatch: /session\.spec\.ts/ },
     // Opt-in: it changes the first tactical game (spec 005). `make e2e-combat` or RMU_E2E_COMBAT=1.
     ...(process.env.RMU_E2E_COMBAT
       ? [{ name: 'combat', dependencies: ['setup'], testMatch: /combat-flow\.spec\.ts/, use: { storageState: '.auth/user.json' } }]
