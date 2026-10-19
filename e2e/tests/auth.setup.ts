@@ -8,7 +8,7 @@ setup('sign in', async ({ page }) => {
   if (!user || !password) throw new Error('Set RMU_E2E_USER and RMU_E2E_PASSWORD (a Keycloak user of the local realm)');
 
   await page.goto('/user-profile');
-  await page.getByRole('button', { name: /login|sign in|iniciar/i }).click();
+  await page.getByRole('main').getByRole('button', { name: /login|sign in|iniciar/i }).click();
   await page.locator('#username').fill(user);
   await page.locator('#password').fill(password);
   await page.locator('#kc-login').click();
