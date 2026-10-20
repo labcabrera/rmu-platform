@@ -214,6 +214,18 @@ resource "keycloak_openid_client_service_account_role" "rmu_client_realm_admin" 
   role                    = data.keycloak_role.realm_admin.name
 }
 
+# The APIs map the groups claim to RMU roles. Service-to-service calls (for
+# example strategic reading a trait from core) need rmu-admin to read entities
+# that are not public.
+resource "keycloak_user_groups" "rmu_client_service_account_groups" {
+  realm_id = keycloak_realm.rmu.id
+  user_id  = keycloak_openid_client.rmu_client.service_account_user_id
+
+  group_ids = [
+    keycloak_group.rmu_admin.id,
+  ]
+}
+
 # -----------------------------------------------------------------------------
 # Client: rmu-client-front (public / PKCE S256 / SPA)
 # -----------------------------------------------------------------------------
