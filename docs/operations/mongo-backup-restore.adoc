@@ -43,6 +43,9 @@ make mongo-migrate f=scripts/migrations/001-relative-asset-urls.js
 
 |`001-relative-asset-urls.js`
 |Turns absolute image URLs (`https://assets.labcabrera.com/...`, `http://localhost:4000/...`) into paths relative to `rmu-mfe-assets` in every `imageUrl` and in the media images. See link:../architecture/configuration.adoc#_asset_paths[Asset paths].
+
+|`2026-10-20-culture-skill-ranks.js`
+|Moves the culture ranks in `rmu-core.cultures` from the old `fixedSkillRanks` to the typed `skillRanks` list: each entry becomes `type: 'skill'` and `fixedSkillRanks` is removed. `rmu-api-core` reads both formats until it runs (workspace spec 009).
 |===
 
 == Options
