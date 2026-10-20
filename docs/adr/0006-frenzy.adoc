@@ -1,0 +1,52 @@
+= ADR 0006: Frenzy as a combat state
+
+* *Status:* Proposed
+* *Date:* 2026-10-20
+* *Context spec:* workspace spec 008, talents (`specs/008-talents/` in the workspace meta-repo)
+* *Related:* link:0002-stun-effect.adoc[ADR 0002], link:0003-effect-duration-rounds.adoc[ADR 0003]
+
+== Context
+
+Frenzy (Core Law §4.2) is a talent that lets a combatant enter a frenzied state with an Adrenal Focus maneuver, and leave it with another one. While frenzied, the rule changes several parts of combat at once:
+
+* a bonus to the Strength stat bonus;
+* the combatant's attacks count as one size larger;
+* no penalties for hit loss;
+* unconsciousness at a negative hit threshold based on Body Development instead of at 0 hits, followed by a Physical RR each round;
+* no defensive bonus except magical;
+* no parry;
+* constraints on target choice (the closest creature, with a Perception roll to tell friend from foe).
+
+Spec 008 left Frenzy out because, after spec 007 and spec 008, `rmu-api-tactical` cannot express most of these changes:
+
+* The actor's OB arrives from strategic already summed (`attacks[].bo`), so a stat bonus change cannot be applied in tactical without the OB breakdown (`boModifiers`) or the stat bonuses.
+* Unconsciousness is hard-coded at `hp.current < 1` (`ActorRound.applyAttackResults`).
+* The defensive bonus reaching the combat engine has no origin, so magical DB cannot be told apart from the rest.
+* There are no resistance rolls in tactical.
+* Target choice is not modeled. It would only be a reminder to the game master.
+
+== Questions to decide
+
+. *How is the state entered and left?* Options:
+.. a `frenzy` effect added by the game master after a successful maneuver (as surprise is today);
+.. a maneuver action whose success adds the effect.
+. *Which stat bonus does the OB use?* Options:
+.. send `boModifiers` and the weapon skill stats to tactical, so a plugin can add the Strength change;
+.. have strategic precompute an alternative "frenzied" OB for each attack.
+. *Unconsciousness threshold:* make it a value of the actor round (`unconsciousThreshold`, 0 by default) that the frenzy effect changes, and treat the per-round Physical RR as a game master action until tactical has RRs.
+. *Defensive bonus:* split the actor's DB into magical and non-magical parts in the contract, or add a "DB disabled except magic" flag that the DB, shield and dodge plugins honor. Today there is no magical DB, so the flag is equivalent to the existing `disabledDB`.
+. *What does the UI show?* A frenzy chip, and the parry options hidden while frenzied.
+
+== Proposed direction
+
+None yet. Options 1.1, 2.1, 3 and 4 with the flag reuse mechanisms that already exist (manual effects, plugins, `disabledDB`). The OB breakdown in 2.1 is also needed by other rules, such as the off-hand penalty in tactical.
+
+== Consequences
+
+* Until this ADR is decided, a character can have Frenzy, but the talent has no effect.
+* The implementation touches:
+** the strategic attack contract;
+** the actor round (threshold and HP penalties);
+** the plugins `attack-size`, `defensive-bonus`, `shield` and `dodge`;
+** the parry options;
+** `rmu-mfe-tactical`.

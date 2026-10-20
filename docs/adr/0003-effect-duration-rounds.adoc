@@ -1,6 +1,6 @@
 = ADR 0003: How many rounds an effect lasts (fumble stun stored with one more round)
 
-* *Status:* Proposed
+* *Status:* Accepted (2026-10-19, workspace spec 007)
 * *Date:* 2026-10-18
 * *Context spec:* workspace spec 003, combat plugin refactor (`specs/003-combat-plugin-refactor/` in the workspace meta-repo)
 * *Related:* link:0002-stun-effect.adoc[ADR 0002: What being stunned does]
@@ -30,6 +30,16 @@ With the extra round, an effect applied during round N lasts the rest of round N
 * Store the table's number of rounds unchanged, so the stored value always matches the text.
 * Record the round (and, if needed, the phase) the effect was applied in (`appliedRound`), and let upkeep decide whether the effect consumes a round, instead of adding one up front.
 * Apply the same rule to every effect with rounds.
+
+== Decision
+
+Decided in workspace spec 007 (combat rules alignment), following Core Law §8.3 (upkeep):
+
+* Effects store the table's number of rounds unchanged. The extra round added to stuns is removed.
+* Each effect records when it was applied: `appliedRound`, `appliedPhase` and `spentApBefore`, the action points the actor had spent in the round before the effect landed.
+* The action points come from a per-phase log. Every time the game leaves a phase, each actor round records the action points spent in that phase, whether or not the actor acted.
+* In the upkeep of the round the effect was applied in, the effect loses a round only if the actor had spent fewer than 2 action points before it. If it landed later, it keeps its rounds until the next upkeep, as Caitsley does in the §9.9 example. Later upkeeps take one round off as usual.
+* The rule applies to every effect with rounds. Effects stored before this change (without `appliedRound`) keep the old behaviour.
 
 == Consequences
 

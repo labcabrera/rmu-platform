@@ -1,6 +1,6 @@
 = ADR 0002: What being stunned does in tactical combat
 
-* *Status:* Proposed
+* *Status:* Accepted (2026-10-19, workspace spec 007)
 * *Date:* 2026-10-18
 * *Context spec:* workspace spec 003, combat plugin refactor (`specs/003-combat-plugin-refactor/` in the workspace meta-repo) (decision D9)
 
@@ -33,6 +33,15 @@ Keep the rule decision in one place:
 * model the stun's effects in the actor round domain (`ActorRound`), next to the other penalties, so that every consumer reads the same answer;
 * expose what the stun does to the combat flow through plugins (a penalty through `actor-penalties`, a restriction through a validation of the declaration or the parry options), with no special cases in the handlers;
 * store `delay` and `condition` on `ActorRoundEffect` if they are kept.
+
+== Decision
+
+Decided in workspace spec 007 (combat rules alignment), following Core Law §9.8:
+
+* *Value*: while stunned, the actor gets the penalty of its *worst* active stun. The actor round keeps it as the `stunned` penalty source, and the `actor-penalties` plugin applies it to attacks, parries and maneuvers as `penalty-stunned`. This replaces decision D9 of spec 003.
+* *Restrictions*: none beyond the penalty. Critical results such as "must parry" stay as text for the game master.
+* *Stacking*: stuns are grouped by value: a new stun with the same value adds its rounds to the existing effect. Upkeep takes one round off the worst stun only, so the stuns run one after another, from worst to lightest.
+* *Delay and condition*: not stored yet.
 
 == Consequences
 

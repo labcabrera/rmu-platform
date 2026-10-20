@@ -1,0 +1,39 @@
+= ADR 0004: How the shield maneuver enters tactical combat
+
+* *Status:* Proposed
+* *Date:* 2026-10-19
+* *Context spec:* workspace spec 007, combat rules alignment (`specs/007-combat-rules-alignment/` in the workspace meta-repo)
+* *Related:* link:0002-stun-effect.adoc[ADR 0002], link:0003-effect-duration-rounds.adoc[ADR 0003]
+
+== Context
+
+Under Core Law §9.6 (Shields, Table 9-6), a shield covers a limited number of attacks per round. The first covered attack gets the shield's DB automatically. Each further attack the defender wants to cover needs a successful Shield maneuver, made by the defender.
+
+After spec 007, `rmu-api-tactical`:
+
+* counts the attacks the shield has covered in the round (`currentBlocks`) and stops adding the shield's DB once `blockCount` is reached;
+* ignores the shield against flank and rear attacks;
+* adds passive, partial and full blocking from the defender's Shield skill.
+
+It does not ask for the maneuver. Until this ADR is decided, the shield covers its attacks up to `blockCount` with no roll.
+
+The attack flow is driven by the attacker's player or the game master: declare, prepare (modifiers), attack roll, critical and fumble rolls, apply. The defender takes no part in it, apart from the parry declared beforehand.
+
+== Questions to decide
+
+. *Who rolls?* Options:
+.. the defender's player, in a new step of the attacker's resolution (`pending_shield_roll`), before the attack roll;
+.. the game master, with a "shield maneuver passed" switch in the attack modifiers;
+.. nobody: the maneuver is ignored, and `blockCount` alone limits the shield.
+. *What difficulty and what result?* The maneuver is absolute. Is the result read as pass/fail only, or do partial successes give part of the DB?
+. *When does it count?* Is it rolled for each attack after the first, or once for all the attacks of the same attacker?
+. *How does it interact with full and partial blocking?* Do they replace the maneuver or add to it?
+
+== Proposed direction
+
+None yet. Option 1.2 (a game master switch) is the smallest change and keeps the attack flow linear. Option 1.1 follows the rule more closely, but adds a roll by a player who is not driving the attack.
+
+== Consequences
+
+* Until this ADR is decided, a shield covers up to `blockCount` attacks per round with no maneuver.
+* Whatever is decided needs a field in the attack preparation or a new attack status, a plugin condition in `combat-shield.plugin.ts`, and its UI in `rmu-mfe-tactical`.
