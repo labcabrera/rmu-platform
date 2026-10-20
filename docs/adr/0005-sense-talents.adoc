@@ -1,0 +1,48 @@
+= ADR 0005: Sense talents and perception by sense
+
+* *Status:* Proposed
+* *Date:* 2026-10-20
+* *Context spec:* workspace spec 008, talents (`specs/008-talents/` in the workspace meta-repo)
+
+== Context
+
+Core Law chapter 4 has many talents and flaws whose effect is a bonus or penalty to Perception, but only when the Perception roll uses one specific sense. In the catalog these are:
+
+* acute and poor hearing, smell, taste, touch and vision;
+* the racial hearing (cat, dog, hare) and sight (eagle, gecko, hawk) talents;
+* Heatsense.
+
+Others change what a character can perceive at all, or the penalties for light and darkness:
+
+* Nightvision, Darkvision, Light Sensitivity, Tetrachromatic Vision and Third Eyelid;
+* Missing Sense;
+* Extra Sense. From tier III, Extra Sense also allows attacking unseen targets.
+
+The engine has no notion of senses:
+
+* `rmu-api-strategic` has a single `perception` skill (with specializations) and an armor `perceptionPenalty`.
+* `rmu-api-tactical` resolves Perception as an absolute maneuver. Its only situational modifier is light.
+* Combat has no visibility or lighting model.
+
+Spec 008 decided to ignore these talents until perception by sense exists. Adding their bonus to the whole Perception skill would apply it to every roll, which is wrong for most of them.
+
+== Questions to decide
+
+. *Where does the sense live?* Options:
+.. a `sense` field on the Perception maneuver request in tactical (`hearing`, `smell`, `taste`, `touch`, `vision`, plus `extra` for Extra Sense), so that sense talents become situational modifiers of that maneuver;
+.. Perception specializations in strategic, one per sense, each with its own bonus. This changes the skill model and every existing character.
+. *How are the talents described?* As entries of the strategic trait effect registry with a `sense` condition, exported to tactical as data, or as one tactical modifier per talent.
+. *Light and darkness:* Nightvision, Darkvision and Light Sensitivity need a light level in the combat situation, as well as in maneuvers, to change attack and maneuver penalties. Does it belong to this decision, or to a separate one about lighting?
+. *Missing Sense:* the book leaves the penalty (from -20 to -50) to the game master. Is it a fixed default, or always declared?
+
+== Proposed direction
+
+Option 1.1, a `sense` on the Perception maneuver, is the smallest change. It keeps the strategic skill model as it is. Lighting would be a separate ADR.
+
+== Consequences
+
+* Until this ADR is decided, sense talents can be added to a character but have no effect on any value.
+* Once decided, the work needs:
+** the sense in the tactical maneuver API and in its UI in `rmu-mfe-tactical`;
+** the sense talents in the tactical trait modifiers;
+** the light level, if lighting is included.
