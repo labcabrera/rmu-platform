@@ -110,6 +110,12 @@ services:
       - "3005:3005"
     environment:
       PORT: 3005
+      RMU_ATTACK_TABLES_DIR: /data/tables
+    # Tables folder (workspace spec 013). RMU_ATTACK_TABLES_DATA_DIR is a host path relative to
+    # compose/; `make` sets it to ../../data/core-law when a workspace checkout has that folder.
+    # The default is an empty placeholder: every file missing there comes from the image's tables/.
+    volumes:
+      - ${RMU_ATTACK_TABLES_DATA_DIR:-./config/attack-tables}:/data/tables:ro
     # No health endpoint: the root answers 200 once the server listens.
     healthcheck:
       <<: *healthcheck
