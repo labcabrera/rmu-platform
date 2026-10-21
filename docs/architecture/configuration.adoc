@@ -57,6 +57,32 @@ The platform `.env` holds the inputs of `compose/*.yaml`, grouped in the same bl
 * The Mongo connection strings are built from `MONGO_USER` and `MONGO_PASSWORD`.
 * `RMU_MFE_*` are the values that differ for the browser: `RMU_MFE_IAM_URI`, `RMU_MFE_IAM_CLIENT_ID`, `RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`. The remote and API paths of the MFEs are fixed gateway paths in `compose/mfes.yaml`.
 
+[[attack-tables-data]]
+=== Attack tables data
+
+`rmu-api-attack-tables` reads its tables from `RMU_ATTACK_TABLES_DIR` (unset: the `tables/` folder of its image). The folder can use the image layout (`attack/`, `critical/`, `fumble/`) or the workspace one (`attack-tables/`, `critical-tables/`, `fumble-tables/`), and any file missing there comes from the image. The complete tables, including the `injury` classification of the criticals (workspace spec 013), live in the workspace `data/core-law` folder, which is book content and is never published.
+
+`compose/apis.yaml` always sets `RMU_ATTACK_TABLES_DIR=/data/tables` and mounts `${RMU_ATTACK_TABLES_DATA_DIR:-./config/attack-tables}` there read-only. The host path is relative to `compose/`:
+
+[options="header",cols="2,3"]
+|===
+|`RMU_ATTACK_TABLES_DATA_DIR` |Tables served
+
+|Unset, through `make`
+|`../../data/core-law` when `../data/core-law/critical-tables` exists next to this checkout (the workspace layout); otherwise the bundled tables.
+
+|Unset, plain `docker compose`
+|The bundled tables: `compose/config/attack-tables/` is an empty placeholder.
+
+|`../../data/core-law` (or another path)
+|That folder.
+
+|Empty (`RMU_ATTACK_TABLES_DATA_DIR=`)
+|The bundled tables, even through `make`.
+|===
+
+A path that does not exist is created empty by Docker, and the API falls back to its bundled tables. Images released before spec 013 ignore the variable.
+
 == MFEs: runtime configuration
 
 The MFEs do not bake their URLs into the bundle. Each repository lists its keys in `public/env-config.template.js`, which is the single source for three mechanisms:

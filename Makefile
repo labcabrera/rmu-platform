@@ -1,5 +1,14 @@
 TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
+# rmu-api-attack-tables serves the enriched tables of a workspace checkout (../data/core-law, not
+# published) when they exist, unless RMU_ATTACK_TABLES_DATA_DIR is set in the shell or in .env.
+# The value is relative to compose/. See docs/architecture/configuration.adoc.
+ifeq ($(origin RMU_ATTACK_TABLES_DATA_DIR)$(shell grep -s '^RMU_ATTACK_TABLES_DATA_DIR=' .env),undefined)
+ifneq ($(wildcard ../data/core-law/critical-tables),)
+export RMU_ATTACK_TABLES_DATA_DIR := ../../data/core-law
+endif
+endif
+
 .DEFAULT_GOAL := help
 .PHONY: e2e help build-local up-local config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
 	keycloak-init mfes-dev mfe-dev mfe-container e2e-combat
