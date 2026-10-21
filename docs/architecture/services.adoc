@@ -26,7 +26,7 @@ Every service lives in its own repository and publishes its own image. `rmu-plat
 |Tactical
 |3003
 |`rmu-tactical`
-|Core, Strategic, Items, NPCs, Attack
+|Core, Strategic, Items, NPCs, Attack Tables
 |link:https://github.com/labcabrera/rmu-api-tactical[rmu-api-tactical] +
 `labcabrera/rmu-api-tactical`
 
@@ -79,12 +79,6 @@ Every service lives in its own repository and publishes its own image. `rmu-plat
 |link:https://github.com/labcabrera/rmu-api-media[rmu-api-media] +
 `labcabrera/rmu-api-media`
 
-|Attack
-|8000
-|`rmu-attack`
-|Attack Tables
-|link:https://github.com/labcabrera/rmu-api-attack[rmu-api-attack] +
-`labcabrera/rmu-api-attack`
 |===
 
 All APIs except Attack Tables and NPC Names depend on MongoDB, and the NestJS ones also on Kafka.
@@ -119,7 +113,6 @@ APIs are configured through `RMU_*` variables. In `compose/apis.yaml` they are b
 The IAM, Kafka and `LOG_LEVEL` blocks are YAML anchors (`x-iam-env`, `x-kafka-env`, `x-log-env`) merged into each service that reads them. The naming convention and the legacy names still set for older images are in link:configuration.adoc[]. Service-specific variables:
 
 * *Users* also reads `RMU_IAM_ADMIN_URI` (`${RMU_IAM_BASE_URI}/admin/realms/${RMU_IAM_REALM}`) and `RMU_USERS_ACTIVATION_CODE_SIZE`.
-* *Attack* (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE` and `RMU_API_ATTACK_TABLES_URI`.
 * *Media* reads `RMU_MEDIA_S3_*` and `RMU_MEDIA_IMAGE_*`, passed from the same names in `.env`.
 * *NPCs* is not aligned yet: it reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
 
