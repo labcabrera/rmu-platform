@@ -1,7 +1,7 @@
 TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 .DEFAULT_GOAL := help
-.PHONY: e2e help config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
+.PHONY: e2e help build-local up-local config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
 	keycloak-init mfes-dev mfe-dev mfe-container e2e-combat
 
 help: ## Show available targets
@@ -31,6 +31,12 @@ ps: .env ## List the running services of every profile
 
 logs: .env ## Follow logs (all services, or one with s=<service>)
 	docker compose --profile '*' logs -f --tail=200 $(s)
+
+build-local: ## Build :local images of the rmu-api-*/rmu-mfe-* checkouts (all, or p="rmu-api-tactical rmu-mfe-tactical")
+	scripts/build-local-images.sh --no-up $(p)
+
+up-local: .env ## Build :local images (all, or p="...") and start the stack using them
+	scripts/build-local-images.sh $(p)
 
 mongo-backup: ## Dump the local Mongo into backups/
 	scripts/mongo-backup.sh

@@ -31,7 +31,6 @@ Boundary(apis, "RMU Engine APIs") {
     System(rmu_api_tactical, "Tactical API", "NestJS")
     System(rmu_api_npc, "NPC API", "NestJS")
     System(rmu_api_npc_names, "NPC Names API", "Node.js")
-    System(rmu_api_attack, "Attack API", "Python")
     System(rmu_api_spells, "Spell API", "NestJS")
     System(rmu_api_items, "Items API", "NestJS")
     System(rmu_api_attack_tables, "Attack Tables API", "Node.js")
@@ -82,7 +81,6 @@ Rel(rmu_mfe_spells, rmu_api_spells, "", "HTTP")
 Rel(rmu_api_tactical, rmu_api_attack_tables, "Read attack, critical and fumble tables", "HTTP")
 
 ' Attack API: no longer called by tactical since the combat plugin refactor (workspace spec 003).
-Rel(rmu_api_attack, rmu_api_attack_tables, "Read tables", "HTTP")
 
 Rel(keycloak, postgresql, "", "")
 

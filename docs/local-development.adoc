@@ -137,7 +137,7 @@ The `gateway` profile runs Caddy on port 80 (`RMU_GATEWAY_PORT`). It is the sing
 |`/mfe/assets/` |`rmu-mfe-assets` (images and locales), or `make start` in `rmu-mfe-assets` (`:4000`)
 |`/api/core/`, `/api/strategic/`, `/api/tactical/` |Core, Strategic, Tactical APIs
 |`/api/items/`, `/api/npcs/`, `/api/npc-names/`, `/api/spells/` |Items, NPCs, NPC Names, Spells APIs
-|`/api/attack/`, `/api/attack-tables/` |Attack, Attack Tables APIs
+|`/api/attack-tables/` |Attack Tables API
 |`/api/users/`, `/api/media/` |Users, Media APIs
 |`/sso/` |Keycloak
 |===

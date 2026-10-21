@@ -38,9 +38,6 @@
 	handle_path /api/attack-tables/* {
 		reverse_proxy rmu-api-attack-tables:3005
 	}
-	handle_path /api/attack/* {
-		reverse_proxy rmu-api-attack:8000
-	}
 	handle_path /api/items/* {
 		reverse_proxy rmu-api-items:3006
 	}

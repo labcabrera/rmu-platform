@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
   `.env.example` enables `infrastructure,apis,mfes,gateway,tools` by default.
 - `Makefile`: the entry point. Run `make help` to list the targets.
-- `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js`) and `start-mfes-dev.sh`.
+- `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js`), `start-mfes-dev.sh` and `build-local-images.sh`.
 - `terraform/`: Keycloak realm/clients/groups/users via the `mrparkers/keycloak` provider. It holds `modules/keycloak` plus one state per stack in `stacks/<name>/`. Only `keycloak-local` exists for now.
 - `docs/`: AsciiDoc documentation (`index.adoc` is the map), including `architecture/diagrams/c4-context.plantuml`, the authoritative map of which MFE/API talks to what.
 - `specs/`: numbered change specs (`NNN-<objective>/{spec.md,plan.md}`).
@@ -37,6 +37,8 @@ make keycloak-init              # terraform apply -auto-approve of terraform/sta
 make mfe-dev s=core             # stop rmu-mfe-core: the gateway falls back to its dev server on the host
 make mfe-container s=core       # serve it from the container again
 make mfes-dev [BASE_DIR=...]    # gnome-terminal tab per rmu-mfe-* checkout running npm run start:live
+make up-local [p="rmu-api-tactical rmu-mfe-tactical"]  # build :local images of the checkouts (all by default) and start the stack with them
+make build-local [p=...]        # only build the :local images
 
 docker compose --profile infrastructure --profile tools up -d   # --profile replaces COMPOSE_PROFILES
 terraform fmt -check -recursive terraform && terraform -chdir=terraform/stacks/keycloak-local validate
@@ -49,8 +51,8 @@ Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `ht
 ## Architecture
 
 - **Frontend**: React MFEs using Webpack Module Federation. `rmu-mfe-shell` handles OIDC login against Keycloak and composes the domain MFEs (core, strategic, tactical, items, npcs, spells). Static assets come from `rmu-mfe-assets`. Contract and env vars are in `docs/architecture/frontends.adoc`.
-- **APIs**: mostly NestJS, plus Attack (Python, port 8000) and Attack Tables / NPC Names (Node.js). Each domain API owns its own Mongo database (`rmu-core`, `rmu-strategic`, ...) on a shared Mongo instance. APIs call each other over HTTP at `http://rmu-api-<name>:<port>/v1` and exchange Kafka events on `internal.<service>.<entity>.<event>.v1` topics (auto-created, 1 partition locally).
-- **Ports**: core 3001, strategic 3002, tactical 3003, attack-tables 3005, items 3006, npc-names 3007, npcs 3008, spells 3009, users 3010, media 3011, attack 8000. The full catalog is in `docs/architecture/services.adoc`.
+- **APIs**: mostly NestJS, plus Attack Tables / NPC Names (Node.js). The Python Attack API was retired (tactical computes attacks since workspace spec 003). Each domain API owns its own Mongo database (`rmu-core`, `rmu-strategic`, ...) on a shared Mongo instance. APIs call each other over HTTP at `http://rmu-api-<name>:<port>/v1` and exchange Kafka events on `internal.<service>.<entity>.<event>.v1` topics (auto-created, 1 partition locally).
+- **Ports**: core 3001, strategic 3002, tactical 3003, attack-tables 3005, items 3006, npc-names 3007, npcs 3008, spells 3009, users 3010, media 3011. The full catalog is in `docs/architecture/services.adoc`.
 - **Auth**: Keycloak realm `rmu` (Postgres-backed). Terraform creates two clients:
   - `rmu-client`: confidential, used by the APIs for JWT validation (JWKS) and service-to-service tokens. Its service account has `realm-admin`, which `rmu-api-users` relies on to manage users.
   - `rmu-client-front`: public PKCE S256 client for the SPA.
@@ -63,10 +65,9 @@ Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `ht
 
 - Before wiring an env var, check what the API actually reads (its `.env.example`, or the Joi schema in `app.module.ts`). Known exceptions:
   - users also reads `RMU_IAM_ADMIN_URI` (Keycloak admin REST base, `.../admin/realms/<realm>`).
-  - tactical requires `RMU_API_ATTACK_TABLES_URI` and `RMU_API_NPCS_URI`. Since the combat plugin refactor (workspace spec 003) it computes attacks itself and no longer calls rmu-api-attack; older images still read `RMU_API_ATTACK_URI` (kept in compose as legacy).
-  - attack (Python) reads `RMU_MONGO_ATTACK_URI`, `RMU_MONGO_ATTACK_DATABASE`, and `RMU_API_ATTACK_TABLES_URI`.
+  - tactical requires `RMU_API_ATTACK_TABLES_URI` and `RMU_API_NPCS_URI`. Since the combat plugin refactor (workspace spec 003) it computes attacks itself; the Python rmu-api-attack service was removed from compose, but older tactical images still require `RMU_API_ATTACK_URI` (kept in compose as legacy, never called).
   - npcs (not checked out) still reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
-  - Published images of users, tactical, attack and media still read older names; `compose/apis.yaml` sets them as `legacy` until those APIs release (`docs/architecture/configuration.adoc`).
+  - Published images of users, tactical and media still read older names; `compose/apis.yaml` sets them as `legacy` until those APIs release (`docs/architecture/configuration.adoc`).
 - The `apis` and `tools` profiles must always be enabled together with `infrastructure`. They `depends_on` mongo/kafka, so without it Compose fails with `depends on undefined service`.
 - Relative paths in `compose/*.yaml` (bind mounts) resolve against `compose/`, not the repo root. Variable interpolation still uses the root `.env`.
 - The gateway (Caddy) resolves upstreams per request, so it starts with any subset of services running. Each MFE route lists the container first and `host.docker.internal:<dev port>` second with `lb_policy first`: a stopped container falls back to the dev server. Keep that pattern and the `handle /mfe/*` 404, which stops unknown remotes from getting the shell's `index.html`.
