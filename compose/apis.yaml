@@ -55,6 +55,8 @@ services:
     <<: *api-common
     image: labcabrera/rmu-api-core:${RMU_API_CORE_VERSION:-latest}
     container_name: rmu-api-core
+    # tini as PID 1: forwards SIGTERM so Nest closes Kafka and Mongo (enableShutdownHooks).
+    init: true
     ports:
       - "3001:3001"
     environment:
