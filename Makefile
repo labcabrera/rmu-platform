@@ -11,7 +11,7 @@ endif
 
 .DEFAULT_GOAL := help
 .PHONY: e2e help build-local up-local config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
-	keycloak-init mfes-dev mfe-dev mfe-container e2e-combat
+	keycloak-init keycloak-default-group mfes-dev mfe-dev mfe-container e2e-combat
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -61,6 +61,9 @@ mongo-migrate: ## Run a migration script against the local Mongo (f=scripts/migr
 keycloak-init: ## Create/update the local Keycloak realm with terraform, no prompt (needs terraform.tfvars)
 	terraform -chdir=$(TF_KEYCLOAK) init -input=false
 	terraform -chdir=$(TF_KEYCLOAK) apply -input=false -auto-approve
+
+keycloak-default-group: ## Add rmu-user to the existing users of the realm (skip="<guest username>", DRY_RUN=1 to list)
+	DRY_RUN="$(DRY_RUN)" scripts/keycloak-add-default-group.sh $(skip)
 
 mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<workspace> optional)
 	scripts/start-mfes-dev.sh $(BASE_DIR)
