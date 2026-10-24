@@ -86,7 +86,8 @@ resource "keycloak_default_groups" "default" {
   realm_id  = keycloak_realm.rmu.id
   group_ids = [keycloak_group.rmu_user.id]
 
-  # The guest user stays without groups (read only): it is created before the default group is set.
+  # The guest user is created before the default group is set; guest_user_groups keeps it without groups if it is
+  # created again later.
   depends_on = [keycloak_user.guest_user]
 }
 
@@ -404,6 +405,15 @@ resource "keycloak_user" "guest_user" {
     value     = var.guest_user_password
     temporary = false
   }
+}
+
+# The guest stays read only: no groups, also no rmu-user, which Keycloak gives every new user as a default group.
+# Exhaustive, so an apply removes any group it gets (for example rmu-user when the user is created again).
+resource "keycloak_user_groups" "guest_user_groups" {
+  realm_id   = keycloak_realm.rmu.id
+  user_id    = keycloak_user.guest_user.id
+  group_ids  = []
+  exhaustive = true
 }
 
 # -----------------------------------------------------------------------------
