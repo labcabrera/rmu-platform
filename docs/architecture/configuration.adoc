@@ -34,7 +34,7 @@ Every RMU service is configured through environment variables that follow one na
 |
 
 |`RMU_CORS_ORIGINS`, `RMU_THROTTLE_*`, `RMU_TRUST_PROXY`
-|HTTP hardening of the APIs built on the `rmu-api-core` template (workspace spec 018), all optional. `RMU_CORS_ORIGINS` lists the allowed origins (empty: no CORS, since browsers use the gateway origin). `RMU_THROTTLE_LIMIT` (`300`, `0` disables) and `RMU_THROTTLE_TTL_MS` (`60000`) limit the requests per client IP. `RMU_TRUST_PROXY` (`loopback, linklocal, uniquelocal`) takes the client IP from Caddy's `X-Forwarded-For`; calls between containers count against the calling container.
+|HTTP hardening of the NestJS APIs (the `rmu-api-core` template: workspace spec 018 in core, spec 020 in the rest), all optional. `RMU_CORS_ORIGINS` lists the allowed origins (empty: no CORS, since browsers use the gateway origin). `RMU_THROTTLE_LIMIT` (`300`, `0` disables) and `RMU_THROTTLE_TTL_MS` (`60000`) limit the requests per client IP; compose raises the limit to `1000` in tactical, whose dashboard polls several resources per action. `RMU_TRUST_PROXY` (`loopback, linklocal, uniquelocal`) takes the client IP from Caddy's `X-Forwarded-For`; calls between containers count against the calling container.
 |`RMU_THROTTLE_LIMIT=0`
 
 |`RMU_MFE_<NAME>_PUBLIC_PATH`
