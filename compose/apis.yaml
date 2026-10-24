@@ -135,6 +135,7 @@ services:
       PORT: 3006
       RMU_MONGO_ITEMS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-items?authSource=admin
       RMU_KAFKA_CLIENT_ID: rmu-api-items
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-items-consumer
       RMU_API_CORE_URI: http://rmu-api-core:3001/v1
 
   rmu-api-npc-names:
@@ -181,6 +182,7 @@ services:
       PORT: 3009
       RMU_MONGO_SPELLS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-spells?authSource=admin
       RMU_KAFKA_CLIENT_ID: rmu-api-spells
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-spells-consumer
 
   rmu-api-users:
     <<: *api-common
@@ -210,6 +212,7 @@ services:
       PORT: 3011
       RMU_MONGO_MEDIA_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-media?authSource=admin
       RMU_KAFKA_CLIENT_ID: rmu-api-media
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-media-consumer
       RMU_MEDIA_S3_REGION: ${RMU_MEDIA_S3_REGION}
       RMU_MEDIA_S3_BUCKET: ${RMU_MEDIA_S3_BUCKET}
       RMU_MEDIA_S3_BASE_FOLDER: ${RMU_MEDIA_S3_BASE_FOLDER}
