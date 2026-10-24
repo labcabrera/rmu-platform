@@ -33,6 +33,10 @@ Every RMU service is configured through environment variables that follow one na
 |Kafka client: `RMU_KAFKA_BROKERS`, `RMU_KAFKA_CLIENT_ID`, `RMU_KAFKA_CONSUMER_GROUP_ID`, `RMU_KAFKA_DEFAULT_PARTITIONS`.
 |
 
+|`RMU_CORS_ORIGINS`, `RMU_THROTTLE_*`, `RMU_TRUST_PROXY`
+|HTTP hardening of the APIs built on the `rmu-api-core` template (workspace spec 018), all optional. `RMU_CORS_ORIGINS` lists the allowed origins (empty: no CORS, since browsers use the gateway origin). `RMU_THROTTLE_LIMIT` (`300`, `0` disables) and `RMU_THROTTLE_TTL_MS` (`60000`) limit the requests per client IP. `RMU_TRUST_PROXY` (`loopback, linklocal, uniquelocal`) takes the client IP from Caddy's `X-Forwarded-For`; calls between containers count against the calling container.
+|`RMU_THROTTLE_LIMIT=0`
+
 |`RMU_MFE_<NAME>_PUBLIC_PATH`
 |Where the shell loads a remote from (trailing slash).
 |`RMU_MFE_CORE_PUBLIC_PATH=/mfe/core/`
