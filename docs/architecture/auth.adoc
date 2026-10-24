@@ -85,10 +85,11 @@ A `groups` client scope adds the user's group membership to the tokens as the `g
 |Group |Grants
 
 |`rmu-admin` |Administration.
+|`rmu-user` |Registered user: may create entities (realms, races, strategic games, spell lists...). Default group, so every new user gets it.
 |`rmu-core-law` |Core Law content.
 |`rmu-spell-law` |Spell Law content.
 |`rmu-treasure-law` |Treasure Law content.
 |`rmu-creature-law-i` |Creature Law I content.
 |===
 
-Terraform creates a primary user that belongs to every group, and a guest user with no groups.
+Terraform creates a primary user that belongs to every group, and a guest user with no groups (read only: it is created before `rmu-user` becomes the default group). Users created before spec 021 get `rmu-user` with `make keycloak-default-group skip=<guest username>` (`DRY_RUN=1` lists them first).

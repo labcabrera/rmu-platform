@@ -13,6 +13,11 @@ output "group_rmu_admin_id" {
   value       = keycloak_group.rmu_admin.id
 }
 
+output "group_rmu_user_id" {
+  description = "ID of the rmu-user group (default group of new users)."
+  value       = keycloak_group.rmu_user.id
+}
+
 output "group_rmu_core_law_id" {
   description = "ID of the rmu-core-law group."
   value       = keycloak_group.rmu_core_law.id

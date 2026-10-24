@@ -75,6 +75,21 @@ resource "keycloak_group" "rmu_admin" {
   name     = "rmu-admin"
 }
 
+# Every registered user: the APIs let it create entities (BaseEntityGuard.checkCreate). It is a default group, so new
+# users (also the ones that come from Google) get it (workspace spec 021, decision 4).
+resource "keycloak_group" "rmu_user" {
+  realm_id = keycloak_realm.rmu.id
+  name     = "rmu-user"
+}
+
+resource "keycloak_default_groups" "default" {
+  realm_id  = keycloak_realm.rmu.id
+  group_ids = [keycloak_group.rmu_user.id]
+
+  # The guest user stays without groups (read only): it is created before the default group is set.
+  depends_on = [keycloak_user.guest_user]
+}
+
 resource "keycloak_group" "rmu_core_law" {
   realm_id = keycloak_realm.rmu.id
   name     = "rmu-core-law"
@@ -363,6 +378,7 @@ resource "keycloak_user_groups" "primary_user_groups" {
 
   group_ids = [
     keycloak_group.rmu_admin.id,
+    keycloak_group.rmu_user.id,
     keycloak_group.rmu_core_law.id,
     keycloak_group.rmu_spell_law.id,
     keycloak_group.rmu_treasure_law.id,
