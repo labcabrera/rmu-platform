@@ -184,7 +184,7 @@ services:
     ports:
       - "3009:3009"
     environment:
-      <<: [*iam-env, *kafka-env]
+      <<: [*iam-env, *kafka-env, *log-env]
       PORT: 3009
       RMU_MONGO_SPELLS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-spells?authSource=admin
       RMU_KAFKA_CLIENT_ID: rmu-api-spells
@@ -198,7 +198,7 @@ services:
     ports:
       - "3010:3010"
     environment:
-      <<: [*iam-env, *kafka-env]
+      <<: [*iam-env, *kafka-env, *log-env]
       PORT: 3010
       RMU_MONGO_USERS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-users?authSource=admin
       RMU_IAM_ADMIN_URI: ${RMU_IAM_BASE_URI}/admin/realms/${RMU_IAM_REALM}
