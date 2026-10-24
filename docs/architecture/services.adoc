@@ -81,7 +81,7 @@ Every service lives in its own repository and publishes its own image. `rmu-plat
 
 |===
 
-All APIs except Attack Tables and NPC Names depend on MongoDB, and the NestJS ones also on Kafka.
+All APIs except Attack Tables and NPC Names depend on MongoDB, and the NestJS ones also on Kafka. The NestJS APIs share the platform and conventions of the `rmu-api-core` template (Node 24, pnpm, native ESM, Vitest, the HTTP error contract and optimistic concurrency; workspace specs 014, 015, 018 and 020), and compose runs them with `init: true` so `SIGTERM` reaches Node.
 
 === Environment convention
 
