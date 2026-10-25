@@ -1,0 +1,38 @@
+= ADR 0008: Versioning of the export format of characters and factions
+
+* *Status:* Accepted
+* *Date:* 2026-10-25
+* *Context spec:* workspace spec 024, export and import of characters and factions (`specs/024-character-faction-export/` in the workspace meta-repo, decision 2)
+
+== Context
+
+`rmu-api-strategic` exports a character or a faction to a JSON file (`*.rmu.json`) and imports it back, into another game or another installation. Users keep these files, so a file exported today must still import after the shape of characters, items or factions changes. The documents in Mongo have no schema version: their changes have been handled with migrations and optional fields, which do not help with a file outside the database.
+
+== Decision
+
+The file carries two version numbers:
+
+* *`formatVersion`*: an integer of the format itself. It is raised only when the shape of the file changes, not with every release, and it alone decides whether a file can be imported.
+* *`appVersion`*: the semver of `rmu-api-strategic` that exported the file. It is for information: the import preview shows it and warns when it differs from the running version.
+
+On import:
+
+* the same `formatVersion` as the current one is imported as it is;
+* an older one goes through a chain of *upcasters*, pure functions `vN -> vN+1` in `src/modules/exports/domain/upcasters/`, up to the current version, and the preview lists the steps;
+* a newer one is rejected with 422 `export-format-too-new`, with both versions in `details`, asking to update the application.
+
+Only the current format is validated (a Joi schema, after the upcasters), mapped and built. The file is never the Mongo document: explicit mappers translate between both, so an internal change does not change the file by accident.
+
+A change in `CharacterProps`, `ItemProps` or `FactionProps` that changes what is exported raises `formatVersion`, adds its upcaster and an example file of the new version (`test/fixtures/exports/v<N>/`). A test compares the description of the schema with a snapshot of its version and fails when it changes without that update. The rule is in the `AGENTS.md` of `rmu-api-strategic`.
+
+== Alternatives considered
+
+* *Read every old version directly.* Each version would need its own validation and import code, and every later change would have to be checked against all of them. Upcasters keep one import path; an old version costs one small function.
+* *Use the semver of the application.* Most releases do not change the file, so the version would rise without reason, and compatibility would depend on release habits instead of the file.
+* *No version, only optional fields.* It works for added fields, not for renamed, moved or reinterpreted ones, and a newer file read by an older application would be imported wrong instead of rejected.
+
+== Consequences
+
+* Old example files stay in the repository and are imported in the tests through the whole chain, so an upcaster that breaks an old file fails the build.
+* An installation can import files from older ones, never from newer ones: the user is told to update.
+* The format has to be designed with care, as it is a public contract: the file holds only user data and references by id to the catalogs of core and items, never their content.
