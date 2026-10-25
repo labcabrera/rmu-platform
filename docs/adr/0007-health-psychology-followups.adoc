@@ -1,0 +1,49 @@
+= ADR 0007: Open points of the health and psychology rules
+
+* *Status:* Proposed
+* *Date:* 2026-10-25
+* *Context spec:* workspace spec 022, health and psychology (`specs/022-health-psychology/` in the workspace meta-repo, section "Seguimiento")
+* *Related:* link:0003-effect-duration-rounds.adoc[ADR 0003], link:0006-frenzy.adoc[ADR 0006]
+
+== Context
+
+Spec 022 aligned the healing procedures (Core Law ch. 13) and the fear, morale and rally checks (ch. 14) with the rules. It was closed on 2026-10-24 after a browser test. Twelve points were left open: nine are rule interpretations in `rmu-api-tactical` that nobody checked against real sheets or data, one is missing documentation, one is missing tests, and two are UI limits in `rmu-mfe-tactical`. This ADR groups them so they can be decided together in a later spec.
+
+== Questions to decide
+
+=== Rule interpretations (`rmu-api-tactical`)
+
+. *S1, Intimidation skill id.* The fear check reads `influence` with the specialization `intimidation`, and falls back to a skill `intimidation`. Which id do the real character sheets use?
+. *S2, leader bonus.* The leader uses the `totalBonus` of Leadership from the sheet. Does it include every modifier the rule asks for, or must tactical add some?
+. *S3, morale average.* The average RR of the followers is rounded with `Math.round`, and NPCs with no bonus are left out of the average without a warning. Options:
+.. keep it, and report the excluded actors in the result;
+.. require a bonus for every NPC before the check runs.
+. *S4, rally group modifier.* The −10 for every 10 followers counts only the frightened ones. Should it count the whole group?
+. *S5, opposed Trading.* Trading is a percentage maneuver against the seller's Trading. Check that the conflict modifier and the price are worked out the way the rule intends. This point is also input for the equipment spec, which uses Trading for prices.
+. *S6, treatment difficulty (decision D4).* An unknown injury type takes the difficulty its severity rows agree on, and magic keeps the old `m` difficulty. Confirm both, or require the type.
+. *S7, stitches and `initialPenalty`.* Stitches also halve `initialPenalty`. Confirm that strategic recovers the injury correctly from there.
+. *S8, critical data (decision D8).* 145 critical entries were reclassified as cut injuries. Review the data.
+
+=== Documentation and tests
+
+. *S9.* The `rmu-api-tactical` README does not document `resistance-rolls`, `fear-checks`, `morale-checks` and `rally-checks`.
+. *S10.* The e2e tests use a double of `rmu-api-core`. Decide whether to add e2e tests against a real core, or a contract test on the core tables.
+
+=== UI (`rmu-mfe-tactical`)
+
+. *S11, individual fear effect.* The fear effect of a single RR is added with `POST /effects`, which does not keep the worst fear state. The UI only offers it when the actor has no fear effect yet. Options:
+.. a dedicated endpoint (for example `POST /actor-rounds/{id}/fear-effects`) that applies the same rule as the group check;
+.. let the resistance roll endpoint apply the effect on request.
+. *S12, `rmu-core-law` role.* The difficulty preview and the fright level shortcuts read core tables that need `rmu-core-law`. Without the role the game master does not see them, although the server still works. Options:
+.. expose a reduced, role-free view of those tables;
+.. have tactical serve the values the UI needs;
+.. leave it, since game masters are expected to own the book.
+
+== Proposed direction
+
+None yet. S1, S2 and S8 need real data and only a check. S5 should be settled before the equipment spec uses Trading for prices. S11.1 and S12.2 keep the rules in the API, as the rest of spec 022 does.
+
+== Consequences
+
+* Until this ADR is decided, the checks work as spec 022 left them, and the game master can correct any result by hand.
+* Deciding it touches `rmu-api-tactical` (checks, README, tests), `rmu-mfe-tactical`, and maybe `rmu-api-core` (table views) and the critical data.
