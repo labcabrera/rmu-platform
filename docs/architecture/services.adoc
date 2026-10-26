@@ -115,7 +115,7 @@ The IAM, Kafka and `LOG_LEVEL` blocks are YAML anchors (`x-iam-env`, `x-kafka-en
 * *Users* also reads `RMU_IAM_ADMIN_URI` (`${RMU_IAM_BASE_URI}/admin/realms/${RMU_IAM_REALM}`) and `RMU_USERS_ACTIVATION_CODE_SIZE`.
 * *Media* reads `RMU_MEDIA_S3_*` and `RMU_MEDIA_IMAGE_*`, passed from the same names in `.env`.
 * *NPCs* is not aligned yet: it reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
-* *Attack Tables* reads only `PORT` and `RMU_ATTACK_TABLES_DIR` (`/data/tables`, a read-only bind mount of `RMU_ATTACK_TABLES_DATA_DIR`). Without a workspace data folder it serves the tables bundled in its image (all the Medium attack tables, part of the criticals and fumbles); see link:configuration.adoc#attack-tables-data[Attack tables data].
+* *Attack Tables* (NestJS without Mongo or Kafka since workspace spec 035) reads the IAM and `LOG_LEVEL` blocks, `PORT`, `RMU_THROTTLE_LIMIT` (1000) and `RMU_ATTACK_TABLES_DIR` (`/data/tables`, a read-only bind mount of `RMU_ATTACK_TABLES_DATA_DIR`). Every endpoint but `/v1/health` needs a token, and the whole tables (`GET /v1/<kind>-tables/{id}`) the `rmu-core-law` group. Without a workspace data folder it serves the tables bundled in its image (every Core Law attack, critical and fumble table, no spell casting tables); see link:configuration.adoc#attack-tables-data[Attack tables data].
 
 When adding a service, follow the same pattern and add it to this table, `compose/apis.yaml`, the gateway routes (`compose/config/caddy/Caddyfile`) and the context diagram.
 

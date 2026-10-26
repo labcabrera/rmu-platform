@@ -114,20 +114,23 @@ services:
     container_name: rmu-api-attack-tables
     profiles:
       - apis
+    # NestJS without Mongo or Kafka (workspace spec 035): no depends_on, only Keycloak for the tokens.
+    init: true
+    restart: on-failure:5
     ports:
       - "3005:3005"
     environment:
+      <<: [*iam-env, *log-env]
       PORT: 3005
       RMU_ATTACK_TABLES_DIR: /data/tables
+      # rmu-api-tactical looks up several tables per action.
+      RMU_THROTTLE_LIMIT: 1000
     # Tables folder (workspace spec 013). RMU_ATTACK_TABLES_DATA_DIR is a host path relative to
     # compose/; `make` sets it to ../../data/core-law when a workspace checkout has that folder.
     # The default is an empty placeholder: every file missing there comes from the image's tables/.
     volumes:
       - ${RMU_ATTACK_TABLES_DATA_DIR:-./config/attack-tables}:/data/tables:ro
-    # No health endpoint: the root answers 200 once the server listens.
-    healthcheck:
-      <<: *healthcheck
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3005/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+    healthcheck: *api-healthcheck
 
   rmu-api-items:
     <<: *api-common
