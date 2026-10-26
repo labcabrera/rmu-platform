@@ -1,0 +1,42 @@
+= ADR 0009: Open rules of directed and area attack spells
+
+* *Status:* Proposed
+* *Date:* 2026-10-26
+* *Context spec:* workspace spec 030, spell casting in the tactical dashboard (`specs/030-spell-casting/` in the workspace meta-repo, phase 4)
+* *Related:* link:0004-shield-maneuver.adoc[ADR 0004]
+
+== Context
+
+Phase 4 of spec 030 resolves bolt and ball spells with the attack engine of `rmu-api-tactical`. A successful cast stores the spell's attack in `spell.attack`. Every attack handler reads its source attack through `sourceAttackOf`, which turns that attack into a ranged weapon. The MFE reuses `AttackFlow`, with one card per target for a ball.
+
+That covers the attack table, the OB (Directed Spells for bolts, list ranks for balls), the fumble range and table, range brackets, no dodge against balls and no multiple-attack penalties. The rules below were left out. With them missing, the game master corrects the result by hand, with the custom bonus or by editing the attack.
+
+== Questions to decide
+
+=== Area attacks (Core Law §9.3)
+
+. *A1, primary target of a ball.* The game master may name one target as the center point. That target takes the attack one size step higher. Options:
+.. a "center target" flag on one attack of the ball, which raises `attackSize` by one step for that attack only;
+.. a size step selector on every attack (center, normal, edge), which also covers A3.
+. *A2, defense against an area attack.* Only the DB from Quickness counts. Shields and cover count only when they stand between the center point (or the cone's origin) and the target. Today the target's full DB applies, and the shield and cover modifiers work as for any ranged attack. Options:
+.. have actor rounds expose the Quickness part of the DB, and use it for area attacks;
+.. keep the full DB and show a warning, so the game master enters the difference.
+. *A3, edge of the area.* A target straddling the edge takes the attack one size step lower. This can be the same selector as A1.2, or a flag of its own.
+. *A4, cones.* Cone spells (for example breath-like spells that use a ball table) are not recognized. A cone has an origin, a length and a width that grows with range, and the targets along its centerline take +1 size. Decide whether a cone is a third `SpellAttackKind` with the same flow as a ball, plus a centerline flag.
+. *A5, area and targets.* A ball offers one attack for each other actor of the round. The radius is shown but not checked, since the dashboard has no positions. Confirm that the game master picks the targets in the area, or plan for positions.
+. *A6, Spell Evasion and similar spells.* Some spells subtract from the area attack against the caster, and stop that caster from being the center target. They depend on A1 and on spell effects applied by the engine, which spec 030 left to the game master.
+
+=== Directed spells
+
+. *D1, range brackets.* The spell gives a single range increment. Phase 4 maps the brackets as short (no penalty), then −10, −25, −50 and −100 for each further increment, up to five. Only the first bracket comes from the spell data. Check this against the rules and against the range table of ranged weapons.
+. *D2, Hurling.* Spells on the `sling` and `unarmed-strikes` tables use the Directed Spells specialization `hurling`, and every other `*-bolt` table uses `elemental-bolts`. Confirm the mapping, and whether `illusionary-attacks` needs a table of its own.
+. *D3, unskilled bolt.* A caster without the Directed Spells specialization attacks with −25. Confirm the penalty. The other option is the skill's unskilled bonus from the sheet, if strategic exposes one.
+
+== Proposed direction
+
+Use one per-attack size step selector (A1.2) for the center, normal and edge cases. It covers A1 and A3 with one field, and the engine already handles `attackSize` steps. Decide A2 together with the defense work of ADR 0004, since both change which parts of the DB apply. Leave A4 and A6 for the spec that applies spell effects. D1 to D3 need only a rules check.
+
+== Consequences
+
+* Until this ADR is decided, bolts and balls work as spec 030 phase 4 left them, and the game master adjusts the size, DB and range by hand.
+* Deciding it touches `rmu-api-tactical` (attack modifiers, `spell-casting.rules.ts`, the combat plugins), `rmu-mfe-tactical` (`AttackTargetsStep`) and maybe `rmu-api-strategic`, if actor rounds need the Quickness part of the DB.
