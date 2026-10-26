@@ -66,6 +66,8 @@ The platform `.env` holds the inputs of `compose/*.yaml`, grouped in the same bl
 
 `rmu-api-attack-tables` reads its tables from `RMU_ATTACK_TABLES_DIR` (unset: the `tables/` folder of its image). The folder can use the image layout (`attack/`, `critical/`, `fumble/`) or the workspace one (`attack-tables/`, `critical-tables/`, `fumble-tables/`), and any file missing there comes from the image. The complete tables, including the `injury` classification of the criticals (workspace spec 013), live in the workspace `data/core-law` folder, which is book content and is never published.
 
+Only the Medium attack tables exist (workspace spec 033): `attack/<table>.csv`, served by `GET /v1/attack-tables/{table}/{at}/{roll}` without an attack size. `rmu-api-tactical` applies the attack size to the Medium result (critical severity, `attack-size` combat plugin). The image bundles the 39 Medium tables of Core Law; the critical and fumble tables of the image are partial, so the complete ones still come from `data/core-law`.
+
 `compose/apis.yaml` always sets `RMU_ATTACK_TABLES_DIR=/data/tables` and mounts `${RMU_ATTACK_TABLES_DATA_DIR:-./config/attack-tables}` there read-only. The host path is relative to `compose/`:
 
 [options="header",cols="2,3"]
