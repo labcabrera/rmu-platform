@@ -125,7 +125,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 20s
+      # The entrypoint's storage format step plus the KRaft metadata log replay can take ~3 min when
+      # the whole stack starts at once; a shorter window marks Kafka unhealthy and the APIs never start.
+      start_period: 240s
+      start_interval: 5s
 
   # Local SMTP for Keycloak (password reset, email verification): every mail is caught and shown in
   # the web UI (http://localhost:${MAILPIT_UI_PORT}). Keycloak sends to rmu-mailpit:1025.

@@ -32,8 +32,9 @@ x-api-common: &api-common
       condition: service_healthy
   healthcheck: *api-healthcheck
   # The Kafka consumers of some APIs exit on startup when the broker is not ready to serve their
-  # topics yet ("This server does not host this topic-partition"); the next attempt succeeds.
-  restart: on-failure:5
+  # topics yet ("This server does not host this topic-partition"), or when the broker restarts and
+  # takes minutes to open its port; no retry limit, so they keep trying until Kafka is back.
+  restart: on-failure
 
 x-iam-env: &iam-env
   RMU_IAM_ISSUER_URI: ${RMU_IAM_ISSUER_URI}
