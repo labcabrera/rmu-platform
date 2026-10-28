@@ -110,11 +110,39 @@ for (const [name, viewport] of Object.entries(viewports)) {
         await page.goto(page.url().replace('/games/view/', '/combat/'));
         await settle(page);
         await check(page);
-        const actor = page.locator('[aria-pressed]').first();
+        // The actor cell has the miniature; the phase switcher on phones is also a pressed toggle.
+        const actor = page.locator('button[aria-pressed]:has(.MuiAvatar-root)').first();
         if ((await actor.count()) === 0) return;
         await actor.click();
         await settle(page);
         await check(page);
+        // The actor's full sheet (spec 045): every tab in the first preset, the first one in the others.
+        await page.getByRole('button', { name: /full sheet|ficha completa/i }).click();
+        await settle(page);
+        await check(page);
+        if (preset !== presets[0]) return;
+        const sheet = page.getByRole('dialog').last();
+        const tabs = sheet.getByRole('tab');
+        const tabCount = await tabs.count();
+        if (tabCount > 0) {
+          for (let i = 1; i < tabCount; i++) {
+            await tabs.nth(i).click();
+            await settle(page);
+            await check(page);
+          }
+        } else {
+          // Phones show the tabs as a select.
+          const select = sheet.getByRole('combobox').first();
+          await select.click();
+          const optionCount = await page.getByRole('option').count();
+          await page.keyboard.press('Escape');
+          for (let i = 1; i < optionCount; i++) {
+            await select.click();
+            await page.getByRole('option').nth(i).click();
+            await settle(page);
+            await check(page);
+          }
+        }
       });
     }
   });
