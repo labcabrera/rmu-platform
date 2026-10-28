@@ -93,6 +93,29 @@ for (const [name, viewport] of Object.entries(viewports)) {
       });
     }
 
+    // Item catalog with contextual filters in the URL (spec 046): side panel from lg, drawer below it.
+    test('item catalog filtered by armor AT 8, its first item and back', async ({ page }) => {
+      await page.goto('/items?category=armor&at=8');
+      await settle(page);
+      await check(page);
+      const cards = page.locator('.MuiCardActionArea-root');
+      test.skip((await cards.count()) === 0, 'no AT 8 armor in the catalog');
+      const filtersButton = page.getByRole('button', { name: /^(filters|filtros)/i });
+      if (await filtersButton.isVisible()) {
+        await filtersButton.click();
+        await settle(page);
+        await check(page);
+        await page.keyboard.press('Escape');
+      }
+      await cards.first().click();
+      await page.waitForURL(/\/view\//);
+      await settle(page);
+      await check(page);
+      await page.goBack();
+      await expect(page).toHaveURL(/category=armor/);
+      await expect(page).toHaveURL(/at=8/);
+    });
+
     // The combat board is the densest page, so it is checked in every theme preset, with the side panel open
     // on the first actor (spec 005). It is opened by URL: its button on the game view starts the game.
     for (const preset of presets) {
