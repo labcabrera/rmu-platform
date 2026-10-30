@@ -119,4 +119,4 @@ Some published images still read an older name. `compose/apis.yaml` sets both na
 |tactical |`RMU_API_ATTACK_URI` |(no longer read; required by images before the combat plugin refactor)
 |===
 
-`rmu-api-npcs` is not aligned yet. It is not checked out in the workspace, and it still reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
+`rmu-api-npcs` is aligned since workspace spec 054, which moved it to the core template.
