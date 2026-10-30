@@ -162,12 +162,12 @@ services:
       <<: *healthcheck
       test: ["CMD", "node", "-e", "fetch('http://localhost:3007/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 
-  # rmu-api-npcs is not checked out in this workspace, so its variables were not aligned yet: it
-  # reads RMU_IAM_BASE_URL and RMU_KAFKA_PARTITION_COUNT instead of the common names.
+  # rmu-api-npcs is on the core template since workspace spec 054 (generic creatures of Creature Law).
   rmu-api-npcs:
     <<: *api-common
     image: labcabrera/rmu-api-npcs:${RMU_API_NPCS_VERSION:-latest}
     container_name: rmu-api-npcs
+    init: true
     ports:
       - "3008:3008"
     environment:
@@ -175,11 +175,8 @@ services:
       PORT: 3008
       RMU_MONGO_NPCS_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-npcs?authSource=admin
       RMU_KAFKA_CLIENT_ID: rmu-api-npcs
+      RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-npcs-consumer
       RMU_API_CORE_URI: http://rmu-api-core:3001/v1
-      RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
-      RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
-      RMU_IAM_BASE_URL: ${RMU_IAM_BASE_URI}
-      RMU_KAFKA_PARTITION_COUNT: '1'
 
   rmu-api-spells:
     <<: *api-common

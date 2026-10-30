@@ -54,7 +54,7 @@ Every service lives in its own repository and publishes its own image. `rmu-plat
 |NPCs
 |3008
 |`rmu-npcs`
-|Core, Items, Attack Tables
+|Core
 |link:https://github.com/labcabrera/rmu-api-npcs[rmu-api-npcs] +
 `labcabrera/rmu-api-npcs`
 

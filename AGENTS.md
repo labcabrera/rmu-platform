@@ -66,7 +66,6 @@ Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `ht
 - Before wiring an env var, check what the API actually reads (its `.env.example`, or the Joi schema in `app.module.ts`). Known exceptions:
   - users also reads `RMU_IAM_ADMIN_URI` (Keycloak admin REST base, `.../admin/realms/<realm>`).
   - tactical requires `RMU_API_ATTACK_TABLES_URI` and `RMU_API_NPCS_URI`. Since the combat plugin refactor (workspace spec 003) it computes attacks itself; the Python rmu-api-attack service was removed from compose, but older tactical images still require `RMU_API_ATTACK_URI` (kept in compose as legacy, never called).
-  - npcs (not checked out) still reads `RMU_IAM_BASE_URL` and `RMU_KAFKA_PARTITION_COUNT`.
   - Published images of users, tactical and media still read older names; `compose/apis.yaml` sets them as `legacy` until those APIs release (`docs/architecture/configuration.adoc`).
 - The `apis` and `tools` profiles must always be enabled together with `infrastructure`. They `depends_on` mongo/kafka, so without it Compose fails with `depends on undefined service`.
 - Relative paths in `compose/*.yaml` (bind mounts) resolve against `compose/`, not the repo root. Variable interpolation still uses the root `.env`.
