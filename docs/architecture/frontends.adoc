@@ -42,6 +42,9 @@ Shell variables:
 
 |`RMU_SHELL_CONTACT_URI`, `RMU_SHELL_CONTACT_EMAIL`
 |Contact page (optional).
+
+|`RMU_ADMIN_KEYCLOAK_URI`, `RMU_ADMIN_KAFKA_UI_URI`, `RMU_ADMIN_GRAFANA_URI`, `RMU_ADMIN_MONGO_EXPRESS_URI`
+|Operation tools that the shell's `/admin/tools` links for administrators (optional, workspace spec 053). Leave them unset where they must not be exposed.
 |===
 
 Domain MFEs read `RMU_API_<NAME>_URI` for the APIs they call and `RMU_MFE_ASSETS_URI`. Inside the shell they use the shell's values; their own `.env` only applies when they are opened standalone on their dev server port. Naming rules: link:configuration.adoc[].
