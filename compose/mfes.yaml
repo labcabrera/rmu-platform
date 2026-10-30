@@ -31,6 +31,11 @@ x-mfe-env: &mfe-env
   RMU_API_MEDIA_URI: /api/media/v1
   RMU_SHELL_CONTACT_URI: ${RMU_SHELL_CONTACT_URI:-}
   RMU_SHELL_CONTACT_EMAIL: ${RMU_SHELL_CONTACT_EMAIL:-}
+  # Operation tools linked from /admin/tools (spec 053); empty hides them.
+  RMU_ADMIN_KEYCLOAK_URI: ${RMU_ADMIN_KEYCLOAK_URI:-}
+  RMU_ADMIN_KAFKA_UI_URI: ${RMU_ADMIN_KAFKA_UI_URI:-}
+  RMU_ADMIN_GRAFANA_URI: ${RMU_ADMIN_GRAFANA_URI:-}
+  RMU_ADMIN_MONGO_EXPRESS_URI: ${RMU_ADMIN_MONGO_EXPRESS_URI:-}
 
 # nginx images (busybox wget). env-config.js only exists once docker/40-env-config.sh has rendered
 # the runtime configuration; its content is checked because nginx answers any missing path with the
