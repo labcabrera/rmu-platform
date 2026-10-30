@@ -81,6 +81,7 @@ Rel(rmu_mfe_spells, rmu_api_spells, "", "HTTP")
 Rel(rmu_api_tactical, rmu_api_attack_tables, "Read attack, critical and fumble tables", "HTTP")
 Rel(rmu_api_spells, rmu_api_core, "Check effect statuses", "HTTP")
 Rel(rmu_api_strategic, rmu_api_spells, "Read spell lists", "HTTP")
+Rel(rmu_api_strategic, rmu_api_npc, "Check the NPCs of the factions", "HTTP")
 
 ' Attack API: no longer called by tactical since the combat plugin refactor (workspace spec 003).
 

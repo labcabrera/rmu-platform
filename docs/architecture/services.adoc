@@ -19,7 +19,7 @@ Every service lives in its own repository and publishes its own image. `rmu-plat
 |Strategic
 |3002
 |`rmu-strategic`
-|Core, Items
+|Core, Items, Spells, NPCs
 |link:https://github.com/labcabrera/rmu-api-strategic[rmu-api-strategic] +
 `labcabrera/rmu-api-strategic`
 
