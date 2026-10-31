@@ -101,6 +101,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`056-npc-shield.js`
 |NPC shields get the DB of their type (Table 9-6), and the moose loses its shield, an erratum (ADR 0010).
 |With the rmu-api-npcs release of spec 056, deployed with tactical.
+
+|`057-image-paths.js`
+|Drops the media records of base images (they come from the assets manifest now), moves the stored paths of uploads from `images/user-data/` to `uploads/user-data/`, and replaces the paths of base images removed on 2026-10-31.
+|After rmu-api-media `scripts/move-uploads.mjs` (it moves the files and their records), with the rmu-api-media and front releases of spec 057.
 |===
 
 == Scripts in the API repositories
