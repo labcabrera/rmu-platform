@@ -45,7 +45,7 @@ Boundary(infrastructure, "Infrastructure") {
 }
 
 Boundary(aws, "AWS") {
-    System_Ext(s3, "S3", "Object storage")
+    System_Ext(s3, "S3", "User uploads (locally rmu-s3, SeaweedFS)")
 }
 
 Rel(user, rmu_mfe_shell, "Navigate", "HTTP")
@@ -87,7 +87,9 @@ Rel(rmu_api_strategic, rmu_api_npc, "Check the NPCs of the factions", "HTTP")
 
 Rel(keycloak, postgresql, "", "")
 
-Rel(rmu_api_media, s3, "Store media", "S3 API")
+Rel(rmu_api_media, s3, "Store uploads", "S3 API")
+Rel(rmu_api_media, rmu_mfe_assets, "Read the base image manifest", "HTTP")
+Rel(rmu_mfe_shell, s3, "Load uploads (/media/)", "HTTP")
 
 SHOW_LEGEND()
 

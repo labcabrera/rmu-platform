@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `rmu-platform` is the umbrella/ops repo for **RMU Engine**, an online assistant for playing Rolemaster Unified. It contains no application code: each API and micro-frontend lives in its own `labcabrera/rmu-*` repository and is consumed here by image and version. This repo holds:
 
 - `compose.yaml`: only `include:`s the files under `compose/`, one per layer. Every service belongs to a profile:
-  - `compose/infrastructure.yaml` (`infrastructure`): mongo, postgres, keycloak (served under `/sso`), kafka, mailpit (Keycloak SMTP, UI `:8025`), and the volumes.
+  - `compose/infrastructure.yaml` (`infrastructure`): mongo, postgres, keycloak (served under `/sso`), kafka, mailpit (Keycloak SMTP, UI `:8025`), rmu-s3 (SeaweedFS, the S3 of the images users upload, ADR 0011) with its `rmu-s3-init` bucket setup, and the volumes.
   - `compose/apis.yaml` (`apis`): every API, with `x-api-common`/`x-iam-env`/`x-kafka-env`/`x-log-env` anchors.
   - `compose/mfes.yaml` (`mfes`): shell and core as static nginx images, no host ports, runtime config through an `x-mfe-env` anchor.
   - `compose/tools.yaml` (`tools`): rmu-kafka-ui, rmu-mongo-express.
@@ -48,7 +48,7 @@ terraform fmt -check -recursive terraform && terraform -chdir=terraform/stacks/k
 
 Validate Compose changes for every profile combination, not just the default. `COMPOSE_PROFILES=<list> docker compose config -q` is enough for each one. Compare `docker compose config` output before and after a refactor.
 
-Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `http://localhost/sso/realms/rmu`) and `http://localhost:8090/sso` for the admin console and Terraform, Mailpit `:8025`, Kafka UI `:8091`, Mongo Express `:8092`, Mongo `localhost:27017`, Kafka from the host `localhost:9093` (in-network `rmu-kafka-broker:9092`), gateway `:80`, Grafana `:3000`.
+Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `http://localhost/sso/realms/rmu`) and `http://localhost:8090/sso` for the admin console and Terraform, Mailpit `:8025`, Kafka UI `:8091`, Mongo Express `:8092`, Mongo `localhost:27017`, Kafka from the host `localhost:9093` (in-network `rmu-kafka-broker:9092`), gateway `:80`, Grafana `:3000`, local S3 `localhost:8333` (`aws --endpoint-url http://localhost:8333`, uploads served by the gateway at `/media/`).
 
 ## Architecture
 
@@ -61,7 +61,7 @@ Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `ht
 
   A `groups` client scope puts group membership into tokens as the `groups` claim (non-full-path). An `rmu-api` scope adds the audience `rmu-api` and the `identity_provider` claim. Every API validates `iss` (`RMU_IAM_ISSUER_URI`) and `aud` (`RMU_IAM_AUDIENCE`). The realm has remember-me (30 days idle), 15 min access tokens, Google login (placeholder credentials, existing accounts auto-linked by email) and SMTP through Mailpit. Details in `docs/architecture/auth.adoc` (workspace spec 006). The groups (`rmu-admin`, `rmu-core-law`, `rmu-spell-law`, `rmu-treasure-law`, `rmu-creature-law-i`) gate access to rulebook content.
 - **Env convention** (`docs/architecture/configuration.adoc`): `RMU_` prefix, `_URI` suffix for every URL, `RMU_API_<NAME>_URI`, `RMU_MONGO_<NAME>_URI`, `RMU_IAM_*`, `RMU_KAFKA_*`, `RMU_<NAME>_<SETTING>`; same names in APIs, MFEs and compose. The platform `.env` passes shared values under the name the services read (`RMU_IAM_CLIENT_ID`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`), builds Mongo URIs from `MONGO_USER`/`MONGO_PASSWORD`, and keeps browser values as `RMU_MFE_*`. `compose/apis.yaml` still sets a few `legacy` names for older images. Images are `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. A new service needs `compose/apis.yaml`, the gateway route, `docs/architecture/services.adoc`, and the C4 diagram.
-- **Media**: `rmu-api-media` stores images in S3, using the `RMU_MEDIA_S3_*` values from `.env`.
+- **Media**: `rmu-api-media` lists the base images from the manifest of `rmu-mfe-assets` and stores the images users upload under `uploads/` of an S3 bucket (`RMU_MEDIA_S3_*`; locally `rmu-s3`). Workspace spec 057, ADR 0011.
 
 ## Gotchas
 

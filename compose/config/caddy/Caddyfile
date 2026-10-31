@@ -95,6 +95,12 @@
 			import mfe_upstream
 		}
 	}
+	# Images users upload (spec 057): uploads/ of the media bucket in rmu-s3, readable without credentials
+	# through its bucket policy. /media/uploads/x.png -> rmu-s3:8333/<bucket>/uploads/x.png.
+	handle_path /media/* {
+		rewrite * /{$RMU_MEDIA_S3_BUCKET:rmu-media}{uri}
+		reverse_proxy rmu-s3:8333
+	}
 	# Images and locales. Fallback: `make start` (python3 local-start.py) in rmu-mfe-assets.
 	handle_path /mfe/assets/* {
 		reverse_proxy rmu-mfe-assets:80 host.docker.internal:4000 {
