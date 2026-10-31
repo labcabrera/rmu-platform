@@ -1,0 +1,140 @@
+= Migrations and release runbook
+
+How a database follows the changes of the APIs: the migrations of this repository, the scripts that live in the API repositories, the data that is imported from outside the public repositories, and what a release has to do in which order. Workspace spec 056 (2026-10-31) set this up; before it, the scripts were spread over three places and nothing recorded which ones a database had.
+
+== The migration ledger
+
+Migrations are idempotent mongosh scripts in `scripts/migrations/`, named `<spec>-<subject>.js` and run in file name order. `scripts/mongo-migrate.sh` runs one inside the `rmu-mongo` container. When it ends without errors and without `DRY_RUN`, it records the file in `rmu-platform.migrations` as `{_id: <file name>, appliedAt}`.
+
+[source,bash]
+----
+make mongo-backup                                    # always first
+make mongo-migrate-pending DRY_RUN=1                 # list what this database has not run
+make mongo-migrate-pending                           # run them in order, stop at the first failure
+make mongo-migrate f=scripts/migrations/<file>.js DRY_RUN=1   # one migration, only report
+make mongo-migrate-baseline                          # record every migration as applied without running it
+make mongo-migrate-baseline f="041-armor-class-pieces.js"     # ...or only some
+----
+
+Use the baseline once, on a database that already had the migrations applied by hand (the local one was baselined on 2026-10-31). A database restored from an older backup should run `make mongo-migrate-pending` instead: every migration only touches what is still in its old form, so the ones it does not need change nothing.
+
+Some migrations need a step around them, listed below. `make mongo-migrate-pending` does not do those steps, so with a pending migration that has one, run the migrations one by one.
+
+== Migrations
+
+[options="header",cols="2,4,3"]
+|===
+|Script |What it does |Before or after
+
+|`001-relative-asset-urls.js`
+|Absolute image URLs become paths relative to `rmu-mfe-assets` (see link:../architecture/configuration.adoc#_asset_paths[Asset paths]).
+|-
+
+|`009-culture-skill-ranks.js`
+|Culture ranks move from `fixedSkillRanks` to the typed `skillRanks` list.
+|Core reads both formats, so it can run before or after the core release.
+
+|`013-injuries.js`
+|Actor rounds move to the injury model (`unconcious` renamed, critical penalties and bleeding become injuries).
+|-
+
+|`023-item-catalog.js`
+|Strategic items get the `catalog` data of their type and a default `value`.
+|After the items catalog is imported.
+
+|`028-spells.js`
+|Spell lists get `realms`, and spells the modifiers model of spec 028.
+|With the rmu-api-spells release of spec 028.
+
+|`029-characters.js`
+|Characters get `realmTypes`, the realm stat in realm skills and spell list specializations as list codes.
+|After it, run the workspace `data/scripts/recalculate-characters.sh` with the new strategic image up.
+
+|`029-language-skill.js`
+|The generic `language` skill is replaced by `language-spoken` in races and characters, and deleted.
+|After `029-characters.js`.
+
+|`031-skill-ids.js`
+|Renames the misspelled skill ids `blind-figthing` and `ilusion-crafting`.
+|-
+
+|`033-attack-table-ids.js`
+|Old attack table ids (`ball-cold`, `bow-long`...) become the ids of the Medium tables.
+|With the rmu-api-attack-tables release of spec 033, deployed with tactical.
+
+|`034-fumble-table-ids.js`
+|Fumble table ids without a table become a Core Law column. It fails if an id in use has no table.
+|After it, run `recalculate-characters.sh`.
+
+|`037-character-skill-stats.js`
+|Rewrites the copy of the stats of four skills in characters from core.
+|After the workspace data fix `fix-skill-definitions-037.js`; then `recalculate-characters.sh`. On a database already migrated it may still report characters created later, whose stats are only in another order: harmless.
+
+|`039-companion-talents.js`
+|Renames the trait `accute-smell` and stores the skill category of every character skill.
+|After the workspace data import `import-companion-talents.js`; then `recalculate-characters.sh`.
+
+|`041-armor-class-pieces.js`, `041-armor-full-suits.js`
+|Generic armor pieces and full suits become the material pieces of their AT.
+|After the items catalog of spec 041 is imported.
+
+|`048-survival-region.js`
+|Survival takes the realm regions as specialization. Values that match no region are listed, to fix by hand.
+|-
+
+|`049-faction-xp.js`
+|Removes the faction XP pool (`management.availableXP`).
+|With the strategic release of spec 049.
+
+|`050-specialization-keys.js`
+|Specializations become enumeration keys.
+|Then restart rmu-api-core, so it creates the unique index of the enumerations.
+
+|`054-npcs-creature-model.js`
+|NPCs move to the Combat Stat Block model.
+|With the major release of rmu-api-npcs (spec 054).
+
+|`055-realm-generic.js`
+|Marks the RMU Core realm as `generic`.
+|With the core release of spec 055.
+|===
+
+== Scripts in the API repositories
+
+They use the Node.js Mongo driver and the connection string of the API database from the environment, so they run from the API checkout, not through `make mongo-migrate`. They are not recorded in the ledger.
+
+[options="header",cols="2,4"]
+|===
+|Script |When
+
+|`rmu-api-users/scripts/user-name-unique-index.mjs`
+|Once per database created before the unique, case-insensitive user name (spec 044).
+
+|`rmu-api-users/scripts/friendship-blocked-by.mjs`
+|Once per database with friendships from before spec 044.
+
+|`rmu-api-users/scripts/activation-code-unique-index.mjs`
+|Once per database created before the unique activation code index (finding F-users-29).
+
+|`rmu-api-items/scripts/check-item-modifiers.mjs`
+|Read-only: lists stored items that break the modifier rules of spec 044, to fix before the items release.
+|===
+
+== Rulebook data
+
+The data taken from the rulebooks (cultures, professions, talents, spells, items, creatures, tables) is copyrighted, so it is in no public repository. It is prepared in the workspace `data/` folder and imported with `data/scripts/run.sh` (see its header for each script and its order). Any new environment needs those imports, in the order of the specs, before the migrations that depend on them (023, 037, 039, 041).
+
+== Release checklist
+
+. `make mongo-backup` in the target environment.
+. Release in this order when the specs depend on each other:
+** rmu-api-strategic before rmu-api-tactical (spec 044: the identity of the spent poison coating).
+** rmu-api-attack-tables together with rmu-api-tactical (specs 033-035).
+** rmu-api-spells before the MFEs that load the whole spell list catalog (spec 056).
+** rmu-api-tactical together with rmu-mfe-tactical (spec 056: the attack roll carries the unmodified die).
+. `make mongo-migrate-pending DRY_RUN=1`, then the pending migrations with their steps (table above) and the API scripts that apply.
+. Every environment needs the variables of `.env.example`. Since spec 055 that includes `RMU_API_NPCS_URI` for strategic, and since spec 053 the `RMU_ADMIN_*_URI` links for the shell.
+. When an API with `legacy` variables in `compose/apis.yaml` is released, remove its legacy lines:
+** tactical: `RMU_API_ATTACK_URI` and `RMU_API_NPC_URI`;
+** users: `RMU_IAM_JWKS_URI` and `RMU_IAM_ADMIN_BASE_URL`.
+. After spec 044 is released in tactical and every old game is closed, strategic can drop the branch that accepts `coatingSpent: true` (`tactical-outcome-items.merger.ts`).

@@ -18,6 +18,7 @@ Documentation map for the RMU Engine platform. `rmu-platform` describes how the 
 == Operations
 
 * link:operations/mongo-backup-restore.adoc[MongoDB backup and restore].
+* link:operations/migrations.adoc[Migrations and release runbook].
 * link:operations/keycloak-terraform.adoc[Keycloak with Terraform].
 
 == Decisions and specs
