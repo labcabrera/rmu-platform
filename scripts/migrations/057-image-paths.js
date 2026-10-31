@@ -6,7 +6,8 @@
 //   `uploads/user-data/`, where rmu-api-media stores the uploads.
 // - Paths to base images removed on 2026-10-31 get the replacement the user chose (REPLACEMENTS).
 //
-// Run it after rmu-api-media `scripts/move-uploads.mjs`, which moves the upload files and their media records.
+// Run it before rmu-api-media `scripts/move-uploads.mjs`, which moves the upload files and their media records: that
+// script takes every record outside uploads/ for an upload, so the base image records must be gone first.
 // Run with `make mongo-migrate f=scripts/migrations/057-image-paths.js` (DRY_RUN=1 to only report), after
 // `make mongo-backup`. Idempotent.
 
@@ -62,7 +63,7 @@ const baseCount = media.countDocuments(baseFilter);
 if (!dryRun) media.deleteMany(baseFilter);
 print(`${prefix}rmu-media.images: ${baseCount} base image records deleted`);
 const leftover = media.countDocuments({ url: { $regex: '^images/' }, category: 'user-data' });
-if (leftover > 0) print(`WARNING: rmu-media.images has ${leftover} uploads still under images/: run move-uploads.mjs first`);
+if (leftover > 0) print(`WARNING: rmu-media.images has ${leftover} uploads still under images/: run rmu-api-media scripts/move-uploads.mjs now`);
 
 db.adminCommand({ listDatabases: 1 })
   .databases.map(d => d.name)

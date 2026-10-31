@@ -104,7 +104,7 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 
 |`057-image-paths.js`
 |Drops the media records of base images (they come from the assets manifest now), moves the stored paths of uploads from `images/user-data/` to `uploads/user-data/`, and replaces the paths of base images removed on 2026-10-31.
-|After rmu-api-media `scripts/move-uploads.mjs` (it moves the files and their records), with the rmu-api-media and front releases of spec 057.
+|With the rmu-api-media and front releases of spec 057. Then run rmu-api-media `scripts/move-uploads.mjs` with the environment of the API (it moves the upload files and their records; `DRY_RUN=1` first, `DELETE_OLD=1` once the copies are checked). Never in the other order: the script takes every record outside `uploads/` for an upload. Deploy `rmu-mfe-assets` (`aws-deploy.sh`) only after it.
 |===
 
 == Scripts in the API repositories
