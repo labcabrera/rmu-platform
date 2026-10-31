@@ -84,6 +84,8 @@ services:
       RMU_API_ITEMS_URI: http://rmu-api-items:3006/v1
       RMU_API_SPELLS_URI: http://rmu-api-spells:3009/v1
       RMU_API_NPCS_URI: http://rmu-api-npcs:3008/v1
+      # Workspace spec 062: commission of a jeweler buying gems and jewelry (game master house rule, 1-5)
+      RMU_STRATEGIC_JEWELER_PERCENT: ${RMU_STRATEGIC_JEWELER_PERCENT:-3}
 
   rmu-api-tactical:
     <<: *api-common
