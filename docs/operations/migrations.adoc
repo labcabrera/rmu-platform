@@ -97,6 +97,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`055-realm-generic.js`
 |Marks the RMU Core realm as `generic`.
 |With the core release of spec 055.
+
+|`056-npc-shield.js`
+|NPC shields get the DB of their type (Table 9-6), and the moose loses its shield, an erratum (ADR 0010).
+|With the rmu-api-npcs release of spec 056, deployed with tactical.
 |===
 
 == Scripts in the API repositories
