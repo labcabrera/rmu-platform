@@ -225,11 +225,22 @@ services:
       RMU_MONGO_MEDIA_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@rmu-mongo:27017/rmu-media?authSource=admin
       RMU_KAFKA_CLIENT_ID: rmu-api-media
       RMU_KAFKA_CONSUMER_GROUP_ID: rmu-api-media-consumer
+      # Uploads go to uploads/ of the bucket (spec 057); locally the bucket is in rmu-s3.
+      RMU_MEDIA_S3_ENDPOINT: ${RMU_MEDIA_S3_ENDPOINT:-http://rmu-s3:8333}
       RMU_MEDIA_S3_REGION: ${RMU_MEDIA_S3_REGION}
       RMU_MEDIA_S3_BUCKET: ${RMU_MEDIA_S3_BUCKET}
-      RMU_MEDIA_S3_BASE_FOLDER: ${RMU_MEDIA_S3_BASE_FOLDER}
-      RMU_MEDIA_S3_IMAGE_FOLDER: ${RMU_MEDIA_S3_IMAGE_FOLDER}
+      RMU_MEDIA_S3_UPLOADS_PREFIX: uploads
       RMU_MEDIA_S3_ACCESS_KEY_ID: ${RMU_MEDIA_S3_ACCESS_KEY_ID}
       RMU_MEDIA_S3_SECRET_ACCESS_KEY: ${RMU_MEDIA_S3_SECRET_ACCESS_KEY}
       RMU_MEDIA_S3_FORCE_PATH_STYLE: true
       RMU_MEDIA_IMAGE_MAX_WIDTH: 2048
+      RMU_MEDIA_UPLOAD_MAX_BYTES: ${RMU_MEDIA_UPLOAD_MAX_BYTES:-10485760}
+      # The base images are the manifest of rmu-mfe-assets (spec 057), read in the network.
+      RMU_MEDIA_BASE_MANIFEST_URI: http://rmu-mfe-assets/images/manifest.json
+    depends_on:
+      rmu-mongo:
+        condition: service_healthy
+      rmu-kafka:
+        condition: service_healthy
+      rmu-s3-init:
+        condition: service_completed_successfully

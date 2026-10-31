@@ -1,0 +1,48 @@
+= ADR 0011: Local S3-compatible store for user images
+
+* *Status:* Accepted
+* *Date:* 2026-10-31
+* *Context spec:* workspace spec 057, base and user images (`specs/057-base-and-user-images/` in the workspace meta-repo, decisions 5 and 6)
+
+== Context
+
+Spec 057 separates the images of the application from the images users upload:
+
+* the base images are the files of `rmu-mfe-assets`, listed by a manifest;
+* the uploads are owned by `rmu-api-media` and stored under `uploads/` of an S3 bucket.
+
+Before it, the local stack uploaded to the real AWS bucket, and the uploads did not show up locally, because the browser read images from the local `rmu-mfe-assets` container. Local development must not depend on an external service, and the code should be the same as in the cloud: one S3 adapter, no filesystem one.
+
+The local store needs:
+
+* the S3 operations the media API and its migration script use: `PutObject`, `GetObject`, `DeleteObject`, `ListObjectsV2` and `CopyObject`;
+* anonymous read of `uploads/` only, so the gateway can serve it at `/media/` as CloudFront does in the cloud;
+* a maintained official image, and a start with no manual steps.
+
+== Decision
+
+* *SeaweedFS* (`chrislusf/seaweedfs:4.50`, Apache 2.0), as the `rmu-s3` service of the `infrastructure` profile:
+** `weed server -s3`, with its data on the `rmu-s3-data` volume;
+** its only identity takes `RMU_MEDIA_S3_ACCESS_KEY_ID` and `RMU_MEDIA_S3_SECRET_ACCESS_KEY` from the environment, which locally are fixed, non-secret values;
+** the S3 API is `http://rmu-s3:8333` in the network and `localhost:${RMU_S3_PORT:-8333}` on the host.
+* *`rmu-s3-init`* (`amazon/aws-cli`) creates the bucket and puts a standard bucket policy that allows `s3:GetObject` on `uploads/*` to anyone (`compose/config/s3/uploads-public-read.json`). It runs on every start, and both steps are idempotent. `rmu-api-media` waits for it.
+* *The gateway* serves `/media/*` from `rmu-s3:8333/<bucket>/`. `RMU_MFE_MEDIA_URI` (`/media/`) is where the front resolves `uploads/...` paths.
+
+Checked on 2026-10-31 with `aws --endpoint-url`:
+
+* the five operations work;
+* with the policy, an anonymous `GET` of `uploads/...` gives 200;
+* an anonymous `GET` of any other key gives 403, and so does an anonymous `PUT`;
+* the server uses about 75 MB of memory.
+
+== Alternatives considered
+
+* *MinIO.* `minio/minio` is no longer published on Docker Hub for the community edition (pull access denied on 2026-10-31).
+* *Garage.* It is small (40 MB image), but it has no bucket policies: public read is the website mode of a whole bucket, on its own port, which works differently from the cloud setup. It also needs a cluster layout set up before first use.
+* *A filesystem adapter in the API.* It needs no extra service, but then local and cloud run different code, and the migration of the existing uploads, which copies objects, could not be tested locally.
+
+== Consequences
+
+* The local stack has one more container, and a volume that holds the uploads. `make down` keeps the volume; `down -v` deletes the uploads.
+* The bucket policy is the same document the cloud bucket needs for `uploads/*`, so the setup carries over to Terraform.
+* The local `.env` uses local credentials for `RMU_MEDIA_S3_*`. Against AWS, set `RMU_MEDIA_S3_ENDPOINT` to the regional endpoint and use real credentials.

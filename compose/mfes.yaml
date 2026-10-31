@@ -12,6 +12,8 @@ x-mfe-env: &mfe-env
   RMU_IAM_REALM: ${RMU_IAM_REALM:-rmu}
   RMU_IAM_CLIENT_ID: ${RMU_MFE_IAM_CLIENT_ID:-rmu-client-front}
   RMU_MFE_ASSETS_URI: ${RMU_MFE_ASSETS_URI:-/mfe/assets/}
+  # The images users upload (spec 057): the gateway serves uploads/ of the media bucket here.
+  RMU_MFE_MEDIA_URI: ${RMU_MFE_MEDIA_URI:-/media/}
   RMU_MFE_I18N_URI: ${RMU_MFE_I18N_URI:-}
   RMU_MFE_CORE_PUBLIC_PATH: /mfe/core/
   RMU_MFE_STRATEGIC_PUBLIC_PATH: /mfe/strategic/

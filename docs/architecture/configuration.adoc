@@ -59,7 +59,7 @@ The platform `.env` holds the inputs of `compose/*.yaml`, grouped in the same bl
 * When a value is passed to the services as is, it keeps the name the services read: `RMU_IAM_CLIENT_ID`, `RMU_IAM_CLIENT_SECRET`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`, `LOG_LEVEL`.
 * `RMU_IAM_BASE_URI` (`http://rmu-keycloak:8080/sso`) and `RMU_IAM_REALM` build the Keycloak endpoints of the APIs. `RMU_IAM_ISSUER_URI` is the public issuer (`http://localhost/sso/realms/rmu`), and `RMU_IAM_AUDIENCE` (`rmu-api`) is the audience every API checks.
 * The Mongo connection strings are built from `MONGO_USER` and `MONGO_PASSWORD`.
-* `RMU_MFE_*` are the values that differ for the browser: `RMU_MFE_IAM_URI`, `RMU_MFE_IAM_CLIENT_ID`, `RMU_MFE_ASSETS_URI`, `RMU_MFE_I18N_URI`. The remote and API paths of the MFEs are fixed gateway paths in `compose/mfes.yaml`.
+* `RMU_MFE_*` are the values that differ for the browser: `RMU_MFE_IAM_URI`, `RMU_MFE_IAM_CLIENT_ID`, `RMU_MFE_ASSETS_URI`, `RMU_MFE_MEDIA_URI`, `RMU_MFE_I18N_URI`. The remote and API paths of the MFEs are fixed gateway paths in `compose/mfes.yaml`.
 
 [[attack-tables-data]]
 === Attack tables data
@@ -101,7 +101,12 @@ Inside the shell, the remotes read the shell's `window.__RMU_CONFIG__`, so the s
 
 == Asset paths
 
-Images are stored as paths relative to the root of `rmu-mfe-assets`, for example `images/races/elf.png`, never as absolute URLs. That covers every entity `imageUrl` (realms, races, characters, items, NPCs...) and the media API's image `url`, which is its `storageKey`. The MFEs resolve the paths with `resolveAssetUrl()` from `rmu-react-shared-lib`, against `RMU_MFE_ASSETS_URI`. Moving the assets (the gateway's `/mfe/assets/`, a CDN, an S3 bucket) only changes that variable; the data stays the same.
+Images are stored as relative paths, never as absolute URLs. That covers every entity `imageUrl` (realms, races, characters, items, NPCs...) and the media API's image `url`. There are two kinds (workspace spec 057):
+
+* *Base images*, `images/<category>/<file>`: the files of `rmu-mfe-assets`, listed in its `images/manifest.json`. The media API lists them from that manifest; they are not in its database and cannot be changed through it.
+* *Uploads*, `uploads/<category>/<id>.<ext>`: the images users upload, stored by the media API under `uploads/` of its bucket (locally `rmu-s3`, ADR 0011), never under the assets prefix.
+
+The MFEs resolve the paths with `resolveAssetUrl()` from `rmu-react-shared-lib`: `uploads/...` against `RMU_MFE_MEDIA_URI` (the gateway's `/media/`) and the rest against `RMU_MFE_ASSETS_URI`. Moving either (the gateway, a CDN, an S3 bucket) only changes those variables; the data stays the same.
 
 Absolute URLs still render as they are. `scripts/migrations/001-relative-asset-urls.js` converts old data (`make mongo-migrate f=scripts/migrations/001-relative-asset-urls.js`, `DRY_RUN=1` to only count).
 
