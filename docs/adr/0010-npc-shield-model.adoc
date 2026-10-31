@@ -1,0 +1,48 @@
+= ADR 0010: Shield of an NPC stat block, and the moose erratum
+
+* *Status:* Accepted
+* *Date:* 2026-10-31
+* *Context spec:* workspace spec 056, local operations and backlog bug fixes (`specs/056-ops-and-bug-fixes/` in the workspace meta-repo, decisions 7 and 8; backlog entry B-07)
+
+== Context
+
+The Combat Stat Block of Creature Law (spec 054) gives the shield in the third part of the AT/DB cell, in parentheses: the shield type, the Shield ranks and the Shield skill bonus, or `(none)`. The DB of the first part never includes the shield.
+
+Spec 054 stored that part as `NpcShield {type, ranks, bonus}`, and spec 055 mapped it into tactical as `ActorRoundShield(bonus, 1 block)`. Three things are wrong:
+
+* `bonus` is the *skill* bonus of Shield, not the DB that the shield adds, so tactical gives a creature the skill bonus as shield DB.
+* The DB and the number of blocks depend on the shield type (Core Law, Table 9-6), but tactical always gives one block, and nothing stores the DB.
+* The Shield ranks and bonus never reach the skills that tactical uses for Passive, Partial and Full Block, so blocking adds 0.
+
+In the chapter 5 data only the moose has something in that part: `(target)`, with no ranks or bonus, where every other creature has `(none)`. A target shield is not something a moose carries, and the conversion of the book already flagged the cell as unclear.
+
+== Decision
+
+* *Model.* `NpcShield` becomes `{type, db, ranks, bonus}`:
+** `type` is the shield type of Table 9-6;
+** `db` is the DB the shield adds;
+** `ranks` and `bonus` are the Shield skill of the creature.
+
+  When the stat block gives only the type, `db` is the value of that type in Table 9-6.
+* *Tactical.*
+** The NPC actor round gets `ActorRoundShield(db, blocks of its type in Table 9-6)`.
+** The NPC sheet gets a `shield` skill with `ranks` and `bonus`, so the block options work as for characters.
+** A stored NPC without `db` falls back to its type.
+* *Parsing.* The stat block notation (type letter, shield DB, ranks and skill bonus) is parsed into those four fields. `(none)` is no shield.
+* *The moose is an erratum.*
+** Its `(target)` is read as `(none)`, so the moose has no shield.
+** The import applies the correction, and the creature report keeps the note with the cell as printed.
+** Any later cell that gives a shield type to a creature that cannot hold one is handled the same way, as a listed erratum, not as a model case.
+
+== Alternatives considered
+
+* *Keep `bonus` as the shield DB.* It is the reading of spec 055, and it is wrong: a creature with Shield skill +60 would add 60 DB.
+* *Read the moose cell literally.* That gives a Target shield and one block to a creature with antlers and hooves. Nothing else in the book supports it. A single unexplained value is more likely a typesetting error than a rule.
+* *Store the blocks in the NPC.* They follow from the type, so storing them would only allow inconsistent data. Tactical derives them, as it does for the items of characters.
+
+== Consequences
+
+* The npcs API adds `db` to `shield`, a compatible change: clients that do not know it keep working, and tactical treats a missing `db` as the DB of the type.
+* A migration (`056-npc-shield.js`) fills `db` in the stored NPCs and removes the moose shield. The chapter 5 import data is rebuilt with the new parser.
+* The NPC form and view of `rmu-mfe-npcs` show and edit the type, DB, ranks and bonus.
+* Creature Law chapters 6-14 (spec 054, phase 4) will bring creatures and races with real shields. They are parsed with this model.

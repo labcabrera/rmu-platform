@@ -5,6 +5,9 @@
 #
 # mongosh runs inside the rmu-mongo container, so no local Mongo tools are needed.
 # Credentials come from MONGO_USER / MONGO_PASSWORD (environment first, then .env).
+#
+# A script of scripts/migrations/ that runs without DRY_RUN and without errors is recorded in
+# rmu-platform.migrations ({_id: <file name>, appliedAt}), which scripts/mongo-migrate-pending.sh reads.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,7 +28,16 @@ MONGO_PASSWORD="${MONGO_PASSWORD:-$(env_value MONGO_PASSWORD)}"
 dry_run=false
 [ "${DRY_RUN:-}" = "1" ] && dry_run=true
 
+# Only the scripts of scripts/migrations/ are recorded; any other script just runs
+record=""
+if [ "${dry_run}" = false ] && [ "$(cd "$(dirname "${script}")" && pwd)" = "${ROOT_DIR}/scripts/migrations" ]; then
+  name="$(basename "${script}")"
+  record="; db.getSiblingDB('rmu-platform').migrations.updateOne({ _id: '${name}' }, { \$set: { appliedAt: new Date() } }, { upsert: true }); print('recorded ${name}');"
+fi
+
 echo "Running ${script} on ${MONGO_CONTAINER}$([ "${dry_run}" = true ] && echo ' (dry run)')"
 docker exec "${MONGO_CONTAINER}" mongosh \
   --username "${MONGO_USER}" --password "${MONGO_PASSWORD}" --authenticationDatabase admin --quiet \
-  --eval "const DRY_RUN = ${dry_run}; $(cat "${script}")"
+  --eval "const DRY_RUN = ${dry_run}; (() => {
+$(cat "${script}")
+})()${record}"

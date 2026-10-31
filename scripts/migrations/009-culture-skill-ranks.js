@@ -2,7 +2,7 @@
 // list (spec 009): each `{ skillId, specialization, ranks }` becomes
 // `{ type: 'skill', skillId, specialization, ranks }` and `fixedSkillRanks` is removed.
 //
-// Run with `make mongo-migrate f=scripts/migrations/2026-10-20-culture-skill-ranks.js` (DRY_RUN=1 to only
+// Run with `make mongo-migrate f=scripts/migrations/009-culture-skill-ranks.js` (DRY_RUN=1 to only
 // count). Idempotent: only cultures that still have `fixedSkillRanks` are touched. When a culture
 // already has `skillRanks`, the old entries are appended only if no 'skill' entry with the same
 // skill and specialization exists.

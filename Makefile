@@ -58,6 +58,12 @@ mongo-migrate: ## Run a migration script against the local Mongo (f=scripts/migr
 	@test -n "$(f)" || { echo "Usage: make mongo-migrate f=scripts/migrations/<file>.js" >&2; exit 1; }
 	DRY_RUN="$(DRY_RUN)" scripts/mongo-migrate.sh "$(f)"
 
+mongo-migrate-pending: ## Run the migrations not recorded in rmu-platform.migrations, in order (DRY_RUN=1 to only list)
+	DRY_RUN="$(DRY_RUN)" scripts/mongo-migrate-pending.sh
+
+mongo-migrate-baseline: ## Record migrations as applied without running them (f="a.js b.js", default every one)
+	scripts/mongo-migrate-pending.sh --baseline $(f)
+
 keycloak-init: ## Create/update the local Keycloak realm with terraform, no prompt (needs terraform.tfvars)
 	terraform -chdir=$(TF_KEYCLOAK) init -input=false
 	terraform -chdir=$(TF_KEYCLOAK) apply -input=false -auto-approve

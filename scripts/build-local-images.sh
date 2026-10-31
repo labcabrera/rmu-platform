@@ -13,8 +13,14 @@
 # The workspace is $RMU_WORKSPACE_DIR, or the parent folder of this repository. MFE images take
 # the shared lib from <workspace>/rmu-react-shared-lib as a BuildKit named context, like
 # `make docker-build` in each MFE. When starting the stack, RMU_<PROJECT>_VERSION is set to the
-# tag for every built project, overriding .env; the other services use the versions in .env.
+# tag for every built project, and for every other project that already has an image with that tag
+# (workspace spec 056: the published `latest` images can be months older than the local ones). A
+# version set in the shell environment always wins. The other services use the versions in .env.
 set -euo pipefail
+
+# Versions given in the shell environment, which this script never overrides
+declare -A FROM_SHELL=()
+while IFS= read -r var; do FROM_SHELL["${var}"]=1; done < <(compgen -e | grep -E '^RMU_(API|MFE)_[A-Z_]+_VERSION$' || true)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_DIR="${RMU_WORKSPACE_DIR:-$(dirname "${ROOT_DIR}")}"
@@ -30,7 +36,7 @@ while [[ $# -gt 0 ]]; do
     --tag) TAG="$2"; shift 2 ;;
     --no-cache) NO_CACHE=(--no-cache); shift ;;
     --no-up) UP=0; shift ;;
-    -h|--help) sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "Unknown option: $1" >&2; exit 1 ;;
     *) PROJECTS+=("${1%/}"); shift ;;
   esac
@@ -97,7 +103,20 @@ if [[ ! -f "${ROOT_DIR}/.env" ]]; then
 fi
 
 for project in "${BUILT[@]}"; do
-  export "$(version_var "${project}")=${TAG}"
+  var="$(version_var "${project}")"
+  [[ -n "${FROM_SHELL[${var}]:-}" ]] || export "${var}=${TAG}"
+done
+
+# Projects not built now that have an image with the tag from an earlier build
+while IFS= read -r repository; do
+  var="$(version_var "${repository#labcabrera/}")"
+  [[ -n "${FROM_SHELL[${var}]:-}" || -n "${!var:-}" ]] || export "${var}=${TAG}"
+done < <(docker image ls --filter "reference=labcabrera/rmu-*:${TAG}" --format '{{.Repository}}' | sort -u)
+
+echo
+echo "Versions used (the rest come from .env):"
+compgen -e | grep -E '^RMU_(API|MFE)_[A-Z_]+_VERSION$' | sort | while IFS= read -r var; do
+  echo "  ${var}=${!var}$([[ -n "${FROM_SHELL[${var}]:-}" ]] && echo ' (shell)')"
 done
 
 cd "${ROOT_DIR}"
