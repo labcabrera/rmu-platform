@@ -109,6 +109,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`059-race-archetypes.js`
 |Race archetypes become kebab keys (`High Human` -> `high-human`), which the fronts show translated.
 |With the rmu-mfe-core release of spec 059 (its race filter and form use the keys).
+
+|`063-entity-source.js`
+|Sets `entitySource` (`system` = rulebook, admin-only changes; `user`) on items, the core rule entities (enumerations, traits, cultures, skills, maneuver modifiers, races, realms; professions and effect types keep theirs) and the spell catalog, with the rules of spec 063, and deletes the `fur-belt` item. Review the dry run first: ids that must stay `user` go into `KEEP_USER` in the script.
+|Before the releases of rmu-api-items, rmu-api-core and rmu-api-spells of spec 063 (they read a missing field as `user`, so the order only matters for the protection to start).
 |===
 
 == Scripts in the API repositories
