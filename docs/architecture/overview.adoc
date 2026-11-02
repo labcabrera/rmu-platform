@@ -34,6 +34,7 @@ APIs publish domain events and react to the events of other domains, for example
 
 * Topics follow the pattern `internal.<service>.<entity>.<event>.v1`, for example `internal.rmu-core.realm.updated.v1` or `internal.rmu-tactical.game.created.v1`.
 * Locally topics are auto-created with a single partition (`RMU_KAFKA_DEFAULT_PARTITIONS=1`).
+* Users publishes `internal.rmu-users.friendship.updated.v1` and `…deleted.v1`. Core consumes them to remove the realm shares of a blocked or deleted friendship (workspace spec 069).
 * Each API consumes with its own group, `rmu-api-<name>-consumer`.
 * Kafka UI (`tools` profile, http://localhost:8091) shows topics and messages.
 
