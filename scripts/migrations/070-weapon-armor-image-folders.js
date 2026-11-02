@@ -11,7 +11,7 @@ const dryRun = typeof DRY_RUN !== 'undefined' && DRY_RUN === true;
 const prefix = dryRun ? '[dry-run] ' : '';
 const FOLDERS = {
   weapons: [
-    'arming-sword', 'battle-axe', 'blackjack', 'blowdart', 'blowpipe', 'bola', 'broadsword', 'claymore',
+    'arming-sword', 'battle-axe', 'blackjack', 'blowpipe', 'bola', 'broadsword', 'claymore',
     'club', 'composite-bow', 'crossbow', 'dagger', 'dart', 'epee', 'falchion', 'figthing-stick', 'flail',
     'glaive', 'great-falchion', 'halberd', 'hand-axe', 'hand-crossbow', 'heavy-crossbow', 'heavy-flail',
     'javelin', 'large-net', 'light-flail', 'light-mace', 'ligth-stick', 'long-axe', 'long-bow',
