@@ -120,8 +120,9 @@ Some published images still read an older name. `compose/apis.yaml` sets both na
 
 |users |`RMU_IAM_JWKS_URI` |`RMU_IAM_JWK_URI`
 |users |`RMU_IAM_ADMIN_BASE_URL` |`RMU_IAM_ADMIN_URI`
-|tactical |`RMU_API_NPC_URI` |`RMU_API_NPCS_URI`
-|tactical |`RMU_API_ATTACK_URI` |(no longer read; required by images before the combat plugin refactor)
 |===
+
+tactical read `RMU_API_NPC_URI` and required `RMU_API_ATTACK_URI` before 0.8.0; compose no longer sets them, so run
+tactical 0.8.0 or later.
 
 `rmu-api-npcs` is aligned since workspace spec 054, which moved it to the core template.

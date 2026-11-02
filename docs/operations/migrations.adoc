@@ -151,6 +151,5 @@ The data taken from the rulebooks (cultures, professions, talents, spells, items
 . `make mongo-migrate-pending DRY_RUN=1`, then the pending migrations with their steps (table above) and the API scripts that apply.
 . Every environment needs the variables of `.env.example`. Since spec 055 that includes `RMU_API_NPCS_URI` for strategic, and since spec 053 the `RMU_ADMIN_*_URI` links for the shell.
 . When an API with `legacy` variables in `compose/apis.yaml` is released, remove its legacy lines:
-** tactical: `RMU_API_ATTACK_URI` and `RMU_API_NPC_URI`;
 ** users: `RMU_IAM_JWKS_URI` and `RMU_IAM_ADMIN_BASE_URL`.
 . After spec 044 is released in tactical and every old game is closed, strategic can drop the branch that accepts `coatingSpent: true` (`tactical-outcome-items.merger.ts`).

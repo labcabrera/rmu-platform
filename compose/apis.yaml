@@ -107,11 +107,6 @@ services:
       RMU_API_ATTACK_TABLES_URI: http://rmu-api-attack-tables:3005/v1
       # The tactical dashboard polls several resources per action; 300 requests/min is not enough.
       RMU_THROTTLE_LIMIT: 1000
-      # legacy: required (Joi) by rmu-api-tactical images before the combat plugin refactor (spec 003).
-      # The Python rmu-api-attack service was removed; the value is never called by current images.
-      RMU_API_ATTACK_URI: http://rmu-api-attack:8000/v1
-      # legacy: read by rmu-api-tactical images before feature/env-vars-alignment.
-      RMU_API_NPC_URI: http://rmu-api-npcs:3008/v1
 
   rmu-api-attack-tables:
     image: labcabrera/rmu-api-attack-tables:${RMU_API_ATTACK_TABLES_VERSION:-latest}
