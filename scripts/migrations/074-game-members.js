@@ -4,8 +4,9 @@
 // rmu-users profile (their id when they have none). Games get empty `members` and `joinRequests` when they lack them.
 //
 // Each game that changes gets its version up, as the API does on a change. Core learns the members with the next
-// event of the game, so after this script touch each game (any PATCH) or wait for its next change for the members
-// to read its realm (spec 071, decision 2).
+// event of the game, so after this script touch each game that gained members (a PATCH that changes something, such
+// as renaming it and back: a PATCH without changes neither writes nor publishes) or wait for its next change for the
+// members to read its realm (spec 071, decision 2).
 // Run with `make mongo-migrate f=scripts/migrations/074-game-members.js` (DRY_RUN=1 to only report), after
 // `make mongo-backup`. Idempotent.
 
