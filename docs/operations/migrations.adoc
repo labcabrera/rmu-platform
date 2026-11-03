@@ -113,6 +113,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`063-entity-source.js`
 |Sets `entitySource` (`system` = rulebook, admin-only changes; `user`) on items, the core rule entities (enumerations, traits, cultures, skills, maneuver modifiers, races, realms; professions and effect types keep theirs) and the spell catalog, with the rules of spec 063, and deletes the `fur-belt` item. Review the dry run first: ids that must stay `user` go into `KEEP_USER` in the script.
 |Before the releases of rmu-api-items, rmu-api-core and rmu-api-spells of spec 063 (they read a missing field as `user`, so the order only matters for the protection to start).
+
+|`074-game-members.js`
+|Owners of characters in a strategic game join it as players (`members`), since only members read a game and create characters in it (spec 071).
+|With the rmu-api-strategic release of spec 071, after rmu-api-core (which follows the game events to share the realm with the members). Then change each game once (or wait for its next change) so that core learns its members.
 |===
 
 == Scripts in the API repositories
@@ -149,7 +153,7 @@ The data taken from the rulebooks (cultures, professions, talents, spells, items
 ** rmu-api-spells before the MFEs that load the whole spell list catalog (spec 056).
 ** rmu-api-tactical together with rmu-mfe-tactical (spec 056: the attack roll carries the unmodified die).
 . `make mongo-migrate-pending DRY_RUN=1`, then the pending migrations with their steps (table above) and the API scripts that apply.
-. Every environment needs the variables of `.env.example`. Since spec 055 that includes `RMU_API_NPCS_URI` for strategic, and since spec 053 the `RMU_ADMIN_*_URI` links for the shell.
+. Every environment needs the variables of `.env.example`. Since spec 071 that includes `RMU_API_USERS_URI` for strategic, since spec 055 `RMU_API_NPCS_URI`, and since spec 053 the `RMU_ADMIN_*_URI` links for the shell.
 . When an API with `legacy` variables in `compose/apis.yaml` is released, remove its legacy lines:
 ** users: `RMU_IAM_JWKS_URI` and `RMU_IAM_ADMIN_BASE_URL`.
 . After spec 044 is released in tactical and every old game is closed, strategic can drop the branch that accepts `coatingSpent: true` (`tactical-outcome-items.merger.ts`).
