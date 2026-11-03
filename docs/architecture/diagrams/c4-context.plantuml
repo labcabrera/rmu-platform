@@ -83,6 +83,11 @@ Rel(rmu_api_spells, rmu_api_core, "Check effect statuses", "HTTP")
 Rel(rmu_api_core, rmu_api_users, "Check friendships to share realms", "HTTP")
 Rel(rmu_api_strategic, rmu_api_spells, "Read spell lists", "HTTP")
 Rel(rmu_api_strategic, rmu_api_npc, "Check the NPCs of the factions", "HTTP")
+Rel(rmu_api_strategic, rmu_api_users, "Check friendships to add game members", "HTTP")
+Rel(rmu_api_strategic, rmu_api_core, "Check realm access of game owners", "HTTP")
+Rel(rmu_api_items, rmu_api_core, "Check realm access", "HTTP")
+Rel(rmu_api_npc, rmu_api_core, "Check realm access", "HTTP")
+Rel(rmu_api_strategic, kafka, "Game events: core shares the realm with the members", "Kafka")
 
 ' Attack API: no longer called by tactical since the combat plugin refactor (workspace spec 003).
 
