@@ -1,8 +1,9 @@
 = ADR 0005: Sense talents and perception by sense
 
-* *Status:* Proposed
+* *Status:* Accepted (2026-11-04, workspace spec 076)
 * *Date:* 2026-10-20
 * *Context spec:* workspace spec 008, talents (`specs/008-talents/` in the workspace meta-repo)
+* *Decided in:* workspace spec 076, development, combat talents and senses (`specs/076-development-combat-talents-senses/`, block C)
 
 == Context
 
@@ -35,14 +36,23 @@ Spec 008 decided to ignore these talents until perception by sense exists. Addin
 . *Light and darkness:* Nightvision, Darkvision and Light Sensitivity need a light level in the combat situation, as well as in maneuvers, to change attack and maneuver penalties. Does it belong to this decision, or to a separate one about lighting?
 . *Missing Sense:* the book leaves the penalty (from -20 to -50) to the game master. Is it a fixed default, or always declared?
 
-== Proposed direction
+== Decision
 
-Option 1.1, a `sense` on the Perception maneuver, is the smallest change. It keeps the strategic skill model as it is. Lighting would be a separate ADR.
+. *Where the sense lives:* option 1.1. The Perception and Tracking maneuvers in `rmu-api-tactical` take a `sense` (`vision`, `hearing`, `smell`, `taste`, `touch`, `extra`) and a `senseUsage` (`required` or `helpful`). The defaults are `vision` and `required`. The strategic skill model does not change.
+. *How the talents are described:* as tactical modifiers computed from the actor's traits by one pure function (`shared/domain/senses/sense-modifiers.ts`). They appear in a `senses` group of the maneuver listing, each with its rule reference. Oblivious and Direction Sense stay as fixed effects in the strategic sheet.
+. *Light and darkness are part of this decision:*
+.. light applies to Perception only when the sense is vision (`required`), and to Tracking as `helpful`;
+.. the light table carries the Nightvision column, Darkvision cancels the light penalty within its range (declared on the roll), and Light Sensitivity penalizes bright light;
+.. the tactical game has an ambient light level (`GameEnvironment.light`), used as the default of every maneuver and movement; the request may override it. The strategic game has no light level.
+. *Missing Sense:* -100 when the sense is required. When it only helps, -20 by default, editable down to -50 on the roll.
+
+In combat, only two rules are added: Extra Sense tier III-V reduces the penalty against unseen targets to -50, -25 and 0, and Light Sensitivity penalizes OB under bright ambient light. Light as a general attack and defense modifier is left to a separate ADR on lighting in combat.
+
+NPC sense talents are free-text names in `rmu-api-npcs`. They are translated to catalog trait ids (`NpcTalent.traitId`, migration 077) and copied to the tactical actor round like character traits.
 
 == Consequences
 
-* Until this ADR is decided, sense talents can be added to a character but have no effect on any value.
-* Once decided, the work needs:
-** the sense in the tactical maneuver API and in its UI in `rmu-mfe-tactical`;
-** the sense talents in the tactical trait modifiers;
-** the light level, if lighting is included.
+* Sense talents have no effect on the strategic sheet: a Perception total sent to tactical does not include them.
+* `rmu-mfe-tactical` needs a sense picker, the sense selections and the ambient light control (spec 076, phase 5).
+* NPC talents without a catalog id (Tremorsense, lists of several missing senses) have no effect.
+* A later ADR decides lighting in combat (attack and defense modifiers, light sources and distances).
