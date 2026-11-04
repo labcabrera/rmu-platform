@@ -121,6 +121,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`075-faction-players.js`
 |Factions get `players` (their `leaderId` plus the owners of their characters who are players of the game) and lose `leaderId`; tactical games get `strategicMembers` and `factionPlayers` from rmu-strategic (spec 072).
 |After 074, with the rmu-api-strategic and rmu-api-tactical releases of spec 072 (deploy both first, or stop them, so that an old strategic does not write `leaderId` again).
+
+|`076-intense-training-option.js`
+|The game option `allowThirdRank` becomes `intenseTraining` (intense training, one skill per level), and games get `allowSavingDevPoints: false` (spec 076).
+|With the rmu-api-strategic release of spec 076, before or after it: the release still reads `allowThirdRank` when `intenseTraining` is missing.
 |===
 
 == Scripts in the API repositories
