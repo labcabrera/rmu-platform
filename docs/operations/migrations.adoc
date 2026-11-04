@@ -125,6 +125,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`076-intense-training-option.js`
 |The game option `allowThirdRank` becomes `intenseTraining` (intense training, one skill per level), and games get `allowSavingDevPoints: false` (spec 076).
 |With the rmu-api-strategic release of spec 076, before or after it: the release still reads `allowThirdRank` when `intenseTraining` is missing.
+
+|`077-npc-talent-trait-ids.js`
+|NPC talents get `traitId`, the catalog talent id of their sense (Nightvision, Darkvision, Acute …, Hearing …, Sight …), or null; the name mapping repeats the one of rmu-api-npcs (spec 076, C7).
+|With the rmu-api-npcs release of spec 076, before or after it: the release derives a missing `traitId` on read.
 |===
 
 == Scripts in the API repositories
