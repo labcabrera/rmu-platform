@@ -141,6 +141,10 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`081-poison-rounds-12-per-minute.js`
 |Moves the stored poisonings to rounds of 5 seconds, 12 a minute (spec 079, 0.2): the stage times that came from minutes, hours or days of the poison table (unit read from `rmu-core.poison-tables`) are doubled, the ones in rounds kept, and `elapsedRounds` follows the same timeline. In `rmu-strategic.characters` and in the actor rounds of the tactical games that are not finished (plus the remaining rounds of the effects a poisoning gave). Each changed poisoning is recorded in `rmu-platform.migration-081-poison-rounds`, so it never doubles twice.
 |With the rmu-api-strategic and rmu-api-tactical releases of spec 079 (phase 1), deployed together with it: an older API keeps the clock of 6 rounds a minute.
+
+|`082-recalculate-talents-079.js`
+|Queues the characters with Deadeye, Vigorous, Feeble, Beast of Burden or Overweight in `rmu-platform.pending-recalculations` (spec 079, D1-D2: Deadeye share per range, `endurance.traitBonus`, load allowance and `equipment.dodgeEncumbrancePenalty`); it changes no character.
+|With the rmu-api-strategic release of spec 079 (phase 7) up, then `scripts/recalculate-characters.sh`. Deploy rmu-api-tactical of the same phase with it: it reads the new fields, and falls back when they are missing.
 |===
 
 == Scripts in the API repositories
