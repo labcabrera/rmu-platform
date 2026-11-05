@@ -1,8 +1,8 @@
 = ADR 0004: How the shield maneuver enters tactical combat
 
-* *Status:* Proposed
+* *Status:* Accepted (2026-11-05, option 1.1)
 * *Date:* 2026-10-19
-* *Context spec:* workspace spec 007, combat rules alignment (`specs/007-combat-rules-alignment/` in the workspace meta-repo)
+* *Context spec:* workspace spec 007, combat rules alignment (`specs/007-combat-rules-alignment/` in the workspace meta-repo); decided in workspace spec 077, block A1 (`specs/077-core-law-high-priority-gaps/`)
 * *Related:* link:0002-stun-effect.adoc[ADR 0002], link:0003-effect-duration-rounds.adoc[ADR 0003]
 
 == Context
@@ -29,11 +29,21 @@ The attack flow is driven by the attacker's player or the game master: declare, 
 . *When does it count?* Is it rolled for each attack after the first, or once for all the attacks of the same attacker?
 . *How does it interact with full and partial blocking?* Do they replace the maneuver or add to it?
 
-== Proposed direction
+== Decision
 
-None yet. Option 1.2 (a game master switch) is the smallest change and keeps the attack flow linear. Option 1.1 follows the rule more closely, but adds a roll by a player who is not driving the attack.
+Option 1.1, inside the existing parry step of the attack flow (workspace spec 077, decisions A1.1-A1.8):
+
+. *Who rolls:* the defender's player or the game master, in the parry step (`PATCH /actions/:id/attack/parry`). An action whose attacks need a Shield maneuver goes through the `parry` status even when nobody parries, and stays there until every maneuver is rolled or decided.
+. *When it is asked:* when an attack is prepared and the shield already used or reserved at least one block in the round, the attack gets `shieldManeuver: {targetId, required: true, skill, modifiers}`. The shield and blocking DB are kept aside in `shieldManeuver.modifiers` and the `shield` plugin records the skipped rule `shield-maneuver-pending`. The block is reserved anyway: a failed maneuver also spends it.
+. *Roll and result:* `shieldManeuvers: [{attackName, roll, difficulty?}]` in the parry body. It is an absolute maneuver: roll + the defender's Shield skill + the defender's penalties + difficulty (medium by default), read on the `generic` table. A success or an absolute success adds the shield and blocking DB; any other result records the skipped rule `shield-maneuver-failed`. There is no partial DB.
+. *Game master shortcut:* `{attackName, passed: true | false}` with no roll, recorded as `manual`.
+. *One roll per attack*, not per attacker.
+. *Blocking does not replace the maneuver:* when it fails, neither the shield DB nor the passive, partial or full blocking count.
+. *Errors:* `err-shield-maneuver-required` (rolling the attack while a maneuver is pending) and `err-shield-maneuver-not-needed` (a maneuver sent for an attack that has none).
+. *Steady Shield* (fighting style ability): each time it is taken adds one block to `blockCount` when the actor round is built.
 
 == Consequences
 
-* Until this ADR is decided, a shield covers up to `blockCount` attacks per round with no maneuver.
-* Whatever is decided needs a field in the attack preparation or a new attack status, a plugin condition in `combat-shield.plugin.ts`, and its UI in `rmu-mfe-tactical`.
+* `rmu-api-tactical` asks for and resolves the maneuver: `shieldManeuver` on the attack, `shieldManeuvers` in the parry body, the two skipped rules and the two errors above.
+* `rmu-mfe-tactical` needs the maneuver rows next to the parries in the parry step, with the game master shortcut.
+* The difficulty is not given by the rules: medium is the default and the game master can change it per attack.
