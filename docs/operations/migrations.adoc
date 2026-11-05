@@ -129,6 +129,14 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`077-npc-talent-trait-ids.js`
 |NPC talents get `traitId`, the catalog talent id of their sense (Nightvision, Darkvision, Acute …, Hearing …, Sight …), or null; the name mapping repeats the one of rmu-api-npcs (spec 076, C7).
 |With the rmu-api-npcs release of spec 076, before or after it: the release derives a missing `traitId` on read.
+
+|`078-equipped-items-carried.js`
+|Items in a slot get `carried: true`, and armors without `armor.fittedWeight` get the body weight of their holder, or 185 (spec 077, B1). Queues the characters with equipment or armor in `rmu-platform.pending-recalculations`.
+|With the rmu-api-strategic release of spec 077 up. Then run `scripts/recalculate-characters.sh` (`RMU_TOKEN` of an admin): it calls `POST /v1/characters/:id/recalculate` for each queued character.
+
+|`079-recalculate-traits.js`
+|Queues the characters with Iron Will, Increased Size or Decreased Size in `rmu-platform.pending-recalculations` (spec 077, C9 and C13); it changes no character.
+|With the rmu-api-strategic release of spec 077 up, then `scripts/recalculate-characters.sh` (one run after 078 and 079 is enough).
 |===
 
 == Scripts in the API repositories
