@@ -1,6 +1,6 @@
 = ADR 0012: Shared OB margin for parrying with several weapons
 
-* *Status:* Proposed
+* *Status:* Accepted
 * *Date:* 2026-11-06
 * *Context spec:* workspace spec 082, parry and OB with several weapons (`specs/082-multi-weapon-parry/` in the workspace meta-repo)
 
