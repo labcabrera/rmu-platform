@@ -1,0 +1,64 @@
+= ADR 0012: Shared OB margin for parrying with several weapons
+
+* *Status:* Proposed
+* *Date:* 2026-11-06
+* *Context spec:* workspace spec 082, parry and OB with several weapons (`specs/082-multi-weapon-parry/` in the workspace meta-repo)
+
+== Context
+
+An actor in `rmu-api-tactical` has one OB per attack, for example +100 with the main hand and +80 with the off hand. It can use less OB than it has when it attacks and keep the rest to parry.
+
+Core Law §9.6 says that a parry trades OB for DB, that without OB left the actor cannot parry, and that with several attacks in the round a parry lowers the OB of all of them by the same amount and adds to DB once. It does not say how to share what is left when two attacks leave different amounts, or whether separate attack actions share the OB.
+
+`ActorRound.calculateCurrentBo` subtracts all the OB used from every attack, whichever attack used it. In a two-weapon attack at 70 and 50, the actor is left with -20 and -40 and cannot parry, although each weapon kept 30.
+
+== Decision
+
+The actor has *one margin in the round*, not one per weapon.
+
+* When an attack action is applied, a margin caps the OB of all the actor's attacks, used or not: weapons, shield bash, unarmed and natural.
+** With one attack in the action, the margin is `best current OB - OB used`. It spends from the budget of the best OB, so attacking with a weak option does not leave the actor without its weapon, and attack plus parry never add up to more than the best OB.
+** With several attacks in the action, the margin is the smallest of `current OB - OB used` among them.
+* The attack used also loses what it spent, so the same OB cannot be used again in another action.
+* The margin carries across the attack actions of the round.
+* A parry keeps lowering the OB of every weapon. Before attacking, the most it can parry is the highest OB, and a weapon left at 0 does not attack.
+* Current OB is never negative. Ranged attacks spend from the same margin but cannot parry. Spells and reactions spend no OB of the round.
+
+The actor round stores the cap without the parries (`boCeiling`):
+
+[source]
+----
+on applying an attack action:  boCeiling = min(boCeiling, margin + parries of the round)
+current OB of an attack:       max(0, min(base OB with breakage - OB it used, boCeiling) - parries of the round)
+----
+
+With +100 and +80:
+
+|===
+| Case | OB left | Most it can parry
+
+| Attacks at 70 and 50 | 30 and 30 | 30
+| Attacks at 100 and 50 | 0 and 0 | 0
+| Attacks only with the main hand, at 60 | 40 and 40 | 40
+| Attacks only with the off hand, at 60 | 40 and 20 | 40
+| Parries 90 before attacking | 10 and 0, the off hand does not attack | 10
+|===
+
+This is an interpretation of §9.6 where the book is silent, not its text. The workspace `rules/` folder holds the source.
+
+== Alternatives considered
+
+* *One OB per weapon, with the OB used subtracted only from its own weapon.* It fixes the reserve, but an actor could attack at +100 and parry at +80 with the other weapon, with no two-weapon penalty and no cost. Defending with the off hand already has its own price in the rules: the Defensive Ward ability, which gives up its attack, or the +5 passive DB of an unused weapon.
+* *Keep the current sum.* It stops that abuse, but a two-weapon attacker pays for a reserve about twice, and the OB can go negative.
+* *Margin per action only.* Attacking with each weapon in a separate action would bring the same abuse back.
+* *The smallest leftover of the attacks used, also with one attack.* It is one rule for every case, but a punch with all of a +40 unarmed OB would leave a +100 sword at 0 and no parry.
+
+== Consequences
+
+* A two-weapon attacker can keep OB to parry at its real cost.
+* Attacking with a single attack gives the same maximum parry as before.
+* A second attack action in the round can have more OB than before: spending 40 with the main hand leaves the off hand at +60 instead of +40.
+* An unbalanced kata wastes OB: at 70 and 30, the off hand's extra 20 is lost. The attack dialog shows the resulting margin.
+* OB is spent per action, so the command that spends it carries all the attacks of the action.
+* Rounds already started keep the old calculation until they end. No migration is needed.
+* Defensive Ward and the passive +5 stay out of this decision and are still not implemented.
