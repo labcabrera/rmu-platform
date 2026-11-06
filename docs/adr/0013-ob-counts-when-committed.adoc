@@ -1,0 +1,62 @@
+= ADR 0013: OB counts from when it is committed
+
+* *Status:* Accepted
+* *Date:* 2026-11-06
+* *Context spec:* workspace spec 083, round resolution order (`specs/083-round-resolution-order/` in the workspace meta-repo)
+
+== Context
+
+`rmu-api-tactical` spent OB when an attack action was applied, for the attacker and for its defenders. Resolving an attack takes several requests, possibly with other actions in between, so OB already promised still looked free. With OB 60:
+
+* A defender declares a parry of 20 against an attack not applied yet, then prepares its own attack at 60.
+* An actor rolls an attack at 60, then parries 40.
+* A defender with two foes pending gives 60 to each parry, and both count in full.
+
+Core Law §8.3 and §9.6 say that a combatant without OB cannot parry, and that parrying several foes shares the OB. They do not say at what moment within a phase the OB counts as gone, because at a table that is simply when the player says it.
+
+== Decision
+
+OB counts from when it is *committed*, not from when the action is applied.
+
+* A *parry* counts from when it is declared. Declaring it again replaces it.
+* An *attack* counts from its first roll, for the whole action. An attack that is only prepared reserves nothing: the actor can still parry with that OB and the attack goes down, as ADR 0012 and spec 082 decided.
+* Deleting the attacker's action, or preparing it again, gives back what that action reserved, on every actor. OB already applied is not given back.
+
+The actor round keeps the OB spent for good as it was (`usedBo`, `boCeiling`, `parries`) and adds a list of reservations by action (`boReservations`). The current OB is calculated by adding the reservations on top of what is spent, in the order they were made, with the rules of ADR 0012:
+
+[source]
+----
+declare parry:  reservation of the action = the OB the parries take (the protect penalty included)
+first roll:     reservation of the action = the OB of its attacks
+current OB:     what is spent for good, plus the reservations
+apply:          the reservation is removed and the OB is spent for good
+delete, prepare again:  the reservation is removed
+----
+
+|===
+| Case, OB 60 | OB after committing | Most the next one can use
+
+| Parry of 20 declared | 40 | Own attack, 40
+| Attack at 60 rolled | 0 | Parry, 0
+| 60 given to the first foe | 0 | Second parry, 0
+| 30 given to the first foe | 30 | Second parry, 30
+|===
+
+When the reservations of an actor change, its attacks not rolled yet go down to the OB left, with the `attack-ob-reduced` warning in that response, and the parries not declared yet in other open actions show what it can give now. The parry available is also read live when a parry is declared.
+
+This is an interpretation where the book is silent, not its text. The workspace `rules/` folder holds the source.
+
+== Alternatives considered
+
+* *Keep spending on apply and only validate on declare.* The OB shown would still mislead, and every check would have to work out what is pending from the open actions.
+* *Spend for good when committing, and undo on delete.* A spend cannot be undone exactly: the margin of ADR 0012 takes a minimum, which loses the previous value.
+* *Make each action resolve whole before another starts.* It closes the three cases, but it blocks the table while a player rolls.
+* *Count an attack from when it is prepared.* The book lets an actor parry with that OB and lose the attack, so preparing is not committing.
+
+== Consequences
+
+* The OB shown is the OB the actor has, including from a second window.
+* An action in progress when this is deployed has no reservation and keeps spending when it is applied, so nothing is spent twice. Stored rounds need no migration.
+* A parry is capped by the live OB, so a request can fail with a value the client thought was valid.
+* The result of committing a parry and an attack can depend on their order only when the OB runs out in between; the margin never goes below 0.
+* An action in resolution whose attacker goes down stays open, as before: the OB stays reserved until the game master deletes the action or applies it.
