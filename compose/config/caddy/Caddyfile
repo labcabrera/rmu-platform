@@ -26,6 +26,10 @@
 }
 
 :80 {
+	# Workspace spec 086: compress the responses (locales are ~450 KB of JSON). The proxy transport takes the
+	# upstream gzip out, so the gateway compresses again.
+	encode zstd gzip
+
 	handle_path /api/core/* {
 		reverse_proxy rmu-api-core:3001
 	}
