@@ -127,7 +127,7 @@ When adding a service, follow the same pattern and add it to this table, `compos
 
 |Shell
 |8080
-|host, exposes `./i18n`
+|host
 |link:https://github.com/labcabrera/rmu-mfe-shell[rmu-mfe-shell]
 
 |Core

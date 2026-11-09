@@ -5,7 +5,7 @@ The UI is a set of React applications composed at runtime with *Webpack Module F
 
 == Module Federation contract
 
-* `rmu-mfe-shell` is the *host*. It handles the OIDC login (`react-oidc-context`), the layout and the routes, and exposes `./i18n` to the remotes.
+* `rmu-mfe-shell` is the *host*. It handles the OIDC login (`react-oidc-context`), the layout and the routes.
 * Each domain MFE is a *remote* named after its domain (`core`, `strategic`, `tactical`, `npcs`, `items`, `spells`). It publishes `<name>-app.js` and exposes `./<Name>App`, for example `core/CoreApp`.
 * The shell loads each remote from `<RMU_MFE_<NAME>_PUBLIC_PATH><name>-app.js` and mounts it lazily under `/<name>/*`.
 * React, MUI, emotion, react-router, react-oidc-context/oidc-client-ts and i18next are shared *singletons*. A remote's versions must stay compatible with the shell's `package.json`.
