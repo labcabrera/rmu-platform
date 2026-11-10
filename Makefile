@@ -1,3 +1,9 @@
+# Workspace with the rmu-* checkouts, and the images built from them (all, or p="rmu-api-tactical rmu-mfe-tactical").
+BASE_DIR ?= $(or $(RMU_WORKSPACE_DIR),$(abspath ..))
+TAG      ?= local
+p        ?= $(patsubst $(BASE_DIR)/%/Dockerfile,%,$(wildcard $(BASE_DIR)/rmu-api-*/Dockerfile $(BASE_DIR)/rmu-mfe-*/Dockerfile))
+MFES     := rmu-mfe-shell rmu-mfe-core rmu-mfe-strategic rmu-mfe-tactical rmu-mfe-items rmu-mfe-npcs rmu-mfe-spells
+
 TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
 # rmu-api-attack-tables serves the enriched tables of a workspace checkout (../data/core-law, not
@@ -41,11 +47,38 @@ ps: .env ## List the running services of every profile
 logs: .env ## Follow logs (all services, or one with s=<service>)
 	docker compose --profile '*' logs -f --tail=200 $(s)
 
-build-local: ## Build :local images of the rmu-api-*/rmu-mfe-* checkouts (all, or p="rmu-api-tactical rmu-mfe-tactical")
-	scripts/build-local-images.sh --no-up $(p)
+# MFE images take the shared lib as a BuildKit named context, like `make docker-build` in each MFE. Every project is
+# built even if one fails, and the target fails at the end.
+build-local: ## Build images of the rmu-api-*/rmu-mfe-* checkouts (all, or p="..."; TAG=local, NO_CACHE=1)
+	@built=; failed=; \
+	for project in $(p); do \
+		context=; \
+		case "$$project" in \
+			rmu-mfe-assets) ;; \
+			rmu-mfe-*) context="--build-context shared-lib=$(BASE_DIR)/rmu-react-shared-lib" ;; \
+		esac; \
+		echo "==> labcabrera/$$project:$(TAG)"; \
+		if docker build $(if $(NO_CACHE),--no-cache) $$context -t "labcabrera/$$project:$(TAG)" "$(BASE_DIR)/$$project"; then \
+			built="$$built $$project"; \
+		else \
+			failed="$$failed $$project"; \
+		fi; \
+	done; \
+	echo; echo "Built ($(TAG)):$${built:- none}"; \
+	if [ -n "$$failed" ]; then echo "Failed:$$failed" >&2; exit 1; fi
 
-up-local: .env ## Build :local images (all, or p="...") and start the stack using them
-	scripts/build-local-images.sh $(p)
+# RMU_<PROJECT>_VERSION is set to the tag for every project with an image of that tag (workspace spec 056: the published
+# `latest` images can be months older than the local ones). A version set in the shell always wins; the rest come from
+# .env. --remove-orphans also drops containers of services no longer defined.
+up-local: .env build-local ## Build images (all, or p="...") and start the stack using them
+	@echo "Versions used (the rest come from .env):"; \
+	for repository in $$(docker image ls --filter "reference=labcabrera/rmu-*:$(TAG)" --format '{{.Repository}}' | sort -u); do \
+		var=$$(echo "$${repository#labcabrera/}_VERSION" | tr 'a-z-' 'A-Z_'); \
+		[ -n "$$(printenv "$$var")" ] || export "$$var=$(TAG)"; \
+		echo "  $$var=$$(printenv "$$var")"; \
+	done; \
+	docker compose up -d --remove-orphans; \
+	docker compose ps
 
 mongo-backup: ## Dump the local Mongo into backups/
 	scripts/mongo-backup.sh
@@ -72,7 +105,15 @@ keycloak-default-group: ## Add rmu-user to the existing users of the realm (skip
 	DRY_RUN="$(DRY_RUN)" scripts/keycloak-add-default-group.sh $(skip)
 
 mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<workspace> optional)
-	scripts/start-mfes-dev.sh $(BASE_DIR)
+	@command -v gnome-terminal >/dev/null || { echo "gnome-terminal not found. Run 'pnpm run start:live' in each MFE of $(BASE_DIR)." >&2; exit 1; }
+	@for mfe in $(MFES); do \
+		if [ -d "$(BASE_DIR)/$$mfe" ]; then \
+			gnome-terminal --tab --title="$$mfe" -- bash -c "cd '$(BASE_DIR)/$$mfe' && pnpm run start:live; exec bash"; \
+		else \
+			echo "Skipping $$mfe: not checked out" >&2; \
+		fi; \
+	done
+	@gnome-terminal --tab --title=rmu-mfe-assets -- bash -c "cd '$(BASE_DIR)/rmu-mfe-assets' && python3 local-start.py; exec bash"
 
 mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|npcs|items|spells|assets) so the gateway uses its dev server
 	@test -n "$(s)" || { echo "Usage: make mfe-dev s=<name>" >&2; exit 1; }
