@@ -39,7 +39,7 @@ x-mfe-env: &mfe-env
   RMU_ADMIN_GRAFANA_URI: ${RMU_ADMIN_GRAFANA_URI:-}
   RMU_ADMIN_MONGO_EXPRESS_URI: ${RMU_ADMIN_MONGO_EXPRESS_URI:-}
 
-# nginx images (busybox wget). env-config.js only exists once docker/40-env-config.sh has rendered
+# nginx images (busybox wget). env-config.js only exists once the nginx template mechanism has rendered
 # the runtime configuration; its content is checked because nginx answers any missing path with the
 # SPA's index.html (200). 127.0.0.1 because localhost resolves to ::1, where nginx does not listen.
 x-mfe-healthcheck: &mfe-healthcheck

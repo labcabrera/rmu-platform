@@ -9,7 +9,7 @@ The UI is a set of React applications composed at runtime with *Webpack Module F
 * Each domain MFE is a *remote* named after its domain (`core`, `strategic`, `tactical`, `npcs`, `items`, `spells`). It publishes `<name>-app.js` and exposes `./<Name>App`, for example `core/CoreApp`.
 * The shell loads each remote from `<RMU_MFE_<NAME>_PUBLIC_PATH><name>-app.js` and mounts it lazily under `/<name>/*`.
 * React, MUI, emotion, react-router, react-oidc-context/oidc-client-ts and i18next are shared *singletons*. A remote's versions must stay compatible with the shell's `package.json`.
-* Shared UI components come from `@labcabrera-rmu/rmu-react-shared-lib`, which is not on npm. Each MFE declares it as `file:../rmu-react-shared-lib` in `package.json`, so `npm install` links the sibling checkout. `make link-shared-lib` builds the lib's `dist/` and runs that install. Webpack resolves the lib's peer dependencies (react, MUI…) from the MFE's own `node_modules` (`resolve.modules`), so each bundle keeps a single copy.
+* Shared UI components come from `@labcabrera-rmu/rmu-react-shared-lib`, which is not on npm. Each MFE declares it as `link:../rmu-react-shared-lib` in `package.json`, so `pnpm install` links the sibling checkout. `make link-shared-lib` builds the lib's `dist/` and runs that install. Webpack resolves the lib's peer dependencies (react, MUI…) from the MFE's own `node_modules` (`resolve.modules`), so each bundle keeps a single copy.
 
 When adding an MFE, update together:
 
@@ -59,7 +59,7 @@ Domain MFEs read `RMU_API_<NAME>_URI` for the APIs they call and `RMU_MFE_ASSETS
 |shell, core, strategic, tactical, npcs, items, spells and assets run from static nginx images behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. Design: `specs/001-mfes-in-compose` in the workspace root.
 
 |Development, all from source
-|`make mfes-dev` opens one terminal tab per checked-out MFE running `npm run start:live`, plus the assets server. Open them through the gateway (http://localhost) with the containers stopped. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
+|`make mfes-dev` opens one terminal tab per checked-out MFE running `pnpm run start:live`, plus the assets server. Open them through the gateway (http://localhost) with the containers stopped. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
 
 |AWS (planned)
 |The same images on EC2 behind the gateway, or the same bundles on S3 behind CloudFront.
@@ -70,7 +70,7 @@ Domain MFEs read `RMU_API_<NAME>_URI` for the APIs they call and `RMU_MFE_ASSETS
 Each MFE repository builds `labcabrera/rmu-mfe-<name>` with `make docker-build` (tag `local`) and publishes it with `make docker-push IMAGE_TAG=<version>`. The image:
 
 * builds the production bundle and serves `dist/` with nginx on port 80 (`rmu-react-shared-lib` comes from a BuildKit named context until it is published);
-* takes its URLs at runtime: `docker/40-env-config.sh` renders `public/env-config.template.js` into `env-config.js` from the container environment;
+* takes its URLs at runtime: the template mechanism of the nginx image renders `public/env-config.template.js` into `env-config.js` from the container environment;
 * uses `publicPath: 'auto'` (remotes), so it works under any prefix (`/mfe/<name>/`, a dev server, a CDN);
 * sends `Cache-Control: no-cache` (chunk names carry no content hash yet) and an open CORS header.
 

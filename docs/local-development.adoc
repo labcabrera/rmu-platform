@@ -122,7 +122,7 @@ make mfes-dev                        # MFEs next to this repository
 make mfes-dev BASE_DIR=~/src/rmu     # elsewhere
 ----
 
-It opens a `gnome-terminal` tab per checked-out MFE running `npm run start:live`, plus `rmu-mfe-assets`. Without `gnome-terminal`, it prints the commands to run by hand. Point the shell's `RMU_MFE_*_PUBLIC_PATH` variables at the dev server ports; see link:architecture/frontends.adoc[].
+It opens a `gnome-terminal` tab per checked-out MFE running `pnpm run start:live`, plus `rmu-mfe-assets`. Without `gnome-terminal`, it asks you to start each one by hand. Point the shell's `RMU_MFE_*_PUBLIC_PATH` variables at the dev server ports; see link:architecture/frontends.adoc[].
 
 == Gateway
 
@@ -153,7 +153,7 @@ Everything runs from containers except the MFE you are working on, which runs fr
 make up                     # with mfes and gateway in COMPOSE_PROFILES
 make mfe-dev s=core         # docker compose stop rmu-mfe-core
 # VS Code in rmu-mfe-core: F5 "Debug core in the shell (gateway)"
-#   runs `npm run start:live` (:8089) and opens Chrome at http://localhost/core
+#   runs `pnpm run start:live` (:8089) and opens Chrome at http://localhost/core
 make mfe-container s=core   # back to the image
 ----
 
