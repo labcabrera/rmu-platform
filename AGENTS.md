@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `Makefile`: the entry point. Run `make help` to list the targets.
 - `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js` and records them in `rmu-platform.migrations`), `mongo-migrate-pending.sh`, `keycloak-add-default-group.sh` (`make keycloak-default-group`) and `recalculate-characters.sh` (characters queued by a migration in `rmu-platform.pending-recalculations`). The runbook is `docs/operations/migrations.adoc`.
 - `terraform/`: Keycloak realm/clients/groups/users via the `mrparkers/keycloak` provider. It holds `modules/keycloak` plus one state per stack in `stacks/<name>/`. Only `keycloak-local` exists for now.
-- `docs/`: AsciiDoc documentation (`index.adoc` is the map), including `architecture/diagrams/c4-context.plantuml`, the authoritative map of which MFE/API talks to what. Diagrams are committed as SVG next to their source: `make diagrams` (`architecture/diagrams/render.sh`, PlantUML in Docker) renders them.
+- `docs/`: AsciiDoc documentation (`index.adoc` is the map), and `diagrams/`: the C4 views (`c4-context`, `c4-containers-apis` with the calls between APIs, `c4-containers-frontends`), committed as `.plantuml` plus its SVG. `make diagrams` (`docs/diagrams/render.sh`, PlantUML in Docker) renders them.
 
 There is no build, lint, or test tooling here. Changes are validated by running Compose or Terraform.
 
@@ -37,7 +37,7 @@ make keycloak-init              # terraform apply -auto-approve of terraform/sta
 make mfe-dev s=core             # stop rmu-mfe-core: the gateway falls back to its dev server on the host
 make mfe-container s=core       # serve it from the container again
 make mfes-dev [BASE_DIR=...]    # gnome-terminal tab per rmu-mfe-* checkout running pnpm run start:live
-make diagrams                   # render docs/architecture/diagrams/*.plantuml to SVG (PlantUML in Docker)
+make diagrams [f=<file>]        # render docs/diagrams/*.plantuml to SVG (PlantUML in Docker)
 make up-local [p="rmu-api-tactical rmu-mfe-tactical"]  # build :local images of the checkouts (all by default) and start the stack with them
                                 # (every project with an existing :local image also runs it; a shell RMU_*_VERSION wins)
 make build-local [p=...]        # only build the :local images (TAG=, NO_CACHE=1)
@@ -60,7 +60,7 @@ Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `ht
   - `rmu-client-front`: public PKCE S256 client for the SPA.
 
   A `groups` client scope puts group membership into tokens as the `groups` claim (non-full-path). An `rmu-api` scope adds the audience `rmu-api` and the `identity_provider` claim. Every API validates `iss` (`RMU_IAM_ISSUER_URI`) and `aud` (`RMU_IAM_AUDIENCE`). The realm has remember-me (30 days idle), 15 min access tokens, Google login (placeholder credentials, existing accounts auto-linked by email) and SMTP through Mailpit. Details in `docs/architecture/auth.adoc` (workspace spec 006). The groups (`rmu-admin`, `rmu-core-law`, `rmu-spell-law`, `rmu-treasure-law`, `rmu-creature-law-i`) gate access to rulebook content.
-- **Env convention** (`docs/architecture/configuration.adoc`): `RMU_` prefix, `_URI` suffix for every URL, `RMU_API_<NAME>_URI`, `RMU_MONGO_<NAME>_URI`, `RMU_IAM_*`, `RMU_KAFKA_*`, `RMU_<NAME>_<SETTING>`; same names in APIs, MFEs and compose. The platform `.env` passes shared values under the name the services read (`RMU_IAM_CLIENT_ID`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`), builds Mongo URIs from `MONGO_USER`/`MONGO_PASSWORD`, and keeps browser values as `RMU_MFE_*`. `compose/apis.yaml` still sets a few `legacy` names for older images. Images are `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. A new service needs `compose/apis.yaml`, the gateway route, `docs/architecture/services.adoc`, and the C4 diagram.
+- **Env convention** (`docs/architecture/configuration.adoc`): `RMU_` prefix, `_URI` suffix for every URL, `RMU_API_<NAME>_URI`, `RMU_MONGO_<NAME>_URI`, `RMU_IAM_*`, `RMU_KAFKA_*`, `RMU_<NAME>_<SETTING>`; same names in APIs, MFEs and compose. The platform `.env` passes shared values under the name the services read (`RMU_IAM_CLIENT_ID`, `RMU_KAFKA_BROKERS`, `RMU_MEDIA_S3_*`), builds Mongo URIs from `MONGO_USER`/`MONGO_PASSWORD`, and keeps browser values as `RMU_MFE_*`. `compose/apis.yaml` still sets a few `legacy` names for older images. Images are `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. A new service needs `compose/apis.yaml`, the gateway route, `docs/architecture/services.adoc`, and `docs/diagrams/c4-containers-apis.plantuml` (render with `make diagrams`).
 - **Media**: `rmu-api-media` lists the base images from the manifest of `rmu-mfe-assets` and stores the images users upload under `uploads/` of an S3 bucket (`RMU_MEDIA_S3_*`; locally `rmu-s3`). Workspace spec 057, ADR 0011.
 
 ## Gotchas

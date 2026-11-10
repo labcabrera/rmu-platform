@@ -18,7 +18,7 @@ This repository holds no application code. It describes *how the application is 
 WARNING: *This application is an independent fan project for Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
 *All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
 
-image::docs/architecture/diagrams/c4-context.svg[RMU Context Diagram]
+image::docs/diagrams/c4-context.svg[RMU system context diagram]
 
 == Quickstart
 

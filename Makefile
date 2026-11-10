@@ -130,5 +130,5 @@ e2e: ## Responsive smoke test of the web against the running stack (needs RMU_E2
 e2e-combat: ## Combat flow test (spec 005) on the first tactical game: it changes the game (needs RMU_E2E_USER and RMU_E2E_PASSWORD)
 	cd e2e && npm ci --ignore-scripts && RMU_E2E_COMBAT=1 npx playwright test --project=combat
 
-diagrams: ## Render docs/architecture/diagrams/*.plantuml to SVG (PlantUML in Docker; f=<file> for one)
-	docs/architecture/diagrams/render.sh $(f)
+diagrams: ## Render docs/diagrams/*.plantuml to SVG (PlantUML in Docker; f=<file> for one)
+	docs/diagrams/render.sh $(f)

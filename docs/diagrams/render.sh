@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Renders the PlantUML diagrams of this folder to SVG, next to their source.
 #
-#   docs/architecture/diagrams/render.sh                       # every *.plantuml of the folder
-#   docs/architecture/diagrams/render.sh c4-context.plantuml   # only some
+#   docs/diagrams/render.sh                       # every *.plantuml of the folder
+#   docs/diagrams/render.sh c4-context.plantuml   # only some
 #
 # It runs PlantUML from its Docker image: the C4 library the diagrams include needs a recent PlantUML, newer than the
 # distribution packages. The diagrams include that library from GitHub, so rendering needs network access.

@@ -3,6 +3,8 @@
 
 The UI is a set of React applications composed at runtime with *Webpack Module Federation*. Each one lives in its own `rmu-mfe-*` repository (see link:services.adoc#_micro_frontends[the catalog]).
 
+image::../diagrams/c4-containers-frontends.svg[RMU frontend containers diagram]
+
 == Module Federation contract
 
 * `rmu-mfe-shell` is the *host*. It handles the OIDC login (`react-oidc-context`), the layout and the routes.
@@ -16,7 +18,7 @@ When adding an MFE, update together:
 . the `remotes` block in the shell's `webpack.config.ts`,
 . the route in the shell's `App.tsx`,
 . the `RMU_MFE_<NAME>_PUBLIC_PATH` variable in the shell's `.env.example`,
-. the catalog in link:services.adoc[], and the context diagram.
+. the catalog in link:services.adoc[], and the frontends diagram (`docs/diagrams/c4-containers-frontends.plantuml`).
 
 == Configuration
 

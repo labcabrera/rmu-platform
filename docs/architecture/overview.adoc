@@ -3,9 +3,15 @@
 
 *RMU Engine* is an online assistant for playing *Rolemaster Unified* games.
 
-image::diagrams/c4-context.svg[RMU Context Diagram]
+image::../diagrams/c4-context.svg[RMU system context diagram]
 
-The source of the diagram is link:diagrams/c4-context.plantuml[]. After changing a `.plantuml` file, render its SVG again with `make diagrams` (or `docs/architecture/diagrams/render.sh [<file>]`), which runs PlantUML from its Docker image, and commit both files.
+The diagrams live in link:../diagrams/[`docs/diagrams`], one PlantUML file per C4 view, named after its level:
+
+* `c4-context`: the system and what it depends on (this page).
+* `c4-containers-apis`: the APIs and the calls between them (<<_call_flow>>).
+* `c4-containers-frontends`: the micro-frontends, the shared lib and what they load (link:frontends.adoc[]).
+
+After changing a `.plantuml` file, render its SVG again with `make diagrams` (or `docs/diagrams/render.sh [<file>]`), which runs PlantUML from its Docker image, and commit both files.
 
 == Building blocks
 
@@ -19,6 +25,8 @@ The source of the diagram is link:diagrams/c4-context.plantuml[]. After changing
 ** *S3*: the images users upload, managed by the Media API under `uploads/` of its bucket (locally the `rmu-s3` service, ADR 0011). The base images are the files of `rmu-mfe-assets`. See link:configuration.adoc#_asset_paths[Asset paths].
 
 == Call flow
+
+image::../diagrams/c4-containers-apis.svg[RMU API containers diagram]
 
 * The browser loads the shell, logs in against Keycloak and sends the access token to every API.
 * Each MFE calls its own domain API (core → Core API, strategic → Strategic API, ...). The API clients and many components (pickers, rule tables) live in `rmu-react-shared-lib`, so an MFE also calls the other APIs those components need. The shell also calls the Users and Media APIs.

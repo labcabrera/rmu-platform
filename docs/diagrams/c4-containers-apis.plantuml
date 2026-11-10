@@ -1,0 +1,41 @@
+@startuml c4-containers-apis
+title RMU Engine - API containers
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+UpdateElementStyle(container, $bgColor="#4373b1ff")
+UpdateElementStyle(external_system, $bgColor="#96b6beff")
+
+System_Boundary(rmu, "RMU APIs") {
+    Container(tactical, "Tactical", "NestJS", "Combat games")
+    Container(strategic, "Strategic", "NestJS", "Games, factions, characters")
+    Container(attack_tables, "Attack Tables", "NestJS", "Attack, critical and fumble tables (files)")
+    Container(items, "Items", "NestJS", "Item catalog, trading and treasure tables")
+    Container(npcs, "NPCs", "NestJS", "NPCs and creatures")
+    Container(spells, "Spells", "NestJS", "Spell lists, alchemy tables")
+    Container(core, "Core", "NestJS", "Realms, races, rules")
+    Container(users, "Users", "NestJS", "Profiles, friendships")
+    Container(media, "Media", "NestJS", "Image uploads")
+    Container(npc_names, "NPC Names", "Node.js", "Random names")
+}
+
+System_Ext(keycloak, "Keycloak")
+
+Rel(tactical, strategic, "Games, characters")
+Rel(tactical, attack_tables, "Tables")
+Rel(tactical, items, "Items")
+Rel(tactical, npcs, "NPCs")
+Rel(tactical, core, "Rules")
+Rel(strategic, items, "Items, tables")
+Rel(strategic, spells, "Spell lists")
+Rel(strategic, npcs, "Faction NPCs")
+Rel(strategic, core, "Realms, races")
+Rel(strategic, users, "Friendships")
+Rel(items, core, "Realm access")
+Rel(npcs, core, "Realm access")
+Rel(spells, core, "Effect types")
+Rel(core, users, "Friendships")
+Rel(users, keycloak, "Admin API")
+
+SHOW_LEGEND()
+@enduml
