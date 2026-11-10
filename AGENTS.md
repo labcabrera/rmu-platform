@@ -9,17 +9,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `compose.yaml`: only `include:`s the files under `compose/`, one per layer. Every service belongs to a profile:
   - `compose/infrastructure.yaml` (`infrastructure`): mongo, postgres, keycloak (served under `/sso`), kafka, mailpit (Keycloak SMTP, UI `:8025`), rmu-s3 (SeaweedFS, the S3 of the images users upload, ADR 0011) with its `rmu-s3-init` bucket setup, and the volumes.
   - `compose/apis.yaml` (`apis`): every API, with `x-api-common`/`x-iam-env`/`x-kafka-env`/`x-log-env` anchors.
-  - `compose/mfes.yaml` (`mfes`): shell and core as static nginx images, no host ports, runtime config through an `x-mfe-env` anchor.
-  - `compose/tools.yaml` (`tools`): rmu-kafka-ui, rmu-mongo-express.
+  - `compose/mfes.yaml` (`mfes`): the shell, the six remotes and assets as static nginx images, no host ports, runtime config through an `x-mfe-env` anchor.
+  - `compose/tools.yaml` (`tools`): rmu-kafka-ui.
   - `compose/gateway.yaml` (`gateway`): Caddy, with its routes in `compose/config/caddy/Caddyfile`. Shell at `/`, remotes at `/mfe/<name>/`, APIs at `/api/<name>/`, Keycloak at `/sso/`.
   - `compose/observability.yaml` (`observability`): `grafana/otel-lgtm`.
 
   `.env.example` enables `infrastructure,apis,mfes,gateway,tools` by default.
 - `Makefile`: the entry point. Run `make help` to list the targets.
-- `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js` and records them in `rmu-platform.migrations`) and `mongo-migrate-pending.sh`. The runbook is `docs/operations/migrations.adoc`.
+- `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js` and records them in `rmu-platform.migrations`), `mongo-migrate-pending.sh`, `keycloak-add-default-group.sh` (`make keycloak-default-group`) and `recalculate-characters.sh` (characters queued by a migration in `rmu-platform.pending-recalculations`). The runbook is `docs/operations/migrations.adoc`.
 - `terraform/`: Keycloak realm/clients/groups/users via the `mrparkers/keycloak` provider. It holds `modules/keycloak` plus one state per stack in `stacks/<name>/`. Only `keycloak-local` exists for now.
-- `docs/`: AsciiDoc documentation (`index.adoc` is the map), including `architecture/diagrams/c4-context.plantuml`, the authoritative map of which MFE/API talks to what.
-- `specs/`: numbered change specs (`NNN-<objective>/{spec.md,plan.md}`).
+- `docs/`: AsciiDoc documentation (`index.adoc` is the map), including `architecture/diagrams/c4-context.plantuml`, the authoritative map of which MFE/API talks to what. Diagrams are committed as SVG next to their source: `make diagrams` (`architecture/diagrams/render.sh`, PlantUML in Docker) renders them.
 
 There is no build, lint, or test tooling here. Changes are validated by running Compose or Terraform.
 
@@ -38,6 +37,7 @@ make keycloak-init              # terraform apply -auto-approve of terraform/sta
 make mfe-dev s=core             # stop rmu-mfe-core: the gateway falls back to its dev server on the host
 make mfe-container s=core       # serve it from the container again
 make mfes-dev [BASE_DIR=...]    # gnome-terminal tab per rmu-mfe-* checkout running pnpm run start:live
+make diagrams                   # render docs/architecture/diagrams/*.plantuml to SVG (PlantUML in Docker)
 make up-local [p="rmu-api-tactical rmu-mfe-tactical"]  # build :local images of the checkouts (all by default) and start the stack with them
                                 # (every project with an existing :local image also runs it; a shell RMU_*_VERSION wins)
 make build-local [p=...]        # only build the :local images (TAG=, NO_CACHE=1)
@@ -48,7 +48,7 @@ terraform fmt -check -recursive terraform && terraform -chdir=terraform/stacks/k
 
 Validate Compose changes for every profile combination, not just the default. `COMPOSE_PROFILES=<list> docker compose config -q` is enough for each one. Compare `docker compose config` output before and after a refactor.
 
-Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `http://localhost/sso/realms/rmu`) and `http://localhost:8090/sso` for the admin console and Terraform, Mailpit `:8025`, Kafka UI `:8091`, Mongo Express `:8092`, Mongo `localhost:27017`, Kafka from the host `localhost:9093` (in-network `rmu-kafka-broker:9092`), gateway `:80`, Grafana `:3000`, local S3 `localhost:8333` (`aws --endpoint-url http://localhost:8333`, uploads served by the gateway at `/media/`).
+Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `http://localhost/sso/realms/rmu`) and `http://localhost:8090/sso` for the admin console and Terraform, Mailpit `:8025`, Kafka UI `:8091`, Mongo `localhost:27017`, Kafka from the host `localhost:9093` (in-network `rmu-kafka-broker:9092`), gateway `:80`, Grafana `:3000`, local S3 `localhost:8333` (`aws --endpoint-url http://localhost:8333`, uploads served by the gateway at `/media/`).
 
 ## Architecture
 

@@ -20,7 +20,7 @@ When adding an MFE, update together:
 
 == Configuration
 
-Webpack reads `.env.<mode>` (for example `.env.development`) and falls back to `.env`. The values are baked into the bundle at build time.
+No URL is baked into the bundles. Each MFE lists its keys in `public/env-config.template.js`, and the browser reads them from `window.__RMU_CONFIG__`, loaded from `/env-config.js`: the dev server builds it from `.env.<mode>` (for example `.env.development`) or `.env`, and the nginx image from the container environment. See link:configuration.adoc#_mfes_runtime_configuration[MFEs: runtime configuration].
 
 Shell variables:
 
@@ -43,7 +43,7 @@ Shell variables:
 |`RMU_SHELL_CONTACT_URI`, `RMU_SHELL_CONTACT_EMAIL`
 |Contact page (optional).
 
-|`RMU_ADMIN_KEYCLOAK_URI`, `RMU_ADMIN_KAFKA_UI_URI`, `RMU_ADMIN_GRAFANA_URI`, `RMU_ADMIN_MONGO_EXPRESS_URI`
+|`RMU_ADMIN_KEYCLOAK_URI`, `RMU_ADMIN_KAFKA_UI_URI`, `RMU_ADMIN_GRAFANA_URI`
 |Operation tools that the shell's `/admin/tools` links for administrators (optional, workspace spec 053). Leave them unset where they must not be exposed.
 |===
 

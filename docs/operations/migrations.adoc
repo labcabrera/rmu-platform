@@ -104,7 +104,7 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 
 |`057-image-paths.js`
 |Drops the media records of base images (they come from the assets manifest now), moves the stored paths of uploads from `images/user-data/` to `uploads/user-data/`, and replaces the paths of base images removed on 2026-10-31.
-|With the rmu-api-media and front releases of spec 057. Then run rmu-api-media `scripts/move-uploads.mjs` with the environment of the API (it moves the upload files and their records; `DRY_RUN=1` first, `DELETE_OLD=1` once the copies are checked). Never in the other order: the script takes every record outside `uploads/` for an upload. Deploy `rmu-mfe-assets` (`aws-deploy.sh`) only after it.
+|With the rmu-api-media and front releases of spec 057. Then run rmu-api-media `scripts/move-uploads.mjs` with the environment of the API (it moves the upload files and their records; `DRY_RUN=1` first, `DELETE_OLD=1` once the copies are checked). Never in the other order: the script takes every record outside `uploads/` for an upload. Deploy `rmu-mfe-assets` (`make deploy-aws`) only after it.
 
 |`059-race-archetypes.js`
 |Race archetypes become kebab keys (`High Human` -> `high-human`), which the fronts show translated.
@@ -145,7 +145,25 @@ Some migrations need a step around them, listed below. `make mongo-migrate-pendi
 |`082-recalculate-talents-079.js`
 |Queues the characters with Deadeye, Vigorous, Feeble, Beast of Burden or Overweight in `rmu-platform.pending-recalculations` (spec 079, D1-D2: Deadeye share per range, `endurance.traitBonus`, load allowance and `equipment.dodgeEncumbrancePenalty`); it changes no character.
 |With the rmu-api-strategic release of spec 079 (phase 7) up, then `scripts/recalculate-characters.sh`. Deploy rmu-api-tactical of the same phase with it: it reads the new fields, and falls back when they are missing.
+
+|`083-spell-images-from-list.js`
+|Spells lose their own image (`imageUrl: null`) and show the image of their spell list. The image files are not touched.
+|With the fronts of 2026-11-09, which show the image of the list when a spell has none.
+
+|`084-ambush-combat-specializations.js`
+|Fills the enumeration `skill-combat-training` with the specializations of the Combat Training skills (melee and ranged weapon types, unarmed attacks, `shield`), so Ambush can be specialized in any of them. Characters keep theirs.
+|-
+
+|`085-trading-treasure-tables-to-items.js`
+|Copies the trading and treasure tables from `rmu-core` to `rmu-items` (spec 095). The originals stay.
+|Before deploying rmu-api-items of spec 095; then rmu-api-strategic and the MFEs, and rmu-api-core last.
+
+|`086-alchemy-tables-materials-out-of-core.js`
+|Copies the alchemy tables from `rmu-core` to `rmu-spells` and the materials to `rmu-items` (spec 096). The originals stay.
+|Before deploying rmu-api-spells and rmu-api-items of spec 096; rmu-api-core last.
 |===
+
+The copies of 085 and 086 leave the old `rmu-core` collections in place. Drop them by hand once every API of the spec is deployed, after a backup.
 
 == Scripts in the API repositories
 

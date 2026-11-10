@@ -1,10 +1,10 @@
 # Local development stack. Each file under compose/ covers one layer and assigns its
 # services to a profile; enable profiles with COMPOSE_PROFILES in .env
-# (.env.example enables infrastructure,apis,mfes,tools):
-#   infrastructure  MongoDB, PostgreSQL, Keycloak, Kafka
+# (.env.example enables infrastructure,apis,mfes,gateway,tools):
+#   infrastructure  MongoDB, PostgreSQL, Keycloak, Kafka, Mailpit, S3 (SeaweedFS)
 #   apis            backend API containers (needs infrastructure)
-#   mfes            React micro-frontends as static images (shell, core)
-#   tools           dev tools: Kafka UI, Mongo Express (needs infrastructure)
+#   mfes            React micro-frontends as static images (shell, remotes, assets)
+#   tools           dev tools: Kafka UI (needs infrastructure)
 #   gateway         Caddy gateway: shell at /, MFEs at /mfe/<name>/, APIs at /api/<name>/
 #   observability   Grafana + OTel collector (grafana/otel-lgtm)
 # See docs/local-development.adoc.

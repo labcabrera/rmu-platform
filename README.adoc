@@ -11,14 +11,14 @@ image:https://img.shields.io/badge/rolemaster-rmu-green.svg[Rolemaster,link="htt
 </a>
 ++++
 
-*RMU Engine* is an online assistant for playing link:http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified]. It is built from independent APIs (NestJS, Python, Node.js) and React micro-frontends (Webpack Module Federation), each in its own `labcabrera/rmu-*` repository.
+*RMU Engine* is an online assistant for playing link:http://ironcrown.co.uk/unified-rolemaster/[Rolemaster Unified]. It is built from independent APIs (NestJS, Node.js) and React micro-frontends (Webpack Module Federation), each in its own `labcabrera/rmu-*` repository.
 
 This repository holds no application code. It describes *how the application is run and deployed*: the local Docker Compose stack, the Keycloak configuration in Terraform, and the project documentation.
 
 WARNING: *This application is an independent fan project for Rolemaster Unified. It is not affiliated with, endorsed by, or licensed by Iron Crown Enterprises (ICE), the owners of the Rolemaster intellectual property.*
 *All Rolemaster trademarks, game systems, and materials are the property of Iron Crown Enterprises. This software is provided for personal, non-commercial use only. If you enjoy Rolemaster, please support the official publications and content from ICE.*
 
-image::docs/architecture/diagrams/c4-context.png[RMU Context Diagram]
+image::docs/architecture/diagrams/c4-context.svg[RMU Context Diagram]
 
 == Quickstart
 
@@ -27,10 +27,11 @@ Requirements: Docker with Compose 2.20+, GNU Make and Terraform 1.6+.
 [source,bash]
 ----
 cp .env.example .env
-make up                 # infrastructure, APIs, MFEs and tools (COMPOSE_PROFILES in .env)
+make up                 # infrastructure, APIs, MFEs, gateway and tools (COMPOSE_PROFILES in .env)
 
 cp terraform/stacks/keycloak-local/terraform.tfvars.example terraform/stacks/keycloak-local/terraform.tfvars
-make keycloak-init      # realm, clients, groups and users in http://localhost:8090
+make keycloak-init      # realm, clients, groups and users in http://localhost:8090/sso
+# then open http://localhost
 ----
 
 `make help` lists every target. See link:docs/local-development.adoc[Local development] for profiles, endpoints and running services from source.
@@ -42,19 +43,17 @@ make keycloak-init      # realm, clients, groups and users in http://localhost:8
 |Path |Contents
 
 |`compose.yaml`, `compose/`
-|Local stack, one file per layer: infrastructure, tools, APIs, MFEs, gateway, observability.
+|Local stack, one file per layer: infrastructure, tools, APIs, MFEs, gateway, observability. `Makefile` drives it (`make help`).
 
 |`terraform/`
 |Keycloak provisioning (`modules/keycloak`, `stacks/keycloak-local`).
 
 |`scripts/`
-|MongoDB backup and restore, starting the MFEs from source.
+|MongoDB backup, restore and migrations (`scripts/migrations/`), the default Keycloak group of old users and the recalculation of characters. The `make` targets call them.
 
 |`docs/`
 |Project documentation. Start at link:docs/index.adoc[].
 
-|`specs/`
-|Numbered change proposals (`NNN-<objective>/{spec.md,plan.md}`).
 |===
 
 == Documentation
@@ -62,9 +61,11 @@ make keycloak-init      # realm, clients, groups and users in http://localhost:8
 * link:docs/architecture/overview.adoc[Architecture overview]
 * link:docs/architecture/services.adoc[Services catalog]: every API and MFE, with repository, port and image.
 * link:docs/architecture/frontends.adoc[Frontends]
+* link:docs/architecture/configuration.adoc[Configuration variables]
 * link:docs/architecture/auth.adoc[Authentication]
 * link:docs/local-development.adoc[Local development]
 * link:docs/operations/mongo-backup-restore.adoc[MongoDB backup and restore]
+* link:docs/operations/migrations.adoc[Migrations and release runbook]
 * link:docs/operations/keycloak-terraform.adoc[Keycloak with Terraform]
 * link:docs/adr/[Architecture decision records]
 

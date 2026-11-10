@@ -9,7 +9,7 @@ Keycloak runs under the `/sso` path (`KC_HTTP_RELATIVE_PATH`):
 
 * *Browser*: http://localhost/sso, through the gateway, on the same origin as the shell. Its session cookies are first-party, so the silent sign-in (`prompt=none`) is not blocked by third-party cookie rules.
 * *Containers*: `http://rmu-keycloak:8080/sso` (`RMU_IAM_BASE_URI`). The backchannel is dynamic (`KC_HOSTNAME_BACKCHANNEL_DYNAMIC`), so the APIs fetch the JWKS and tokens there.
-* *Host*: http://localhost:8090/sso, for the admin console, Terraform and APIs started with `npm run start:dev`. The admin console credentials are `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` in `.env`.
+* *Host*: http://localhost:8090/sso, for the admin console, Terraform and APIs started with `pnpm start:dev`. The admin console credentials are `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD` in `.env`.
 
 Every token is issued by `http://localhost/sso/realms/rmu` (`KC_HOSTNAME`, `RMU_IAM_ISSUER_URI`), wherever it was requested.
 
