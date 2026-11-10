@@ -1,0 +1,42 @@
+@startuml c4-containers-frontends
+title RMU Engine - Frontend containers
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+UpdateElementStyle(person, $bgColor="#2b4a74ff")
+UpdateElementStyle(container, $bgColor="#4373b1ff")
+UpdateElementStyle(external_system, $bgColor="#96b6beff")
+UpdateElementStyle(system, $bgColor="#6f8fb8ff")
+
+Person(user, "User")
+Container(gateway, "Gateway", "Caddy", "Serves / and /mfe/<name>/")
+
+Boundary(frontend, "Frontend") {
+    Boundary(apps, "Micro-frontends") {
+        Container(shell, "Shell", "React, Module Federation host", "OIDC login, layout, routes /<name>/*")
+        Boundary(remotes, "Remotes, loaded at runtime") {
+            Container(core, "Core", "React", "Realms, races, rules")
+            Container(strategic, "Strategic", "React", "Games, characters")
+            Container(tactical, "Tactical", "React", "Combat dashboard")
+            Container(items, "Items", "React", "Items, treasure tables")
+            Container(npcs, "NPCs", "React", "NPCs, creatures")
+            Container(spells, "Spells", "React", "Spell lists")
+        }
+    }
+    Container(lib, "React Shared Lib", "React + MUI", "Components, theme and API clients, linked into every micro-frontend")
+}
+
+Container(assets, "Assets", "nginx", "Images and locales")
+System(apis, "RMU APIs", "/api/<name>/v1")
+System_Ext(keycloak, "Keycloak", "OIDC")
+
+Rel(user, gateway, "Uses", "HTTPS")
+Rel(gateway, shell, "Serves")
+Rel(shell, remotes, "Mounts", "Module Federation")
+Rel(apps, lib, "All depend on", "link: dependency")
+Rel(apps, assets, "Images and locales")
+Rel(apps, apis, "REST with the user token")
+Rel(shell, keycloak, "Login", "OIDC, PKCE")
+
+SHOW_LEGEND()
+@enduml

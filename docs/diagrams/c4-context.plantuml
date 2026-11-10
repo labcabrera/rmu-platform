@@ -1,0 +1,35 @@
+@startuml c4-context
+title RMU Engine - System Context
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+UpdateElementStyle(person, $bgColor="#2b4a74ff")
+UpdateElementStyle(system, $bgColor="#4373b1ff")
+UpdateElementStyle(external_system, $bgColor="#96b6beff")
+
+Person(user, "User", "Players and game masters")
+
+System(gateway, "Gateway", "Caddy. Single origin: /, /mfe/<name>/, /api/<name>/, /sso/, /media/")
+System(frontend, "Micro-frontends", "React + Module Federation: shell (host) and the core, strategic, tactical, items, npcs and spells remotes, on the shared lib")
+System(assets, "Assets", "Static images and locales")
+System(apis, "RMU APIs", "10 APIs (NestJS, NPC Names in Node.js), one per domain")
+
+System_Ext(keycloak, "Keycloak", "OIDC, realm rmu")
+System_Ext(mongodb, "MongoDB", "One database per API")
+System_Ext(kafka, "Kafka", "Domain events")
+System_Ext(s3, "S3", "User uploads (locally SeaweedFS)")
+
+Rel(user, gateway, "Uses", "HTTPS")
+Rel(gateway, frontend, "Serves")
+Rel(frontend, apis, "REST calls with the user token", "/api/<name>/v1")
+Rel(frontend, keycloak, "Login", "OIDC, PKCE")
+Rel(frontend, assets, "Images and locales")
+Rel(frontend, s3, "Uploaded images", "/media/")
+
+Rel(apis, keycloak, "JWKS, service tokens, user admin")
+Rel(apis, mongodb, "Stores")
+Rel(apis, kafka, "Publishes and consumes")
+Rel(apis, s3, "Stores uploads (Media)")
+
+SHOW_LEGEND()
+@enduml
