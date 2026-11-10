@@ -37,7 +37,6 @@ x-mfe-env: &mfe-env
   RMU_ADMIN_KEYCLOAK_URI: ${RMU_ADMIN_KEYCLOAK_URI:-}
   RMU_ADMIN_KAFKA_UI_URI: ${RMU_ADMIN_KAFKA_UI_URI:-}
   RMU_ADMIN_GRAFANA_URI: ${RMU_ADMIN_GRAFANA_URI:-}
-  RMU_ADMIN_MONGO_EXPRESS_URI: ${RMU_ADMIN_MONGO_EXPRESS_URI:-}
 
 # nginx images (busybox wget). env-config.js only exists once the nginx template mechanism has rendered
 # the runtime configuration; its content is checked because nginx answers any missing path with the

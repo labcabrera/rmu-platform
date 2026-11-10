@@ -24,4 +24,4 @@ Documentation map for the RMU Engine platform. `rmu-platform` describes how the 
 == Decisions and specs
 
 * link:adr/[Architecture decision records].
-* link:../specs/[Specs]: numbered change proposals (`NNN-<objective>/{spec.md,plan.md}`).
+* Specs: the numbered change proposals (`specs/NNN-<objective>/{spec.md,plan.md}`) live in the workspace meta-repo, not here. ADRs and docs cite them as "workspace spec NNN".

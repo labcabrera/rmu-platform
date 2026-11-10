@@ -30,7 +30,7 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`infrastructure`
 |`compose/infrastructure.yaml`
-|MongoDB, PostgreSQL, Keycloak, Kafka, Mailpit.
+|MongoDB, PostgreSQL, Keycloak, Kafka, Mailpit, the local S3 (`rmu-s3`, SeaweedFS).
 
 |`apis`
 |`compose/apis.yaml`
@@ -42,7 +42,7 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`tools`
 |`compose/tools.yaml`
-|Kafka UI, Mongo Express.
+|Kafka UI.
 
 |`gateway`
 |`compose/gateway.yaml`
@@ -95,7 +95,7 @@ IMPORTANT: `apis` and `tools` depend on services of `infrastructure`. Without it
 |MongoDB |`mongodb://admin:admin@localhost:27017/?authSource=admin`
 |Kafka from the host |`localhost:9093`
 |Kafka UI |http://localhost:8091
-|Mongo Express |http://localhost:8092
+|Local S3 |http://localhost:8333 (`aws --endpoint-url http://localhost:8333`); uploads served by the gateway at `/media/`
 |Gateway |http://localhost (`RMU_GATEWAY_PORT`)
 |Grafana |http://localhost:3000 (admin/admin)
 |OTLP |`localhost:4317` (gRPC), `localhost:4318` (HTTP)
@@ -104,15 +104,26 @@ IMPORTANT: `apis` and `tools` depend on services of `infrastructure`. Without it
 
 == Image versions
 
-Each API image is `labcabrera/rmu-api-<name>:${RMU_API_<NAME>_VERSION:-latest}`. `latest` is fine for day-to-day work; set explicit versions in `.env` to reproduce a release or a bug.
+Each image is `labcabrera/rmu-api-<name>` or `labcabrera/rmu-mfe-<name>` with the tag `${RMU_<KIND>_<NAME>_VERSION}`, `latest` by default (`local` for the items and spells MFEs, which have no published image yet). `latest` is fine for day-to-day work; set explicit versions in `.env` to reproduce a release or a bug.
+
+To run your checkouts as containers:
+
+[source,bash]
+----
+make up-local                                       # build :local images of every checkout and start the stack with them
+make up-local p="rmu-api-tactical rmu-mfe-tactical" # only some projects
+make build-local p=rmu-mfe-core NO_CACHE=1          # only build
+----
+
+`up-local` also runs every project that already has a `:local` image; a `RMU_*_VERSION` set in the shell wins. `TAG=` changes the tag, and `BASE_DIR` (or `RMU_WORKSPACE_DIR`) the folder holding the checkouts.
 
 == Running an API from source
 
 . Start everything else, then stop the container of the API you are working on, for example `docker compose stop rmu-api-core`.
 . In the API repository, copy `.env.example` to `.env`. From the host, use `localhost` addresses: Mongo `localhost:27017`, Keycloak `http://localhost:8090/sso` for the JWKS and token URIs, the issuer `http://localhost/sso/realms/rmu` (`RMU_IAM_ISSUER_URI`) and the audience `rmu-api` (`RMU_IAM_AUDIENCE`), Kafka `localhost:9093`.
-. `npm run start:dev`.
+. `pnpm start:dev` (Node 24, `corepack enable`).
 
-Other containers still call `http://rmu-api-core:3001`, which no longer resolves. To exercise those calls, run the API as a container built from your checkout and attached to the `rmu-network` network. `rmu-api-core` and `rmu-api-media` do this with `make docker-build docker-run`.
+Other containers still call `http://rmu-api-core:3001`, which no longer resolves. To exercise those calls, run the API as a container built from your checkout and attached to the `rmu-network` network. The APIs with releases do this with `make docker-build docker-run` (it needs a `.env.docker`), or use `make up-local p=rmu-api-<name>` here.
 
 == Running the MFEs from source
 
@@ -122,7 +133,7 @@ make mfes-dev                        # MFEs next to this repository
 make mfes-dev BASE_DIR=~/src/rmu     # elsewhere
 ----
 
-It opens a `gnome-terminal` tab per checked-out MFE running `pnpm run start:live`, plus `rmu-mfe-assets`. Without `gnome-terminal`, it asks you to start each one by hand. Point the shell's `RMU_MFE_*_PUBLIC_PATH` variables at the dev server ports; see link:architecture/frontends.adoc[].
+It opens a `gnome-terminal` tab per checked-out MFE running `pnpm run start:live`, plus `rmu-mfe-assets`. Without `gnome-terminal`, it asks you to start each one by hand. Stop the MFE containers (or leave `mfes` out of the profiles) and open http://localhost: the gateway falls back to the dev servers; see <<_working_on_one_mfe>>.
 
 == Gateway
 
@@ -162,7 +173,7 @@ make mfe-container s=core   # back to the image
 * HMR connects straight to the dev server (`ws://localhost:<port>/ws`), not through the gateway.
 * If a remote is not available at all (container stopped and no dev server), only its route shows "Module not available".
 
-Images are built locally until the MFE repos publish them: `make docker-build` in each `rmu-mfe-*` repository tags `labcabrera/rmu-mfe-<name>:local`. Select them with `RMU_MFE_<NAME>_VERSION=local` in `.env`. The same works for `s=shell`, `s=strategic`, `s=tactical`, `s=npcs`, `s=items`, `s=spells` and `s=assets`.
+To try a local build of an MFE, `make docker-build` in its repository tags `labcabrera/rmu-mfe-<name>:local`; select it with `RMU_MFE_<NAME>_VERSION=local` in `.env`, or use `make up-local p=rmu-mfe-<name>`. The same works for `s=shell`, `s=strategic`, `s=tactical`, `s=npcs`, `s=items`, `s=spells` and `s=assets`.
 
 == Observability
 

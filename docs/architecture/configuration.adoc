@@ -10,7 +10,7 @@ Every RMU service is configured through environment variables that follow one na
 |Pattern |Meaning |Examples
 
 |`RMU_*`
-|Every application variable has the `RMU_` prefix. The exceptions are the conventional `PORT`, `LOG_LEVEL` and `DEBUG`, and the third-party images (`MONGO_*`, `POSTGRES_*`, `KC_*`, `KAFKA_UI_*`, `MONGO_EXPRESS_*`), which keep their own names.
+|Every application variable has the `RMU_` prefix. The exceptions are the conventional `PORT`, `LOG_LEVEL` and `DEBUG`, and the third-party images (`MONGO_*`, `POSTGRES_*`, `KC_*`, `KAFKA_UI_*`), which keep their own names.
 |`RMU_KAFKA_BROKERS`, `PORT`
 
 |`*_URI`
@@ -18,7 +18,7 @@ Every RMU service is configured through environment variables that follow one na
 |`RMU_API_CORE_URI`, `RMU_MFE_ASSETS_URI`
 
 |`RMU_API_<NAME>_URI`
-|Base URL of an API, including `/v1`. `<NAME>` is the service name of the repository: `CORE`, `STRATEGIC`, `TACTICAL`, `ITEMS`, `NPCS`, `NPC_NAMES`, `SPELLS`, `USERS`, `MEDIA`, `ATTACK`, `ATTACK_TABLES`. In an API it is the in-network address; in an MFE it is the browser address (a gateway path).
+|Base URL of an API, including `/v1`. `<NAME>` is the service name of the repository: `CORE`, `STRATEGIC`, `TACTICAL`, `ITEMS`, `NPCS`, `NPC_NAMES`, `SPELLS`, `USERS`, `MEDIA`, `ATTACK_TABLES`. In an API it is the in-network address; in an MFE it is the browser address (a gateway path).
 |`RMU_API_NPCS_URI` (not `NPC`)
 
 |`RMU_MONGO_<NAME>_URI`
@@ -94,8 +94,8 @@ A path that does not exist is created empty by Docker, and the API falls back to
 The MFEs do not bake their URLs into the bundle. Each repository lists its keys in `public/env-config.template.js`, which is the single source for three mechanisms:
 
 * `webpack.config.ts` rewrites every `process.env.<KEY>` (in `src/` and in `rmu-react-shared-lib`) to `window.__RMU_CONFIG__.<KEY>`;
-* the dev server serves `/env-config.js` from `.env`;
-* the nginx image renders `env-config.js` from the container environment (`envsubst`).
+* the dev server serves `/env-config.js` from `.env.<mode>` or `.env`;
+* the nginx image renders `env-config.js` from the container environment with its template mechanism (`/etc/nginx/templates`, only `RMU_*` variables). A key the container does not set stays as its placeholder, and the template turns it into an empty string.
 
 Inside the shell, the remotes read the shell's `window.__RMU_CONFIG__`, so the shell's template carries every key a remote uses.
 
