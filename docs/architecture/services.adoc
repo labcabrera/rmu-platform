@@ -159,6 +159,11 @@ When adding a service, follow the same pattern and add it to this table, `compos
 |`items` / `./ItemsApp`
 |link:https://github.com/labcabrera/rmu-mfe-items[rmu-mfe-items]
 
+|Wiki (public, no API)
+|8085
+|`wiki` / `./WikiApp`
+|link:https://github.com/labcabrera/rmu-mfe-wiki[rmu-mfe-wiki]
+
 |Assets
 |4000
 |static files (images, locales)

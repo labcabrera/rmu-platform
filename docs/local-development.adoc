@@ -38,7 +38,7 @@ Before the Terraform step, create `terraform/stacks/keycloak-local/terraform.tfv
 
 |`mfes`
 |`compose/mfes.yaml`
-|Micro-frontends as static images (shell, core, strategic, tactical, npcs, items, spells, assets), served through the gateway; see link:architecture/frontends.adoc[].
+|Micro-frontends as static images (shell, core, strategic, tactical, npcs, items, spells, wiki, assets), served through the gateway; see link:architecture/frontends.adoc[].
 
 |`tools`
 |`compose/tools.yaml`
@@ -104,7 +104,7 @@ IMPORTANT: `apis` and `tools` depend on services of `infrastructure`. Without it
 
 == Image versions
 
-Each image is `labcabrera/rmu-api-<name>` or `labcabrera/rmu-mfe-<name>` with the tag `${RMU_<KIND>_<NAME>_VERSION}`, `latest` by default (`local` for the items and spells MFEs, which have no published image yet). `latest` is fine for day-to-day work; set explicit versions in `.env` to reproduce a release or a bug.
+Each image is `labcabrera/rmu-api-<name>` or `labcabrera/rmu-mfe-<name>` with the tag `${RMU_<KIND>_<NAME>_VERSION}`, `latest` by default (`local` for the items, spells and wiki MFEs, which have no published image yet). `latest` is fine for day-to-day work; set explicit versions in `.env` to reproduce a release or a bug.
 
 To run your checkouts as containers:
 
@@ -144,7 +144,7 @@ The `gateway` profile runs Caddy on port 80 (`RMU_GATEWAY_PORT`). It is the sing
 |Path |Upstream
 
 |`/` |`rmu-mfe-shell`, or its dev server on the host (`:8080`) when the container is stopped
-|`/mfe/core/`, `/mfe/strategic/`, `/mfe/tactical/`, `/mfe/npcs/`, `/mfe/items/`, `/mfe/spells/` |The remote's container, or its dev server on the host (`:8089`, `:8082`, `:8083`, `:8084`, `:8088`, `:8087`) when the container is stopped
+|`/mfe/core/`, `/mfe/strategic/`, `/mfe/tactical/`, `/mfe/npcs/`, `/mfe/items/`, `/mfe/spells/`, `/mfe/wiki/` |The remote's container, or its dev server on the host (`:8089`, `:8082`, `:8083`, `:8084`, `:8088`, `:8087`, `:8085`) when the container is stopped
 |`/mfe/assets/` |`rmu-mfe-assets` (images and locales), or `make start` in `rmu-mfe-assets` (`:4000`)
 |`/api/core/`, `/api/strategic/`, `/api/tactical/` |Core, Strategic, Tactical APIs
 |`/api/items/`, `/api/npcs/`, `/api/npc-names/`, `/api/spells/` |Items, NPCs, NPC Names, Spells APIs

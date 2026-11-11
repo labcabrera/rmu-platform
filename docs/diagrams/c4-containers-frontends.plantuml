@@ -21,6 +21,7 @@ Boundary(frontend, "Frontend") {
             Container(items, "Items", "React", "Items, treasure tables")
             Container(npcs, "NPCs", "React", "NPCs, creatures")
             Container(spells, "Spells", "React", "Spell lists")
+            Container(wiki, "Wiki", "React, Markdown", "Guides of the mechanics, public")
         }
     }
     Container(lib, "React Shared Lib", "React + MUI", "Components, theme and API clients, linked into every micro-frontend")

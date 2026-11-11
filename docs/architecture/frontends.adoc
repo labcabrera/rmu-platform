@@ -8,8 +8,8 @@ image::../diagrams/c4-containers-frontends.svg[RMU frontend containers diagram]
 == Module Federation contract
 
 * `rmu-mfe-shell` is the *host*. It handles the OIDC login (`react-oidc-context`), the layout and the routes.
-* Each domain MFE is a *remote* named after its domain (`core`, `strategic`, `tactical`, `npcs`, `items`, `spells`). It publishes `<name>-app.js` and exposes `./<Name>App`, for example `core/CoreApp`.
-* The shell loads each remote from `<RMU_MFE_<NAME>_PUBLIC_PATH><name>-app.js` and mounts it lazily under `/<name>/*`.
+* Each domain MFE is a *remote* named after its domain (`core`, `strategic`, `tactical`, `npcs`, `items`, `spells`, `wiki`). It publishes `<name>-app.js` and exposes `./<Name>App`, for example `core/CoreApp`.
+* The shell loads each remote from `<RMU_MFE_<NAME>_PUBLIC_PATH><name>-app.js` and mounts it lazily under `/<name>/*`. Every remote route needs a signed-in user except `/wiki/*`: the wiki serves static Markdown guides bundled in its image and calls no API (workspace spec 099).
 * React, MUI, emotion, react-router, react-oidc-context/oidc-client-ts and i18next are shared *singletons*. A remote's versions must stay compatible with the shell's `package.json`.
 * Shared UI components come from `@labcabrera-rmu/rmu-react-shared-lib`, which is not on npm. Each MFE declares it as `link:../rmu-react-shared-lib` in `package.json`, so `pnpm install` links the sibling checkout. `make link-shared-lib` builds the lib's `dist/` and runs that install. Webpack resolves the lib's peer dependencies (react, MUI…) from the MFE's own `node_modules` (`resolve.modules`), so each bundle keeps a single copy.
 
@@ -58,7 +58,7 @@ Domain MFEs read `RMU_API_<NAME>_URI` for the APIs they call and `RMU_MFE_ASSETS
 |Mode |How
 
 |Compose, `mfes` profile
-|shell, core, strategic, tactical, npcs, items, spells and assets run from static nginx images behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. Design: `specs/001-mfes-in-compose` in the workspace root.
+|shell, core, strategic, tactical, npcs, items, spells, wiki and assets run from static nginx images behind the gateway, configured at runtime through `env-config.js`. A stopped container falls back to its dev server; see link:../local-development.adoc#_working_on_one_mfe[Working on one MFE]. Design: `specs/001-mfes-in-compose` in the workspace root.
 
 |Development, all from source
 |`make mfes-dev` opens one terminal tab per checked-out MFE running `pnpm run start:live`, plus the assets server. Open them through the gateway (http://localhost) with the containers stopped. `BASE_DIR` (or `RMU_WORKSPACE_DIR`) selects the folder holding the checkouts; it defaults to the parent folder of `rmu-platform`.
