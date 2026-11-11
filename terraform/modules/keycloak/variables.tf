@@ -54,6 +54,31 @@ variable "smtp_from" {
   default     = "no-reply@rmu.local"
 }
 
+variable "smtp_ssl" {
+  description = "SMTP over TLS from the start (usually port 465)."
+  type        = bool
+  default     = false
+}
+
+variable "smtp_starttls" {
+  description = "STARTTLS on the SMTP connection (usually port 587)."
+  type        = bool
+  default     = false
+}
+
+variable "smtp_username" {
+  description = "SMTP user. Empty: no authentication (the local Mailpit)."
+  type        = string
+  default     = ""
+}
+
+variable "smtp_password" {
+  description = "SMTP password or API key."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "rmu_client_secret" {
   description = "Client secret for rmu-client."
   type        = string
@@ -110,6 +135,18 @@ variable "primary_user_password" {
   sensitive   = true
 }
 
+variable "primary_user_password_temporary" {
+  description = "Ask the primary user for a new password on the first sign-in (production)."
+  type        = bool
+  default     = false
+}
+
+variable "create_guest_user" {
+  description = "Create the read-only guest user (local stacks). Production has none."
+  type        = bool
+  default     = true
+}
+
 variable "guest_user_username" {
   description = "Username for the guest user."
   type        = string
@@ -117,16 +154,19 @@ variable "guest_user_username" {
 }
 
 variable "guest_user_email" {
+  default     = ""
   description = "Email for the guest user."
   type        = string
 }
 
 variable "guest_user_first_name" {
+  default     = ""
   description = "First name of the guest user."
   type        = string
 }
 
 variable "guest_user_last_name" {
+  default     = ""
   description = "Last name of the guest user."
   type        = string
 }
@@ -134,5 +174,6 @@ variable "guest_user_last_name" {
 variable "guest_user_password" {
   description = "Password for the guest user."
   type        = string
+  default     = ""
   sensitive   = true
 }

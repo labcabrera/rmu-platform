@@ -10,10 +10,11 @@ The realm, clients, client scopes, groups, Google login, first-broker-login flow
 terraform/
 ├── modules/keycloak/        # realm, events, clients, client scopes, groups, Google, users
 └── stacks/
-    └── keycloak-local/      # the module against the local Keycloak (http://localhost:8090/sso)
+    ├── keycloak-local/      # the module against the local Keycloak (http://localhost:8090/sso)
+    └── keycloak-production/ # the production realm, through an SSH tunnel (workspace spec 103)
 ----
 
-Each stack has its own state, so applying one never touches the others. Future stacks (`keycloak-aws`, `aws-*`) will reuse the same modules. `.terraform.lock.hcl` is versioned, so everyone gets the same provider build.
+Each stack has its own state, so applying one never touches the others. `.terraform.lock.hcl` is versioned, so everyone gets the same provider build.
 
 == Local Keycloak
 
@@ -31,6 +32,37 @@ make keycloak-init   # terraform init + apply -auto-approve, no confirmation pro
 * Redirect URIs and web origins allow the gateway (`http://localhost`) and the shell dev server (`:8080`). There are no wildcards. To open the shell from another machine on the LAN, add its address to `rmu_client_front_valid_redirect_uris` and `rmu_client_front_web_origins` in `terraform.tfvars`.
 * The realm sends mail through the Mailpit container (`smtp_host = "rmu-mailpit"`). Its web UI is http://localhost:8025. With `smtp_host = ""` the realm has no SMTP, and email verification is off.
 * State is local (`terraform.tfstate` in the stack folder, gitignored). After `docker compose --profile '*' down -v` the Keycloak database is gone, but the state still lists the resources. The next `plan` reports them as deleted outside Terraform, and `apply` recreates them.
+
+== Production Keycloak
+
+The production stack (workspace spec 103) differs from the local one:
+
+* **Redirects and origins:** only the public origin. `public_url` (for example `https://rmu.labcabrera.com`) gives the redirect URIs `<public_url>/*` and the web origins of both clients.
+* **Real SMTP:** Brevo on port 587 with STARTTLS, a user and an SMTP key. The sender address must belong to a domain validated in the provider (SPF and DKIM in Route 53).
+* **Google:** real credentials, with no defaults.
+* **Primary user:**
+** the administrator, with `rmu-admin` and every book group;
+** a temporary password, so Keycloak asks for a new one on the first sign-in;
+** its id is the output `primary_user_id`, the `TARGET_SUB` of `scripts/reassign-users.js`.
+* **No `guest` user:** `create_guest_user = false`.
+* **Registration open** with email verification, and brute force protection: the realm settings of the module.
+
+Keycloak in production only listens on the loopback of the server (`127.0.0.1:8090`), and the gateway answers 404 on `/sso/admin`. Terraform reaches it through an SSH tunnel:
+
+[source,bash]
+----
+ssh -N -L 8090:127.0.0.1:8090 rmu@<host> &     # the tunnel
+cd terraform/stacks/keycloak-production
+cp terraform.tfvars.example terraform.tfvars    # fill every <...>
+terraform init -input=false
+terraform plan -out=prod.plan                   # review it
+terraform apply prod.plan
+terraform output primary_user_id
+----
+
+* `keycloak_admin_password` is `KC_BOOTSTRAP_ADMIN_PASSWORD` of `.env.production`, and `rmu_client_secret` is its `RMU_IAM_CLIENT_SECRET`.
+* `terraform.tfvars` and `terraform.tfstate` hold the secrets of the realm. Both are gitignored. Keep an encrypted copy next to the backups: without the state, the next apply tries to create everything again.
+* `terraform destroy` fails on the user profile of the realm (`The attribute 'username' can not be removed`). To remove a realm, delete it in the admin console and delete the state.
 
 == Google login
 

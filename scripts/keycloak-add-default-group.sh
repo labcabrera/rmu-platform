@@ -15,7 +15,7 @@ REALM="${REALM:-rmu}"
 GROUP="${GROUP:-rmu-user}"
 
 env_value() {
-  grep -E "^$1=" "${ROOT_DIR}/.env" 2>/dev/null | tail -n1 | cut -d= -f2-
+  grep -E "^$1=" "${ENV_FILE:-${ROOT_DIR}/.env}" 2>/dev/null | tail -n1 | cut -d= -f2-
 }
 
 ADMIN_USER="${KC_BOOTSTRAP_ADMIN_USERNAME:-$(env_value KC_BOOTSTRAP_ADMIN_USERNAME)}"

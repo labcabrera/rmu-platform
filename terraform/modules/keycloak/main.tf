@@ -48,8 +48,17 @@ resource "keycloak_realm" "rmu" {
       port              = var.smtp_port
       from              = var.smtp_from
       from_display_name = var.realm_display_name
-      ssl               = false
-      starttls          = false
+      ssl               = var.smtp_ssl
+      starttls          = var.smtp_starttls
+
+      # A real SMTP (Brevo, SES) needs credentials; the local Mailpit does not (workspace spec 103).
+      dynamic "auth" {
+        for_each = var.smtp_username == "" ? [] : [1]
+        content {
+          username = var.smtp_username
+          password = var.smtp_password
+        }
+      }
     }
   }
 }
@@ -86,8 +95,8 @@ resource "keycloak_default_groups" "default" {
   realm_id  = keycloak_realm.rmu.id
   group_ids = [keycloak_group.rmu_user.id]
 
-  # The guest user is created before the default group is set; guest_user_groups keeps it without groups if it is
-  # created again later.
+  # The guest user (when there is one) is created before the default group is set; guest_user_groups keeps it
+  # without groups if it is created again later.
   depends_on = [keycloak_user.guest_user]
 }
 
@@ -369,7 +378,7 @@ resource "keycloak_user" "primary_user" {
 
   initial_password {
     value     = var.primary_user_password
-    temporary = false
+    temporary = var.primary_user_password_temporary
   }
 }
 
@@ -388,10 +397,11 @@ resource "keycloak_user_groups" "primary_user_groups" {
 }
 
 # -----------------------------------------------------------------------------
-# User: guest
+# User: guest (read only; local stacks only, workspace spec 103)
 # -----------------------------------------------------------------------------
 
 resource "keycloak_user" "guest_user" {
+  count    = var.create_guest_user ? 1 : 0
   realm_id = keycloak_realm.rmu.id
   username = var.guest_user_username
   enabled  = true
@@ -410,10 +420,22 @@ resource "keycloak_user" "guest_user" {
 # The guest stays read only: no groups, also no rmu-user, which Keycloak gives every new user as a default group.
 # Exhaustive, so an apply removes any group it gets (for example rmu-user when the user is created again).
 resource "keycloak_user_groups" "guest_user_groups" {
+  count      = var.create_guest_user ? 1 : 0
   realm_id   = keycloak_realm.rmu.id
-  user_id    = keycloak_user.guest_user.id
+  user_id    = keycloak_user.guest_user[0].id
   group_ids  = []
   exhaustive = true
+}
+
+# The guest user became optional (count): keep the existing ones in the states of the local stacks.
+moved {
+  from = keycloak_user.guest_user
+  to   = keycloak_user.guest_user[0]
+}
+
+moved {
+  from = keycloak_user_groups.guest_user_groups
+  to   = keycloak_user_groups.guest_user_groups[0]
 }
 
 # -----------------------------------------------------------------------------

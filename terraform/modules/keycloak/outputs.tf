@@ -48,3 +48,8 @@ output "rmu_client_secret" {
   value       = keycloak_openid_client.rmu_client.client_secret
   sensitive   = true
 }
+
+output "primary_user_id" {
+  description = "Keycloak ID (sub) of the primary user: the target of scripts/reassign-users.js (workspace spec 103)."
+  value       = keycloak_user.primary_user.id
+}

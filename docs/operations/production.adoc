@@ -1,0 +1,293 @@
+= Production
+:toc: left
+
+How RMU Engine runs in production (workspace spec 103):
+- one host, an OVHcloud VPS with 8 GB, running the Compose stack of this repository;
+- the Caddy gateway terminating HTTPS with Let's Encrypt;
+- DNS in Route 53, with `rmu.labcabrera.com` as the `A` and `AAAA` records of the host.
+
+There is no load balancer or CDN.
+
+This page grows with the spec. Today it covers:
+- the configuration of the stack;
+- the server;
+- the first start;
+- day-to-day commands;
+- the data: the first load and the updates of the book catalog;
+- monitoring with Grafana Cloud;
+- backups and restores.
+
+== What differs from the local stack
+
+The production stack is the local one plus an override:
+
+[source,bash]
+----
+docker compose --env-file .env.production -f compose.yaml -f compose/production.yaml ...
+----
+
+The `prod-*` targets of the `Makefile` wrap that command.
+
+[options="header",cols="2,5"]
+|===
+|File |Role
+
+|`compose/production.yaml`
+a|The override:
+
+* only `rmu-gateway` publishes ports (80, 443 and 443/udp), and `rmu-keycloak` publishes `127.0.0.1:8090` on the loopback only;
+* `restart: unless-stopped` everywhere;
+* memory limits;
+* Kafka heap and in-network listener only;
+* Keycloak heap and metrics;
+* Mailpit moves to the `dev` profile;
+* `rmu-alloy` (`monitoring` profile, `compose/monitoring.yaml`) ships metrics and logs to Grafana Cloud;
+* the gateway mounts `Caddyfile.production` and keeps its certificates in the `rmu-caddy-data` volume.
+
+|`compose/config/caddy/Caddyfile.production`
+a|The routes of the local `Caddyfile` on `{$RMU_PUBLIC_HOST}` with automatic HTTPS:
+
+* HTTP redirected to HTTPS, HTTP/3;
+* HSTS, `nosniff`, `Referrer-Policy` and `X-Frame-Options`;
+* no fallback to dev servers;
+* `/sso/admin*` answers 404.
+
+|`.env.production.example`
+|Every variable of production, with placeholders. The real `.env.production` lives only on the server and in a password manager (it is gitignored).
+
+|`scripts/check-production-ports.sh`
+|Fails if any service other than the gateway publishes a port, or if Keycloak publishes one outside the loopback. `make prod-config` runs it.
+|===
+
+IMPORTANT: Docker writes its own iptables rules for published ports, so they are reachable from the Internet even when `ufw` blocks them. That is why the override removes every port except the gateway's. Keep `make prod-config` green after any change to the compose files.
+
+Relative paths in `compose/production.yaml` resolve against the project directory (this repository), not `compose/`. The included files under `compose/` keep resolving against `compose/`.
+
+== Configuration
+
+. Copy `.env.production.example` to `.env.production` and replace every `<...>`.
+. Generate each secret with `openssl rand -base64 32 | tr -d '/+=' | cut -c1-32`. The output has only letters and digits, so it fits inside the Mongo URIs.
+. **Versions:** set the image versions to the releases published on Docker Hub, never `latest` or `local`.
+. **`RMU_IAM_CLIENT_SECRET`** must match `rmu_client_secret` of the Keycloak production stack.
+
+The variables that change against `.env.example`:
+
+[options="header",cols="2,3"]
+|===
+|Variable |Production value
+
+|`COMPOSE_PROFILES` |`infrastructure,apis,mfes,gateway,monitoring`
+|`RMU_PUBLIC_HOST` |`rmu.labcabrera.com`
+|`RMU_ACME_EMAIL` |Address of the Let's Encrypt account (expiry notices)
+|`RMU_CADDY_TLS_OPTION` |Empty. `local_certs` only for a local test
+|`KC_HOSTNAME`, `RMU_MFE_IAM_URI` |`https://rmu.labcabrera.com/sso`
+|`RMU_IAM_ISSUER_URI` |`https://rmu.labcabrera.com/sso/realms/rmu`
+|`LOG_LEVEL` |`info`
+|`RMU_ADMIN_*_URI` |Empty, except `RMU_ADMIN_GRAFANA_URI` (the Grafana Cloud stack): Kafka UI does not run, and the Keycloak console goes through the tunnel
+|`RMU_GRAFANA_CLOUD_*` |Endpoints, users and token of the Grafana Cloud stack (<<_monitoring>>)
+|`RMU_BACKUP_*` |The restic repository in R2, its password and the R2 key (<<_backups>>)
+|===
+
+== Testing the override on a workstation
+
+The same stack runs locally on `https://rmu.localhost` with certificates from Caddy's own CA:
+
+. Write a `.env.production` from `.env.production.example` with the local values:
+** the local credentials;
+** `RMU_PUBLIC_HOST=rmu.localhost`;
+** `RMU_CADDY_TLS_OPTION=local_certs`;
+** the `https://rmu.localhost` URLs;
+** `local` versions.
+. Stop the local stack (`make down`), because both use ports 80 and 443 and the same volumes.
+. Run `make prod-up`. Open `https://rmu.localhost`: the browser warns about the certificate of Caddy's CA.
+. Sign-in fails with `Invalid parameter: redirect_uri` unless the realm accepts `https://rmu.localhost/*`.
+. When done, run `make prod-down` and start the local stack again.
+
+== The server
+
+A VPS with Ubuntu 24.04 LTS, 4 vCPU, 8 GB and 75 GB.
+
+. **Login:** a user `rmu` with `sudo` and the SSH key.
+** In `/etc/ssh/sshd_config`: `PermitRootLogin no` and `PasswordAuthentication no`.
+. **Updates and protection:**
+** `apt update && apt full-upgrade`, then reboot;
+** `unattended-upgrades` with security updates only;
+** `fail2ban`.
+. **Firewall:** `ufw default deny incoming`, `ufw allow 22/tcp`, `ufw allow 80/tcp`, `ufw allow 443/tcp`, `ufw allow 443/udp`, `ufw enable`.
+. **Swap:** `fallocate -l 2G /swapfile`, `chmod 600`, `mkswap`, `swapon`, and the entry in `/etc/fstab`. Timezone `Europe/Madrid`.
+. **Docker:** Docker CE and the Compose plugin from Docker's repository, and `usermod -aG docker rmu`. Log rotation in `/etc/docker/daemon.json`, then restart Docker:
++
+[source,json]
+----
+{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }
+----
+. **The repository:** clone it into `/opt/rmu/rmu-platform` and write `.env.production` there.
+
+== First start
+
+. Check that DNS resolves: `dig +short rmu.labcabrera.com A` and `AAAA` give the server. Let's Encrypt fails, and rate-limits retries, if the name does not point to the host yet.
+. Run `make prod-config` (compose valid and only the gateway public).
+. Run `make prod-pull`.
+. Start the infrastructure first: `make prod-up s="rmu-mongo rmu-postgres rmu-keycloak rmu-kafka rmu-s3 rmu-s3-init"`.
+. Apply the Keycloak production stack through the tunnel (link:keycloak-terraform.adoc#_production_keycloak[Production Keycloak]) and note the `primary_user_id` output.
+. Restore the data, run the pending migrations and reassign the users (<<_first_load_the_local_database_reassigned_to_one_user>>).
+. Run `make prod-up`. Caddy asks for the certificate on the first HTTPS request.
+
+== Day to day
+
+[source,bash]
+----
+make prod-ps                      # state of every service
+make prod-logs s=rmu-api-tactical # logs of one service
+make prod-backup                  # Mongo dump into backups/
+make prod-migrate-pending DRY_RUN=1
+make prod-pull && make prod-up    # after changing versions in .env.production
+----
+
+**Updating a version:**
+
+. Back up first.
+. Raise the version in `.env.production`.
+. Run `make prod-pull`.
+. Run the pending migrations.
+. Run `make prod-up`.
+
+Respect the release order of link:migrations.adoc[the release checklist].
+
+== Data
+
+=== First load: the local database, reassigned to one user
+
+The documents keep the Keycloak `sub` of their users in many fields (`owner`, `members[].userId`, `shares`, `players`, `factionPlayers`, the realm's `games[].ownerId`...). The local database comes from other Keycloak instances, so after the restore every user reference goes to the production account:
+
+. Back up the local database and copy the archive to the server.
+. `make prod-restore f=backups/mongo-<date>.archive.gz`, then `make prod-migrate-pending`.
+. Sign in once with the production account, so `rmu-api-users` creates its user document. Its `sub` is the `primary_user_id` output of the Keycloak stack.
+. `make prod-reassign-users TARGET_SUB=<sub> TARGET_NAME=<nick> DRY_RUN=1` lists the old subs and the changes per collection.
+. The same without `DRY_RUN` asks first, then:
+** turns every string equal to an old sub, at any depth, into `TARGET_SUB`, and the `userName` next to it into `TARGET_NAME`;
+** merges what that duplicates: one member or share per user (the highest role or level), none for the owner, and unique id lists;
+** deletes the old users, their friendships, invites and messages from `rmu-users`;
+** fails if any old sub is left, and records `103-reassign-users` in `rmu-platform.migrations`.
+
+`KEEP_SUBS="<sub> ..."` leaves some users out. The script is `scripts/reassign-users.js`, run by `scripts/mongo-reassign-users.sh`.
+
+=== Book catalog updates: local to production
+
+The book data is prepared locally (imports, fixes) and copied to production without touching what users create. `scripts/catalog-sync/collections.json` gives every collection a mode:
+
+[options="header",cols="1,4"]
+|===
+|Mode |What is copied
+
+|`system`
+|The catalog documents only: `entitySource: "system"`, or the entry's `filter` (`npcs`: `accessType: "public"`, the Creature Law creatures, which only an admin writes). User documents are never touched.
+
+|`whole`
+|The whole collection (the tables). Production ends with exactly the package.
+
+|`never`
+|Nothing: realms, campaigns, combats, users, images and `rmu-platform`.
+|===
+
+A collection without a mode makes the export and the import fail: classify every new collection there.
+
+. **Locally:** `make catalog-export`. It writes `backups/catalog-<date>-<hash>.archive.gz` with a manifest (collections, counts, the applied migrations and the commit of this repository). The package holds book data: it never goes to git.
+. Copy it with `scp` to `/opt/rmu/rmu-platform/backups/`.
+. **On the server:** `make prod-catalog-import f=backups/catalog-<...>.archive.gz CATALOG_OWNER_SUB=<admin sub> DRY_RUN=1`. It restores the package into `rmu-catalog-staging` and prints per collection the new, changed, same, conflicting and orphan documents.
+. The same without `DRY_RUN` asks, backs up Mongo and merges.
+
+**What the merge does:**
+
+* The `owner` of every imported document becomes `CATALOG_OWNER_SUB`, and a changed document gets its production `version` plus one.
+* **Conflict:** the `_id` exists in production as user data. It is skipped and reported.
+* **Orphan:** catalog in production that is not in the package. `whole` deletes them. `system` only lists them, because characters can reference them; `PRUNE=1` deletes them after a review.
+* **Migrations:** the import stops if the applied migrations of production and of the package differ. Run the pending ones on the side that lacks them, and export again.
+* Each import is recorded in `rmu-platform.catalog-syncs`, and `rmu-catalog-staging` is dropped.
+
+Images and the translated texts of the catalog come with the `rmu-mfe-assets` image: update them by deploying its new version.
+
+**Keycloak admin console:** open the tunnel `ssh -L 8090:127.0.0.1:8090 rmu@<host>`, then go to `http://localhost:8090/sso/admin/`.
+
+== Monitoring
+
+`rmu-alloy` (Grafana Alloy, `compose/monitoring.yaml`, pipeline in `monitoring/alloy/config.alloy`) sends to the free Grafana Cloud stack:
+
+* host metrics (CPU, memory, disk, network) and container metrics (CPU, memory against the limit, starts, OOM);
+* the metrics of Caddy (requests, codes, latency; an internal `:9180` site) and of Keycloak (management port 9000);
+* the logs of every `rmu-*` container, labelled `service`, `container` and `level`. The Caddy access log leaves out headers and the sign-in `code` and `state`, and masks client addresses to their /16;
+* `rmu_backup_*`, the result of the nightly backup (<<_backups>>).
+
+Each source keeps only the metrics the dashboard and the alerts use: about 500 series, far from the 10,000 of the free plan. Add a metric to its allowlist in `config.alloy` before using it in a panel.
+
+**Setting it up:**
+
+. In the Grafana Cloud portal, from the *Details* pages of the stack's Prometheus and Loki, copy the URLs and the users into `RMU_GRAFANA_CLOUD_*` of `.env.production`. Create one access policy token with `metrics:write` and `logs:write` for `RMU_GRAFANA_CLOUD_TOKEN`.
+. `make prod-up`: the `monitoring` profile is in `COMPOSE_PROFILES`.
+. Follow link:../../monitoring/alerts.md[`monitoring/alerts.md`]: the email contact point, the rules (`monitoring/alerts/rmu-rules.yaml`), the two Synthetic Monitoring checks and the dashboard (`monitoring/dashboards/rmu-overview.json`).
+
+**Checking the agent:** `docker exec rmu-alloy wget -qO- localhost:12345/-/ready`. Its UI, with the state of each component, is on port 12345 inside the network only.
+
+NOTE: cAdvisor needs the host's cgroups and the containerd socket, so `rmu-alloy` is privileged and mounts the Docker and containerd sockets read-only. With 256 MB it ran out of memory and the scrapes timed out; it has 512 MB.
+
+=== Testing it on a workstation
+
+The local `observability` profile (`grafana/otel-lgtm`) can stand in for Grafana Cloud. In the local `.env.production`:
+
+[source,properties]
+----
+RMU_GRAFANA_CLOUD_PROMETHEUS_URI=http://rmu-otel:9090/api/v1/write
+RMU_GRAFANA_CLOUD_LOKI_URI=http://rmu-otel:3100/loki/api/v1/push
+RMU_GRAFANA_CLOUD_PROMETHEUS_USER=local
+RMU_GRAFANA_CLOUD_LOKI_USER=local
+RMU_GRAFANA_CLOUD_TOKEN=local
+----
+
+Then start it with both profiles, outside `make prod-up` (which refuses the ports of `rmu-otel`): `COMPOSE_PROFILES=infrastructure,apis,mfes,gateway,monitoring,observability docker compose --env-file .env.production -f compose.yaml -f compose/production.yaml up -d`. Grafana on http://localhost:3000 (admin/admin); import the dashboard there.
+
+== Backups
+
+`scripts/prod-backup.sh` (`make prod-backup-nightly`) runs every night:
+
+. dumps Mongo (`mongo.archive.gz`), the Keycloak database (`postgres.dump`, `pg_dump -Fc`) and the volume of `rmu-s3` (`s3-data.tar.gz`, with `rmu-s3` paused for the few seconds of the copy) into `backups/nightly/`;
+. sends that folder to the restic repository in Cloudflare R2, encrypted, and keeps 7 daily, 4 weekly and 6 monthly snapshots;
+. writes `backups/metrics/rmu_backup.prom`, which `rmu-alloy` reads: the alert `RmuBackupMissing` fires after 26 hours without a successful run.
+
+restic runs from its image (`restic/restic`), so the host needs nothing installed. Its secrets reach the container as environment variables, never as arguments.
+
+**Setting it up:**
+
+. In Cloudflare: an R2 bucket (for example `rmu-backups`, private) and an R2 API token with *Object Read & Write* on that bucket only.
+. In `.env.production`: `RMU_BACKUP_RESTIC_REPOSITORY=s3:https://<account id>.r2.cloudflarestorage.com/<bucket>`, the token's key pair in `RMU_BACKUP_S3_*`, and a long `RMU_BACKUP_RESTIC_PASSWORD`. Save the password in the password manager: without it the backups cannot be read.
+. `make prod-backup-init` creates the repository, once.
+. `make prod-backup-nightly` by hand the first time, then `make prod-backup-snapshots`.
+. Cron of the `rmu` user (`crontab -e`), every night at 04:15:
++
+[source]
+----
+15 4 * * * cd /opt/rmu/rmu-platform && make prod-backup-nightly >> /var/log/rmu-backup.log 2>&1
+----
++
+Create the log first: `sudo install -o rmu -m 644 /dev/null /var/log/rmu-backup.log`.
+
+== Restoring
+
+`scripts/prod-restore.sh` (`make prod-backup-restore`) downloads a snapshot into `backups/restore-<date>/` and restores it over the running data:
+
+[source,bash]
+----
+make prod-backup-snapshots                         # the snapshots
+make prod-backup-restore DOWNLOAD_ONLY=1           # only download the latest one
+make prod-backup-restore id=<snapshot> ONLY=mongo  # one part of one snapshot: mongo, postgres and/or s3
+make prod-backup-restore                           # everything from the latest one
+----
+
+* **mongo:** `scripts/mongo-restore.sh` drops and restores the collections of the archive.
+* **postgres:** Keycloak is stopped, its database restored with `pg_restore --clean`, and Keycloak started.
+* **s3:** `rmu-s3` is stopped, its volume emptied and extracted again, and `rmu-s3` started.
+
+It asks before overwriting (`YES=1` skips the question). Delete the `restore-*` folder when done.
+
+**On a new server**, after <<_the_server>> and with the same `.env.production`: start the infrastructure (<<_first_start>>, step 4), run `make prod-backup-restore`, then `make prod-up`. Keycloak needs no Terraform: its whole database comes back.
+
+**Restore test** (spec 103, D12): done on 2026-11-11 against temporary containers. The Mongo, Keycloak and image counts were the same, and an uploaded image was identical byte for byte. Repeat it after changing the scripts: the `*_CONTAINER` variables of `scripts/backup-lib.sh` point the restore to other containers.

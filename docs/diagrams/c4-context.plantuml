@@ -19,6 +19,10 @@ System_Ext(mongodb, "MongoDB", "One database per API")
 System_Ext(kafka, "Kafka", "Domain events")
 System_Ext(s3, "S3", "User uploads (locally SeaweedFS)")
 
+System_Ext(letsencrypt, "Let's Encrypt", "TLS certificate (production)")
+System_Ext(grafana, "Grafana Cloud", "Metrics, logs, alerts and external checks (production)")
+System_Ext(r2, "Cloudflare R2", "Encrypted nightly backups, restic (production)")
+
 Rel(user, gateway, "Uses", "HTTPS")
 Rel(gateway, frontend, "Serves")
 Rel(frontend, apis, "REST calls with the user token", "/api/<name>/v1")
@@ -30,6 +34,11 @@ Rel(apis, keycloak, "JWKS, service tokens, user admin")
 Rel(apis, mongodb, "Stores")
 Rel(apis, kafka, "Publishes and consumes")
 Rel(apis, s3, "Stores uploads (Media)")
+
+Rel(gateway, letsencrypt, "Issues and renews the certificate", "ACME")
+Rel(apis, grafana, "Metrics and logs, through Grafana Alloy")
+Rel(grafana, gateway, "Checks / and the API health", "HTTPS")
+Rel(mongodb, r2, "Nightly backup, with Postgres and S3")
 
 SHOW_LEGEND()
 @enduml

@@ -1,0 +1,28 @@
+# Copy to terraform.tfvars (gitignored) and fill every <...>. Keep an encrypted copy of it and of
+# terraform.tfstate next to the backups: they hold the secrets of the realm (workspace spec 103).
+
+# Through the tunnel: ssh -L 8090:127.0.0.1:8090 <user>@<host>
+keycloak_url            = "http://127.0.0.1:8090"
+keycloak_admin_username = "admin"
+keycloak_admin_password = "<KC_BOOTSTRAP_ADMIN_PASSWORD of .env.production>"
+
+public_url        = "https://rmu.labcabrera.com"
+rmu_client_secret = "<RMU_IAM_CLIENT_SECRET of .env.production>"
+
+# Google Cloud Console > APIs & Services > Credentials > OAuth client ID (web application), with the
+# authorized redirect URI https://rmu.labcabrera.com/sso/realms/rmu/broker/google/endpoint
+google_client_id     = "<client id>.apps.googleusercontent.com"
+google_client_secret = "<client secret>"
+
+# Brevo > SMTP & API > SMTP: login and SMTP key; the sender domain validated (SPF, DKIM in Route 53).
+smtp_host     = "smtp-relay.brevo.com"
+smtp_port     = "587"
+smtp_starttls = true
+smtp_username = "<Brevo SMTP login>"
+smtp_password = "<Brevo SMTP key>"
+smtp_from     = "no-reply@labcabrera.com"
+
+# Administrator: gets rmu-admin and every book group. The password is temporary.
+primary_user_username = "<username>"
+primary_user_email    = "<email>"
+primary_user_password = "<temporary password>"

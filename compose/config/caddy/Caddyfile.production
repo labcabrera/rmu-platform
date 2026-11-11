@@ -1,0 +1,139 @@
+# Production gateway (workspace spec 103): the same routes as the local Caddyfile on one public host, with
+# automatic HTTPS. Caddy gets the certificate from Let's Encrypt on the first request, renews it, redirects
+# HTTP to HTTPS and serves HTTP/3. Mounted by compose/production.yaml.
+#
+#   /                 rmu-mfe-shell
+#   /mfe/<name>/      rmu-mfe-<name>
+#   /api/<name>/      rmu-api-<name>:<port>
+#   /sso/             rmu-keycloak:8080/sso/  (the admin console /sso/admin answers 404: use the SSH tunnel)
+#   /media/           uploads/ of the media bucket in rmu-s3
+#
+# Variables (compose/production.yaml): RMU_PUBLIC_HOST, RMU_ACME_EMAIL and RMU_CADDY_TLS_OPTION
+# (`local_certs` for a local test with Caddy's own CA; empty in production).
+{
+	admin off
+	email {$RMU_ACME_EMAIL}
+	{$RMU_CADDY_TLS_OPTION}
+	# Request metrics (count, errors, latency by handler and code), served on :9180 below.
+	metrics
+}
+
+{$RMU_PUBLIC_HOST} {
+	encode zstd gzip
+
+	# Access log to stdout, read by the monitoring agent (spec 103, D9). Without headers (cookies, tokens),
+	# with the client address masked to its network and without the sign-in code of the OIDC redirect.
+	log {
+		output stdout
+		format filter {
+			request>headers delete
+			resp_headers delete
+			request>remote_ip ip_mask 16 32
+			request>client_ip ip_mask 16 32
+			request>uri query {
+				delete code
+				delete state
+				delete session_state
+				delete iss
+			}
+		}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		-Server
+	}
+
+	handle_path /api/core/* {
+		reverse_proxy rmu-api-core:3001
+	}
+	handle_path /api/strategic/* {
+		reverse_proxy rmu-api-strategic:3002
+	}
+	handle_path /api/tactical/* {
+		reverse_proxy rmu-api-tactical:3003
+	}
+	handle_path /api/attack-tables/* {
+		reverse_proxy rmu-api-attack-tables:3005
+	}
+	handle_path /api/items/* {
+		reverse_proxy rmu-api-items:3006
+	}
+	handle_path /api/npc-names/* {
+		reverse_proxy rmu-api-npc-names:3007
+	}
+	handle_path /api/npcs/* {
+		reverse_proxy rmu-api-npcs:3008
+	}
+	handle_path /api/spells/* {
+		reverse_proxy rmu-api-spells:3009
+	}
+	handle_path /api/users/* {
+		reverse_proxy rmu-api-users:3010
+	}
+	handle_path /api/media/* {
+		reverse_proxy rmu-api-media:3011
+	}
+
+	# Keycloak on the same origin as the shell (first-party session cookies for the silent sign-in). Its
+	# admin console and admin REST API are not public: they answer 404 here and are used through the SSH
+	# tunnel to 127.0.0.1:8090. The APIs reach the admin REST API inside the network (rmu-keycloak:8080).
+	redir /sso /sso/ 301
+	handle /sso/admin* {
+		respond 404
+	}
+	handle /sso/* {
+		reverse_proxy rmu-keycloak:8080
+	}
+
+	handle_path /mfe/core/* {
+		reverse_proxy rmu-mfe-core:80
+	}
+	handle_path /mfe/strategic/* {
+		reverse_proxy rmu-mfe-strategic:80
+	}
+	handle_path /mfe/tactical/* {
+		reverse_proxy rmu-mfe-tactical:80
+	}
+	handle_path /mfe/npcs/* {
+		reverse_proxy rmu-mfe-npcs:80
+	}
+	handle_path /mfe/items/* {
+		reverse_proxy rmu-mfe-items:80
+	}
+	handle_path /mfe/spells/* {
+		reverse_proxy rmu-mfe-spells:80
+	}
+	handle_path /mfe/wiki/* {
+		reverse_proxy rmu-mfe-wiki:80
+	}
+	# Images users upload: uploads/ of the media bucket, readable without credentials through its policy.
+	handle_path /media/* {
+		rewrite * /{$RMU_MEDIA_S3_BUCKET:rmu-media}{uri}
+		reverse_proxy rmu-s3:8333
+	}
+	handle_path /mfe/assets/* {
+		reverse_proxy rmu-mfe-assets:80
+	}
+	# Remotes without a route: 404 instead of the shell's index.html.
+	handle /mfe/* {
+		respond 404
+	}
+
+	handle {
+		reverse_proxy rmu-mfe-shell:80
+	}
+}
+
+# Container healthcheck (compose/gateway.yaml), inside the network only.
+:2020 {
+	respond "OK" 200
+}
+
+# Prometheus metrics for the monitoring agent (rmu-alloy), inside the network only: the port is not published.
+:9180 {
+	metrics
+}

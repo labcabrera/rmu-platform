@@ -17,7 +17,7 @@ endif
 
 .DEFAULT_GOAL := help
 .PHONY: e2e help build-local up-local config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
-	keycloak-init keycloak-default-group mfes-dev mfe-dev mfe-container e2e-combat diagrams
+	mongo-reassign-users catalog-export keycloak-init keycloak-default-group mfes-dev mfe-dev mfe-container e2e-combat diagrams
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -97,6 +97,12 @@ mongo-migrate-pending: ## Run the migrations not recorded in rmu-platform.migrat
 mongo-migrate-baseline: ## Record migrations as applied without running them (f="a.js b.js", default every one)
 	scripts/mongo-migrate-pending.sh --baseline $(f)
 
+mongo-reassign-users: ## Reassign every user's data to one user (TARGET_SUB=<keycloak id> TARGET_NAME=<nick>, DRY_RUN=1)
+	DRY_RUN="$(DRY_RUN)" TARGET_SUB="$(TARGET_SUB)" TARGET_NAME="$(TARGET_NAME)" KEEP_SUBS="$(KEEP_SUBS)" scripts/mongo-reassign-users.sh
+
+catalog-export: ## Export the book catalog of the local Mongo into backups/catalog-*.archive.gz (spec 103, D10)
+	scripts/catalog-sync/export.sh
+
 keycloak-init: ## Create/update the local Keycloak realm with terraform, no prompt (needs terraform.tfvars)
 	terraform -chdir=$(TF_KEYCLOAK) init -input=false
 	terraform -chdir=$(TF_KEYCLOAK) apply -input=false -auto-approve
@@ -132,3 +138,70 @@ e2e-combat: ## Combat flow test (spec 005) on the first tactical game: it change
 
 diagrams: ## Render docs/diagrams/*.plantuml to SVG (PlantUML in Docker; f=<file> for one)
 	docs/diagrams/render.sh $(f)
+
+# --- Production (workspace spec 103) ------------------------------------------------------------------------
+# The production override on top of compose.yaml, with its own env file (never .env). The Mongo scripts read
+# their credentials from it through ENV_FILE. See docs/operations/production.adoc.
+PROD_ENV_FILE ?= .env.production
+PROD_COMPOSE  := docker compose --env-file $(PROD_ENV_FILE) -f compose.yaml -f compose/production.yaml
+PROD_SCRIPT_ENV := ENV_FILE="$(abspath $(PROD_ENV_FILE))"
+
+.PHONY: prod-env prod-config prod-pull prod-up prod-down prod-ps prod-logs prod-backup prod-restore \
+	prod-migrate-pending prod-reassign-users prod-catalog-import \
+	prod-backup-init prod-backup-nightly prod-backup-snapshots prod-backup-restore
+
+# backups/metrics is created here so it is not a root-owned directory made by Docker when rmu-alloy mounts it.
+prod-env:
+	@test -f "$(PROD_ENV_FILE)" || { echo "Missing $(PROD_ENV_FILE). Create it from .env.production.example" >&2; exit 1; }
+	@mkdir -p backups/metrics
+
+prod-config: prod-env ## Production: validate the compose files and check that only the gateway publishes ports
+	$(PROD_COMPOSE) config -q
+	scripts/check-production-ports.sh "$(PROD_ENV_FILE)"
+
+prod-pull: prod-env ## Production: pull the images of the versions in the env file
+	$(PROD_COMPOSE) pull --ignore-buildable
+
+prod-up: prod-config ## Production: start the profiles of the env file (s="<services>" for some)
+	$(PROD_COMPOSE) up -d --remove-orphans $(s)
+	$(PROD_COMPOSE) ps
+
+prod-down: prod-env ## Production: stop the stack (volumes are kept)
+	$(PROD_COMPOSE) --profile '*' down
+
+prod-ps: prod-env ## Production: list the services
+	$(PROD_COMPOSE) --profile '*' ps
+
+prod-logs: prod-env ## Production: follow logs (all services, or one with s=<service>)
+	$(PROD_COMPOSE) --profile '*' logs -f --tail=200 $(s)
+
+prod-backup: prod-env ## Production: dump Mongo into backups/ (quick copy before a change; the nightly one is prod-backup-nightly)
+	$(PROD_SCRIPT_ENV) scripts/mongo-backup.sh
+
+prod-restore: prod-env ## Production: restore a Mongo dump (f=<archive>, drops the restored collections)
+	@test -n "$(f)" || { echo "Usage: make prod-restore f=backups/<file>" >&2; exit 1; }
+	$(PROD_SCRIPT_ENV) scripts/mongo-restore.sh "$(f)"
+
+prod-migrate-pending: prod-env ## Production: run the pending migrations (DRY_RUN=1 to only list)
+	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" scripts/mongo-migrate-pending.sh
+
+prod-reassign-users: prod-env ## Production: reassign every user's data to one user (TARGET_SUB=, TARGET_NAME=, DRY_RUN=1)
+	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" TARGET_SUB="$(TARGET_SUB)" TARGET_NAME="$(TARGET_NAME)" KEEP_SUBS="$(KEEP_SUBS)" \
+		scripts/mongo-reassign-users.sh
+
+prod-catalog-import: prod-env ## Production: import a catalog package (f=<package>, CATALOG_OWNER_SUB=<admin id>, DRY_RUN=1, PRUNE=1)
+	@test -n "$(f)" || { echo "Usage: make prod-catalog-import f=backups/catalog-<...>.archive.gz CATALOG_OWNER_SUB=<id>" >&2; exit 1; }
+	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" PRUNE="$(PRUNE)" CATALOG_OWNER_SUB="$(CATALOG_OWNER_SUB)" \
+		scripts/catalog-sync/import.sh "$(f)"
+
+prod-backup-init: prod-env ## Production: create the restic repository of the backups (once)
+	$(PROD_SCRIPT_ENV) scripts/prod-backup.sh --init
+
+prod-backup-nightly: prod-env ## Production: Mongo, Postgres and S3 into restic (R2), with retention (cron runs it)
+	$(PROD_SCRIPT_ENV) scripts/prod-backup.sh
+
+prod-backup-snapshots: prod-env ## Production: list the restic snapshots
+	$(PROD_SCRIPT_ENV) scripts/prod-restore.sh --list
+
+prod-backup-restore: prod-env ## Production: restore a snapshot (id=<snapshot>, default latest; ONLY="mongo postgres s3"; DOWNLOAD_ONLY=1)
+	$(PROD_SCRIPT_ENV) ONLY="$(ONLY)" DOWNLOAD_ONLY="$(DOWNLOAD_ONLY)" scripts/prod-restore.sh $(id)

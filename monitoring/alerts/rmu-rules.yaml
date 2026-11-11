@@ -1,0 +1,84 @@
+# Alert rules of production (workspace spec 103, D9), in Prometheus format for the Grafana Cloud Mimir ruler:
+#   mimirtool rules load monitoring/alerts/rmu-rules.yaml --address=<Prometheus URL without /api/prom/push> --id=<user> --key=<token>
+# The token needs the rules:write scope. See monitoring/alerts.md (synthetic checks, contact point).
+# Check locally: docker run --rm -v $PWD/monitoring/alerts:/r --entrypoint promtool prom/prometheus:v3.5.0 check rules /r/rmu-rules.yaml
+groups:
+  - name: rmu-host
+    rules:
+      - alert: RmuMonitoringSilent
+        expr: absent_over_time(up{job="integrations/unix"}[10m])
+        labels:
+          severity: critical
+        annotations:
+          summary: No metrics from the server for 10 minutes (host down, or rmu-alloy stopped).
+      - alert: RmuDiskFull
+        expr: 1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} > 0.80
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk / is {{ $value | humanizePercentage }} full on {{ $labels.instance }}."
+      - alert: RmuMemoryLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Only {{ $value | humanizePercentage }} of the memory is available on {{ $labels.instance }}."
+
+  - name: rmu-containers
+    rules:
+      # One restart is a deploy; several in half an hour is a crash loop.
+      - alert: RmuContainerRestarting
+        expr: changes(container_start_time_seconds{name=~"rmu-.+"}[30m]) >= 2
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} restarted {{ $value }} times in 30 minutes."
+      - alert: RmuContainerOutOfMemory
+        expr: increase(container_oom_events_total{name=~"rmu-.+"}[30m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} hit its memory limit (compose/production.yaml mem_limit)."
+
+  - name: rmu-gateway
+    rules:
+      - alert: RmuServerErrors
+        expr: |
+          sum by (instance) (rate(caddy_http_request_duration_seconds_count{code=~"5.."}[10m]))
+            / sum by (instance) (rate(caddy_http_request_duration_seconds_count[10m])) > 0.05
+          and sum by (instance) (rate(caddy_http_request_duration_seconds_count[10m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of the requests answer 5xx."
+
+  - name: rmu-backups
+    rules:
+      - alert: RmuBackupMissing
+        expr: time() - rmu_backup_last_success_timestamp_seconds > 26 * 3600 or absent(rmu_backup_last_success_timestamp_seconds)
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: No successful nightly backup in the last 26 hours (make prod-backup-nightly, cron log).
+
+  # Metrics of Grafana Cloud Synthetic Monitoring (monitoring/alerts.md): the checks run from outside the server.
+  - name: rmu-synthetic
+    rules:
+      - alert: RmuSiteDown
+        expr: sum by (job, instance) (probe_success{job=~"rmu-.+"}) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} does not answer from any probe."
+      - alert: RmuCertificateExpiring
+        expr: min by (instance) (probe_ssl_earliest_cert_expiry{job=~"rmu-.+"}) - time() < 14 * 86400
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "The certificate of {{ $labels.instance }} expires in {{ $value | humanizeDuration }} (Caddy renews at 30 days)."

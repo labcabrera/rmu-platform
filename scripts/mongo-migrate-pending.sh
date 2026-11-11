@@ -17,7 +17,7 @@ MIGRATIONS_DIR="${ROOT_DIR}/scripts/migrations"
 MONGO_CONTAINER="${MONGO_CONTAINER:-rmu-mongo}"
 
 env_value() {
-  grep -E "^$1=" "${ROOT_DIR}/.env" 2>/dev/null | tail -n1 | cut -d= -f2-
+  grep -E "^$1=" "${ENV_FILE:-${ROOT_DIR}/.env}" 2>/dev/null | tail -n1 | cut -d= -f2-
 }
 
 MONGO_USER="${MONGO_USER:-$(env_value MONGO_USER)}"
