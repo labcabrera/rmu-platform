@@ -125,7 +125,7 @@ A VPS with Ubuntu 24.04 LTS, 4 vCPU, 8 GB and 75 GB.
 . Run `make prod-config` (compose valid and only the gateway public).
 . Run `make prod-pull`.
 . Start the infrastructure first: `make prod-up s="rmu-mongo rmu-postgres rmu-keycloak rmu-kafka rmu-s3 rmu-s3-init"`.
-. Apply the Keycloak production stack through the tunnel (`ssh -L 8090:127.0.0.1:8090 rmu@<host>`).
+. Apply the Keycloak production stack through the tunnel (link:keycloak-terraform.adoc#_production_keycloak[Production Keycloak]) and note the `primary_user_id` output.
 . Restore the data and run the pending migrations (`make prod-restore f=...` and `make prod-migrate-pending`).
 . Run `make prod-up`. Caddy asks for the certificate on the first HTTPS request.
 
