@@ -2,7 +2,7 @@
 BASE_DIR ?= $(or $(RMU_WORKSPACE_DIR),$(abspath ..))
 TAG      ?= local
 p        ?= $(patsubst $(BASE_DIR)/%/Dockerfile,%,$(wildcard $(BASE_DIR)/rmu-api-*/Dockerfile $(BASE_DIR)/rmu-mfe-*/Dockerfile))
-MFES     := rmu-mfe-shell rmu-mfe-core rmu-mfe-strategic rmu-mfe-tactical rmu-mfe-items rmu-mfe-npcs rmu-mfe-spells
+MFES     := rmu-mfe-shell rmu-mfe-core rmu-mfe-strategic rmu-mfe-tactical rmu-mfe-items rmu-mfe-npcs rmu-mfe-spells rmu-mfe-wiki
 
 TF_KEYCLOAK ?= terraform/stacks/keycloak-local
 
@@ -115,7 +115,7 @@ mfes-dev: ## Start the MFEs from source in gnome-terminal tabs (BASE_DIR=<worksp
 	done
 	@gnome-terminal --tab --title=rmu-mfe-assets -- bash -c "cd '$(BASE_DIR)/rmu-mfe-assets' && python3 local-start.py; exec bash"
 
-mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|npcs|items|spells|assets) so the gateway uses its dev server
+mfe-dev: .env ## Stop the container of one MFE (s=shell|core|strategic|tactical|npcs|items|spells|wiki|assets) so the gateway uses its dev server
 	@test -n "$(s)" || { echo "Usage: make mfe-dev s=<name>" >&2; exit 1; }
 	docker compose stop rmu-mfe-$(s)
 	@echo "rmu-mfe-$(s) stopped. Start its dev server (F5 in VS Code, or 'make start' in rmu-mfe-$(s)) and open http://localhost/"

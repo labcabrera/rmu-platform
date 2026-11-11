@@ -2,7 +2,8 @@
 #
 #   /                 rmu-mfe-shell            fallback: dev server on the host :8080
 #   /mfe/<name>/      rmu-mfe-<name>           fallback: dev server on the host (core :8089, strategic :8082,
-#                                              tactical :8083, npcs :8084, assets :4000)
+#                                              tactical :8083, npcs :8084, spells :8087, items :8088,
+#                                              wiki :8085, assets :4000)
 #   /api/<name>/      rmu-api-<name>:<port>
 #   /sso/             rmu-keycloak:8080/sso/  (path kept: Keycloak runs with KC_HTTP_RELATIVE_PATH=/sso)
 #
@@ -96,6 +97,11 @@
 	}
 	handle_path /mfe/spells/* {
 		reverse_proxy rmu-mfe-spells:80 host.docker.internal:8087 {
+			import mfe_upstream
+		}
+	}
+	handle_path /mfe/wiki/* {
+		reverse_proxy rmu-mfe-wiki:80 host.docker.internal:8085 {
 			import mfe_upstream
 		}
 	}
