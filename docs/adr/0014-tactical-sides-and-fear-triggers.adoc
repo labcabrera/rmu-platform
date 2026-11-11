@@ -21,7 +21,7 @@ Core Law §14.3 leaves to the game master *when* to call a fear check. Table 14-
 * *One definition of fallen:* dead, dying, unconscious, incapacitated, paralyzed, routed or broken.
 * *Strength* of a side is the sum of the levels (minimum 1) of its members standing, against the sum of all its members. The dashboard shows it, with the combined hit points of the side.
 * *Psychology rules option* per game:
-** `book`: the fallen share by heads, with the thresholds of Table 14-3a, by side. It is the value for games created before this decision.
+** `book`: the fallen share by members, with the thresholds of Table 14-3a, by side. It is the value for games created before this decision.
 ** `house` (default for new games): objective triggers checked at upkeep, by side and by strength: ≤ 50 % (5), < 50 % (10), < 25 % (15), < 10 % (20); enemy strength standing at least double (5) or triple (10); the side's leader down (5). Individually: attacked by 3 or more foes or from flank and rear in the round (10), or the last one standing of the side (10).
 ** Each trigger warns once per side (or actor) and game, and again only at a higher level. Nothing is rolled automatically: the warning opens the check filled in.
 ** When a side wins a round (it inflicts more fallen levels than it takes), the game master is offered to remove Balking and Retreating from its members.
