@@ -1,0 +1,43 @@
+= ADR 0014: Sides of a tactical game and objective fear triggers
+
+* *Status:* Accepted
+* *Date:* 2026-11-11
+* *Context spec:* workspace spec 100, tactical sides and fear (`specs/100-tactical-sides-fear/` in the workspace meta-repo)
+
+== Context
+
+A tactical game in `rmu-api-tactical` holds a list of factions, and every other faction counted as an enemy. Several factions could not fight together: the target picker offered allies as targets, and fear checks grouped by a single faction.
+
+Core Law §14.3 leaves to the game master *when* to call a fear check. Table 14-3a describes situations ("half of your allies are down", "you are being surrounded") without saying when they are checked or how allies are counted. When two players pit their factions against each other, that call becomes an argument.
+
+"Down" also meant three different things: dead or unconscious on the board, the API's incapacitated set, and fear's own fallen set.
+
+== Decision
+
+* *Sides.* A tactical game has sides; each side groups one or more factions and may have a leader actor.
+** Without sides defined, each faction is its own side, so existing games need no migration.
+** Sides are edited by the game master while the game is `created` only. Once started they are fixed. A faction that joins later (the environment faction when the game master adds NPCs) gets a side of its own.
+** An enemy is anyone on another side. Players still control only the actors of their own faction.
+* *One definition of fallen:* dead, dying, unconscious, incapacitated, paralyzed, routed or broken.
+* *Strength* of a side is the sum of the levels (minimum 1) of its members standing, against the sum of all its members. The dashboard shows it, with the combined hit points of the side.
+* *Psychology rules option* per game:
+** `book`: the fallen share by heads, with the thresholds of Table 14-3a, by side. It is the value for games created before this decision.
+** `house` (default for new games): objective triggers checked at upkeep, by side and by strength: ≤ 50 % (5), < 50 % (10), < 25 % (15), < 10 % (20); enemy strength standing at least double (5) or triple (10); the side's leader down (5). Individually: attacked by 3 or more foes or from flank and rear in the round (10), or the last one standing of the side (10).
+** Each trigger warns once per side (or actor) and game, and again only at a higher level. Nothing is rolled automatically: the warning opens the check filled in.
+** When a side wins a round (it inflicts more fallen levels than it takes), the game master is offered to remove Balking and Retreating from its members.
+
+These triggers are an interpretation of §14.3 where the book leaves the call to the game master, not its text. The wiki page "Fear, morale and rallying" explains them to players.
+
+== Alternatives considered
+
+* *A side id on each faction.* Factions are a list of strategic ids with no object of their own in the game.
+* *Changing sides during the game* (betrayals, surrenders). Rejected by the user: alliances are set before the fight.
+* *A strength endpoint.* The dashboard already loads every actor round, so the lib computes the strength with the same rules and test cases as the API.
+* *"Two rounds without damaging a foe" (level 15).* Left out by the user.
+
+== Consequences
+
+* Target picking, protection, medical care and the default group of fear, morale and rally checks follow sides.
+* Fear warnings are stored by side (`side:<id>`) and by actor (`actor:<id>`); keys stored by faction in games already running are still honoured.
+* Fallen now includes dying, incapacitated and paralyzed actors, so the book warnings can fire earlier than before.
+* The same strength rules live in the API and in the shared lib, kept aligned by shared test cases.
