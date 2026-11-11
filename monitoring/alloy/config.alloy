@@ -1,0 +1,197 @@
+// Grafana Alloy pipeline of production (workspace spec 103, D9). Runs in rmu-alloy (compose/monitoring.yaml).
+//
+//   host (unix exporter) ─┐
+//   containers (cAdvisor) ┼─ allowlist ─▶ prometheus.remote_write ─▶ Grafana Cloud Prometheus
+//   Caddy, Keycloak ──────┘
+//   container logs ─────────────────────▶ loki.write ─────────────▶ Grafana Cloud Logs
+//
+// The free plan allows about 10,000 active series: every source keeps only the metrics the dashboard and the
+// alerts use (monitoring/dashboards/rmu-overview.json, monitoring/alerts.md). Add a metric to its allowlist
+// before using it in a panel.
+
+// --- Destinations ------------------------------------------------------------------------------------------
+
+prometheus.remote_write "cloud" {
+  endpoint {
+    url = sys.env("RMU_GRAFANA_CLOUD_PROMETHEUS_URI")
+    basic_auth {
+      username = sys.env("RMU_GRAFANA_CLOUD_PROMETHEUS_USER")
+      password = sys.env("RMU_GRAFANA_CLOUD_TOKEN")
+    }
+    // Every series gets the host as `instance` (scraped series arrive with instance="rmu-alloy", and an external
+    // label does not replace an existing one).
+    write_relabel_config {
+      target_label = "instance"
+      replacement  = sys.env("RMU_MONITORING_INSTANCE")
+    }
+  }
+}
+
+loki.write "cloud" {
+  endpoint {
+    url = sys.env("RMU_GRAFANA_CLOUD_LOKI_URI")
+    basic_auth {
+      username = sys.env("RMU_GRAFANA_CLOUD_LOKI_USER")
+      password = sys.env("RMU_GRAFANA_CLOUD_TOKEN")
+    }
+  }
+  external_labels = { instance = sys.env("RMU_MONITORING_INSTANCE") }
+}
+
+// --- Host --------------------------------------------------------------------------------------------------
+
+prometheus.exporter.unix "host" {
+  procfs_path    = "/host/proc"
+  sysfs_path     = "/host/sys"
+  rootfs_path    = "/host/root"
+  set_collectors = ["cpu", "meminfo", "filesystem", "loadavg", "netdev", "diskstats", "time", "textfile"]
+
+  filesystem {
+    fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tmpfs|tracefs)$"
+    mount_points_exclude = "^/(dev|proc|run|sys|var/lib/docker/.+)($|/)"
+  }
+
+  netdev {
+    device_exclude = "^(lo|veth.*|br-.*|docker.*)$"
+  }
+
+  // rmu_backup_* written by scripts/prod-backup.sh into backups/metrics/.
+  textfile {
+    directory = "/var/lib/alloy/textfile"
+  }
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.host.receiver]
+}
+
+prometheus.relabel "host" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|node_cpu_seconds_total|node_load(1|5|15)|node_memory_(MemTotal|MemAvailable|SwapTotal|SwapFree)_bytes|node_filesystem_(avail|size)_bytes|node_network_(receive|transmit)_bytes_total|node_disk_(read|written)_bytes_total|node_disk_io_time_seconds_total|node_time_seconds|node_textfile_scrape_error|rmu_backup_.*"
+    action        = "keep"
+  }
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+// --- Containers --------------------------------------------------------------------------------------------
+
+prometheus.exporter.cadvisor "containers" {
+  docker_host      = "unix:///var/run/docker.sock"
+  docker_only      = true
+  storage_duration = "2m"
+  // Only what the allowlist below keeps: the filesystem and disk collectors stat every layer and cost memory.
+  enabled_metrics = ["cpu", "memory", "network", "oom_event"]
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.containers.receiver]
+}
+
+prometheus.relabel "containers" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_spec_memory_limit_bytes|container_network_(receive|transmit)_bytes_total|container_start_time_seconds|container_oom_events_total|container_last_seen"
+    action        = "keep"
+  }
+  // Only the containers of this stack (rmu-*).
+  rule {
+    source_labels = ["__name__", "name"]
+    regex         = "up;.*|.+;rmu-.+"
+    action        = "keep"
+  }
+  rule {
+    regex  = "id|image|container_label_.*"
+    action = "labeldrop"
+  }
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+// --- Caddy and Keycloak --------------------------------------------------------------------------------------
+
+prometheus.scrape "caddy" {
+  targets         = [{ __address__ = "rmu-gateway:9180" }]
+  job_name        = "caddy"
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.caddy.receiver]
+}
+
+prometheus.relabel "caddy" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|caddy_http_requests_total|caddy_http_request_errors_total|caddy_http_request_duration_seconds_(bucket|sum|count)|caddy_reverse_proxy_upstreams_healthy"
+    action        = "keep"
+  }
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+prometheus.scrape "keycloak" {
+  targets         = [{ __address__ = "rmu-keycloak:9000" }]
+  metrics_path    = "/sso/metrics"
+  job_name        = "keycloak"
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.keycloak.receiver]
+}
+
+prometheus.relabel "keycloak" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|jvm_memory_used_bytes|jvm_memory_max_bytes|process_cpu_usage|jvm_gc_pause_seconds_(sum|count)|http_server_requests_seconds_(sum|count)"
+    action        = "keep"
+  }
+  forward_to = [prometheus.remote_write.cloud.receiver]
+}
+
+// --- Logs ----------------------------------------------------------------------------------------------------
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(rmu-.+)"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.+)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.logs.output
+  relabel_rules = discovery.relabel.logs.rules
+  forward_to    = [loki.process.logs.receiver]
+}
+
+loki.process "logs" {
+  // A `level` label from the usual shapes: JSON (`"level":"error"`, `"level":50`) or text (`ERROR`, `[Nest] ... ERROR`).
+  stage.regex {
+    expression = "(?i)\"level\"\\s*:\\s*\"?(?P<level>[a-z]+|[0-9]+)"
+  }
+  stage.regex {
+    expression = "\\b(?P<level>ERROR|WARN|WARNING|FATAL)\\b"
+  }
+  stage.template {
+    source   = "level"
+    template = "{{ if eq .Value \"50\" \"60\" }}error{{ else if eq .Value \"40\" }}warn{{ else }}{{ ToLower .Value }}{{ end }}"
+  }
+  stage.labels {
+    values = { level = "" }
+  }
+  forward_to = [loki.write.cloud.receiver]
+}

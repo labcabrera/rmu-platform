@@ -1,0 +1,53 @@
+# Monitoring agent for production (workspace spec 103, D9): Grafana Alloy sends to the Grafana Cloud stack
+#   - host metrics (built-in node exporter) and container metrics (built-in cAdvisor),
+#   - the logs of every container (label `service`),
+#   - the metrics of Caddy (rmu-gateway:9180) and Keycloak (management port 9000),
+#   - the result of the nightly backup (textfile collector, written by scripts/prod-backup.sh).
+# Pipeline in monitoring/alloy/config.alloy; the Grafana Cloud endpoints and token come from RMU_GRAFANA_CLOUD_*.
+# Alloy's UI and API listen on 12345 inside the network only (the port is not published).
+services:
+  rmu-alloy:
+    image: grafana/alloy:${ALLOY_VERSION:-v1.21.3}
+    container_name: rmu-alloy
+    hostname: rmu-alloy
+    profiles:
+      - monitoring
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      RMU_GRAFANA_CLOUD_PROMETHEUS_URI: ${RMU_GRAFANA_CLOUD_PROMETHEUS_URI:-}
+      RMU_GRAFANA_CLOUD_PROMETHEUS_USER: ${RMU_GRAFANA_CLOUD_PROMETHEUS_USER:-}
+      RMU_GRAFANA_CLOUD_LOKI_URI: ${RMU_GRAFANA_CLOUD_LOKI_URI:-}
+      RMU_GRAFANA_CLOUD_LOKI_USER: ${RMU_GRAFANA_CLOUD_LOKI_USER:-}
+      RMU_GRAFANA_CLOUD_TOKEN: ${RMU_GRAFANA_CLOUD_TOKEN:-}
+      # `instance` label of every series and log line: the host in production.
+      RMU_MONITORING_INSTANCE: ${RMU_PUBLIC_HOST:-localhost}
+    volumes:
+      - ../monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - rmu-alloy-data:/var/lib/alloy/data
+      # Host metrics.
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+      - /run/udev/data:/run/udev/data:ro
+      # Containers: discovery, logs and cAdvisor.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # cAdvisor's Docker factory reads container details from containerd (Docker 29 with the containerd image store).
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      # rmu_backup_* metrics written by scripts/prod-backup.sh.
+      - ../backups/metrics:/var/lib/alloy/textfile:ro
+    # cAdvisor reads the cgroups of every container: the host's cgroup namespace (cgroup v2).
+    privileged: true
+    pid: host
+    cgroup: host
+    restart: unless-stopped
+    # cAdvisor and the log tailers of ~30 containers: about 200 MB at rest; 256m was too tight.
+    mem_limit: 512m
+
+volumes:
+  rmu-alloy-data:
+    driver: local

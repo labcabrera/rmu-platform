@@ -13,9 +13,9 @@ This page grows with the spec. Today it covers:
 - the server;
 - the first start;
 - day-to-day commands;
-- the data: the first load and the updates of the book catalog.
-
-Backups and monitoring come in the next phases.
+- the data: the first load and the updates of the book catalog;
+- monitoring with Grafana Cloud;
+- backups and restores.
 
 == What differs from the local stack
 
@@ -41,6 +41,7 @@ a|The override:
 * Kafka heap and in-network listener only;
 * Keycloak heap and metrics;
 * Mailpit moves to the `dev` profile;
+* `rmu-alloy` (`monitoring` profile, `compose/monitoring.yaml`) ships metrics and logs to Grafana Cloud;
 * the gateway mounts `Caddyfile.production` and keeps its certificates in the `rmu-caddy-data` volume.
 
 |`compose/config/caddy/Caddyfile.production`
@@ -75,14 +76,16 @@ The variables that change against `.env.example`:
 |===
 |Variable |Production value
 
-|`COMPOSE_PROFILES` |`infrastructure,apis,mfes,gateway`
+|`COMPOSE_PROFILES` |`infrastructure,apis,mfes,gateway,monitoring`
 |`RMU_PUBLIC_HOST` |`rmu.labcabrera.com`
 |`RMU_ACME_EMAIL` |Address of the Let's Encrypt account (expiry notices)
 |`RMU_CADDY_TLS_OPTION` |Empty. `local_certs` only for a local test
 |`KC_HOSTNAME`, `RMU_MFE_IAM_URI` |`https://rmu.labcabrera.com/sso`
 |`RMU_IAM_ISSUER_URI` |`https://rmu.labcabrera.com/sso/realms/rmu`
 |`LOG_LEVEL` |`info`
-|`RMU_ADMIN_*_URI` |Empty: Kafka UI and the local Grafana do not run, and the Keycloak console goes through the tunnel
+|`RMU_ADMIN_*_URI` |Empty, except `RMU_ADMIN_GRAFANA_URI` (the Grafana Cloud stack): Kafka UI does not run, and the Keycloak console goes through the tunnel
+|`RMU_GRAFANA_CLOUD_*` |Endpoints, users and token of the Grafana Cloud stack (<<_monitoring>>)
+|`RMU_BACKUP_*` |The restic repository in R2, its password and the R2 key (<<_backups>>)
 |===
 
 == Testing the override on a workstation
@@ -205,3 +208,86 @@ A collection without a mode makes the export and the import fail: classify every
 Images and the translated texts of the catalog come with the `rmu-mfe-assets` image: update them by deploying its new version.
 
 **Keycloak admin console:** open the tunnel `ssh -L 8090:127.0.0.1:8090 rmu@<host>`, then go to `http://localhost:8090/sso/admin/`.
+
+== Monitoring
+
+`rmu-alloy` (Grafana Alloy, `compose/monitoring.yaml`, pipeline in `monitoring/alloy/config.alloy`) sends to the free Grafana Cloud stack:
+
+* host metrics (CPU, memory, disk, network) and container metrics (CPU, memory against the limit, starts, OOM);
+* the metrics of Caddy (requests, codes, latency; an internal `:9180` site) and of Keycloak (management port 9000);
+* the logs of every `rmu-*` container, labelled `service`, `container` and `level`. The Caddy access log leaves out headers and the sign-in `code` and `state`, and masks client addresses to their /16;
+* `rmu_backup_*`, the result of the nightly backup (<<_backups>>).
+
+Each source keeps only the metrics the dashboard and the alerts use: about 500 series, far from the 10,000 of the free plan. Add a metric to its allowlist in `config.alloy` before using it in a panel.
+
+**Setting it up:**
+
+. In the Grafana Cloud portal, from the *Details* pages of the stack's Prometheus and Loki, copy the URLs and the users into `RMU_GRAFANA_CLOUD_*` of `.env.production`. Create one access policy token with `metrics:write` and `logs:write` for `RMU_GRAFANA_CLOUD_TOKEN`.
+. `make prod-up`: the `monitoring` profile is in `COMPOSE_PROFILES`.
+. Follow link:../../monitoring/alerts.md[`monitoring/alerts.md`]: the email contact point, the rules (`monitoring/alerts/rmu-rules.yaml`), the two Synthetic Monitoring checks and the dashboard (`monitoring/dashboards/rmu-overview.json`).
+
+**Checking the agent:** `docker exec rmu-alloy wget -qO- localhost:12345/-/ready`. Its UI, with the state of each component, is on port 12345 inside the network only.
+
+NOTE: cAdvisor needs the host's cgroups and the containerd socket, so `rmu-alloy` is privileged and mounts the Docker and containerd sockets read-only. With 256 MB it ran out of memory and the scrapes timed out; it has 512 MB.
+
+=== Testing it on a workstation
+
+The local `observability` profile (`grafana/otel-lgtm`) can stand in for Grafana Cloud. In the local `.env.production`:
+
+[source,properties]
+----
+RMU_GRAFANA_CLOUD_PROMETHEUS_URI=http://rmu-otel:9090/api/v1/write
+RMU_GRAFANA_CLOUD_LOKI_URI=http://rmu-otel:3100/loki/api/v1/push
+RMU_GRAFANA_CLOUD_PROMETHEUS_USER=local
+RMU_GRAFANA_CLOUD_LOKI_USER=local
+RMU_GRAFANA_CLOUD_TOKEN=local
+----
+
+Then start it with both profiles, outside `make prod-up` (which refuses the ports of `rmu-otel`): `COMPOSE_PROFILES=infrastructure,apis,mfes,gateway,monitoring,observability docker compose --env-file .env.production -f compose.yaml -f compose/production.yaml up -d`. Grafana on http://localhost:3000 (admin/admin); import the dashboard there.
+
+== Backups
+
+`scripts/prod-backup.sh` (`make prod-backup-nightly`) runs every night:
+
+. dumps Mongo (`mongo.archive.gz`), the Keycloak database (`postgres.dump`, `pg_dump -Fc`) and the volume of `rmu-s3` (`s3-data.tar.gz`, with `rmu-s3` paused for the few seconds of the copy) into `backups/nightly/`;
+. sends that folder to the restic repository in Cloudflare R2, encrypted, and keeps 7 daily, 4 weekly and 6 monthly snapshots;
+. writes `backups/metrics/rmu_backup.prom`, which `rmu-alloy` reads: the alert `RmuBackupMissing` fires after 26 hours without a successful run.
+
+restic runs from its image (`restic/restic`), so the host needs nothing installed. Its secrets reach the container as environment variables, never as arguments.
+
+**Setting it up:**
+
+. In Cloudflare: an R2 bucket (for example `rmu-backups`, private) and an R2 API token with *Object Read & Write* on that bucket only.
+. In `.env.production`: `RMU_BACKUP_RESTIC_REPOSITORY=s3:https://<account id>.r2.cloudflarestorage.com/<bucket>`, the token's key pair in `RMU_BACKUP_S3_*`, and a long `RMU_BACKUP_RESTIC_PASSWORD`. Save the password in the password manager: without it the backups cannot be read.
+. `make prod-backup-init` creates the repository, once.
+. `make prod-backup-nightly` by hand the first time, then `make prod-backup-snapshots`.
+. Cron of the `rmu` user (`crontab -e`), every night at 04:15:
++
+[source]
+----
+15 4 * * * cd /opt/rmu/rmu-platform && make prod-backup-nightly >> /var/log/rmu-backup.log 2>&1
+----
++
+Create the log first: `sudo install -o rmu -m 644 /dev/null /var/log/rmu-backup.log`.
+
+== Restoring
+
+`scripts/prod-restore.sh` (`make prod-backup-restore`) downloads a snapshot into `backups/restore-<date>/` and restores it over the running data:
+
+[source,bash]
+----
+make prod-backup-snapshots                         # the snapshots
+make prod-backup-restore DOWNLOAD_ONLY=1           # only download the latest one
+make prod-backup-restore id=<snapshot> ONLY=mongo  # one part of one snapshot: mongo, postgres and/or s3
+make prod-backup-restore                           # everything from the latest one
+----
+
+* **mongo:** `scripts/mongo-restore.sh` drops and restores the collections of the archive.
+* **postgres:** Keycloak is stopped, its database restored with `pg_restore --clean`, and Keycloak started.
+* **s3:** `rmu-s3` is stopped, its volume emptied and extracted again, and `rmu-s3` started.
+
+It asks before overwriting (`YES=1` skips the question). Delete the `restore-*` folder when done.
+
+**On a new server**, after <<_the_server>> and with the same `.env.production`: start the infrastructure (<<_first_start>>, step 4), run `make prod-backup-restore`, then `make prod-up`. Keycloak needs no Terraform: its whole database comes back.
+
+**Restore test** (spec 103, D12): done on 2026-11-11 against temporary containers. The Mongo, Keycloak and image counts were the same, and an uploaded image was identical byte for byte. Repeat it after changing the scripts: the `*_CONTAINER` variables of `scripts/backup-lib.sh` point the restore to other containers.

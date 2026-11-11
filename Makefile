@@ -147,10 +147,13 @@ PROD_COMPOSE  := docker compose --env-file $(PROD_ENV_FILE) -f compose.yaml -f c
 PROD_SCRIPT_ENV := ENV_FILE="$(abspath $(PROD_ENV_FILE))"
 
 .PHONY: prod-env prod-config prod-pull prod-up prod-down prod-ps prod-logs prod-backup prod-restore \
-	prod-migrate-pending prod-reassign-users prod-catalog-import
+	prod-migrate-pending prod-reassign-users prod-catalog-import \
+	prod-backup-init prod-backup-nightly prod-backup-snapshots prod-backup-restore
 
+# backups/metrics is created here so it is not a root-owned directory made by Docker when rmu-alloy mounts it.
 prod-env:
 	@test -f "$(PROD_ENV_FILE)" || { echo "Missing $(PROD_ENV_FILE). Create it from .env.production.example" >&2; exit 1; }
+	@mkdir -p backups/metrics
 
 prod-config: prod-env ## Production: validate the compose files and check that only the gateway publishes ports
 	$(PROD_COMPOSE) config -q
@@ -172,7 +175,7 @@ prod-ps: prod-env ## Production: list the services
 prod-logs: prod-env ## Production: follow logs (all services, or one with s=<service>)
 	$(PROD_COMPOSE) --profile '*' logs -f --tail=200 $(s)
 
-prod-backup: prod-env ## Production: dump Mongo into backups/
+prod-backup: prod-env ## Production: dump Mongo into backups/ (quick copy before a change; the nightly one is prod-backup-nightly)
 	$(PROD_SCRIPT_ENV) scripts/mongo-backup.sh
 
 prod-restore: prod-env ## Production: restore a Mongo dump (f=<archive>, drops the restored collections)
@@ -190,3 +193,15 @@ prod-catalog-import: prod-env ## Production: import a catalog package (f=<packag
 	@test -n "$(f)" || { echo "Usage: make prod-catalog-import f=backups/catalog-<...>.archive.gz CATALOG_OWNER_SUB=<id>" >&2; exit 1; }
 	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" PRUNE="$(PRUNE)" CATALOG_OWNER_SUB="$(CATALOG_OWNER_SUB)" \
 		scripts/catalog-sync/import.sh "$(f)"
+
+prod-backup-init: prod-env ## Production: create the restic repository of the backups (once)
+	$(PROD_SCRIPT_ENV) scripts/prod-backup.sh --init
+
+prod-backup-nightly: prod-env ## Production: Mongo, Postgres and S3 into restic (R2), with retention (cron runs it)
+	$(PROD_SCRIPT_ENV) scripts/prod-backup.sh
+
+prod-backup-snapshots: prod-env ## Production: list the restic snapshots
+	$(PROD_SCRIPT_ENV) scripts/prod-restore.sh --list
+
+prod-backup-restore: prod-env ## Production: restore a snapshot (id=<snapshot>, default latest; ONLY="mongo postgres s3"; DOWNLOAD_ONLY=1)
+	$(PROD_SCRIPT_ENV) ONLY="$(ONLY)" DOWNLOAD_ONLY="$(DOWNLOAD_ONLY)" scripts/prod-restore.sh $(id)

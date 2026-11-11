@@ -24,6 +24,16 @@ After changing a `.plantuml` file, render its SVG again with `make diagrams` (or
 ** *Keycloak*: OIDC provider, backed by *PostgreSQL*. See link:auth.adoc[].
 ** *S3*: the images users upload, managed by the Media API under `uploads/` of its bucket (locally the `rmu-s3` service, ADR 0011). The base images are the files of `rmu-mfe-assets`. See link:configuration.adoc#_asset_paths[Asset paths].
 
+== Environments
+
+* *Local*: the Compose stack of this repository on http://localhost (link:../local-development.adoc[]).
+* *Production* (workspace spec 103): the same stack plus the `compose/production.yaml` override on one OVHcloud VPS, at https://rmu.labcabrera.com. DNS stays in Route 53. Around it:
+** *Let's Encrypt*: the certificate, issued and renewed by Caddy.
+** *Grafana Cloud*: metrics, logs, alerts and external checks, through the `rmu-alloy` agent (`monitoring` profile).
+** *Cloudflare R2*: the nightly backups, encrypted with restic.
++
+Operations are in link:../operations/production.adoc[].
+
 == Call flow
 
 image::../diagrams/c4-containers-apis.svg[RMU API containers diagram]
@@ -86,4 +96,6 @@ APIs publish domain events and react to the events of other domains, for example
 
 == Observability
 
-The `observability` profile runs `grafana/otel-lgtm` (Grafana, Loki, Tempo, Prometheus and an OpenTelemetry collector). APIs are expected to export OTLP to `rmu-otel:4317` (gRPC) or `rmu-otel:4318` (HTTP). Instrumenting each API is work in its own repository; see link:../local-development.adoc#observability[Local development].
+In production the `monitoring` profile runs Grafana Alloy, which sends host and container metrics, the metrics of Caddy and Keycloak and the logs of every container to Grafana Cloud (link:../operations/production.adoc#_monitoring[Monitoring]).
+
+Locally, the `observability` profile runs `grafana/otel-lgtm` (Grafana, Loki, Tempo, Prometheus and an OpenTelemetry collector). APIs are expected to export OTLP to `rmu-otel:4317` (gRPC) or `rmu-otel:4318` (HTTP). Instrumenting each API is work in its own repository; see link:../local-development.adoc#observability[Local development].

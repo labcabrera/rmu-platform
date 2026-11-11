@@ -7,6 +7,7 @@
 #   tools           dev tools: Kafka UI (needs infrastructure)
 #   gateway         Caddy gateway: shell at /, MFEs at /mfe/<name>/, APIs at /api/<name>/
 #   observability   Grafana + OTel collector (grafana/otel-lgtm)
+#   monitoring      Grafana Alloy shipping metrics and logs to Grafana Cloud (production, spec 103)
 # See docs/local-development.adoc.
 include:
   - compose/infrastructure.yaml
@@ -15,6 +16,7 @@ include:
   - compose/mfes.yaml
   - compose/gateway.yaml
   - compose/observability.yaml
+  - compose/monitoring.yaml
 
 # Fixed name so containers started outside this file (e.g. `make docker-run` in an API repo)
 # can join with --network rmu-network.
