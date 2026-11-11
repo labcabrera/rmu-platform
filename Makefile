@@ -17,7 +17,7 @@ endif
 
 .DEFAULT_GOAL := help
 .PHONY: e2e help build-local up-local config up up-infra up-apis down ps logs mongo-backup mongo-restore mongo-migrate \
-	keycloak-init keycloak-default-group mfes-dev mfe-dev mfe-container e2e-combat diagrams
+	mongo-reassign-users catalog-export keycloak-init keycloak-default-group mfes-dev mfe-dev mfe-container e2e-combat diagrams
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -97,6 +97,12 @@ mongo-migrate-pending: ## Run the migrations not recorded in rmu-platform.migrat
 mongo-migrate-baseline: ## Record migrations as applied without running them (f="a.js b.js", default every one)
 	scripts/mongo-migrate-pending.sh --baseline $(f)
 
+mongo-reassign-users: ## Reassign every user's data to one user (TARGET_SUB=<keycloak id> TARGET_NAME=<nick>, DRY_RUN=1)
+	DRY_RUN="$(DRY_RUN)" TARGET_SUB="$(TARGET_SUB)" TARGET_NAME="$(TARGET_NAME)" KEEP_SUBS="$(KEEP_SUBS)" scripts/mongo-reassign-users.sh
+
+catalog-export: ## Export the book catalog of the local Mongo into backups/catalog-*.archive.gz (spec 103, D10)
+	scripts/catalog-sync/export.sh
+
 keycloak-init: ## Create/update the local Keycloak realm with terraform, no prompt (needs terraform.tfvars)
 	terraform -chdir=$(TF_KEYCLOAK) init -input=false
 	terraform -chdir=$(TF_KEYCLOAK) apply -input=false -auto-approve
@@ -141,7 +147,7 @@ PROD_COMPOSE  := docker compose --env-file $(PROD_ENV_FILE) -f compose.yaml -f c
 PROD_SCRIPT_ENV := ENV_FILE="$(abspath $(PROD_ENV_FILE))"
 
 .PHONY: prod-env prod-config prod-pull prod-up prod-down prod-ps prod-logs prod-backup prod-restore \
-	prod-migrate-pending
+	prod-migrate-pending prod-reassign-users prod-catalog-import
 
 prod-env:
 	@test -f "$(PROD_ENV_FILE)" || { echo "Missing $(PROD_ENV_FILE). Create it from .env.production.example" >&2; exit 1; }
@@ -175,3 +181,12 @@ prod-restore: prod-env ## Production: restore a Mongo dump (f=<archive>, drops t
 
 prod-migrate-pending: prod-env ## Production: run the pending migrations (DRY_RUN=1 to only list)
 	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" scripts/mongo-migrate-pending.sh
+
+prod-reassign-users: prod-env ## Production: reassign every user's data to one user (TARGET_SUB=, TARGET_NAME=, DRY_RUN=1)
+	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" TARGET_SUB="$(TARGET_SUB)" TARGET_NAME="$(TARGET_NAME)" KEEP_SUBS="$(KEEP_SUBS)" \
+		scripts/mongo-reassign-users.sh
+
+prod-catalog-import: prod-env ## Production: import a catalog package (f=<package>, CATALOG_OWNER_SUB=<admin id>, DRY_RUN=1, PRUNE=1)
+	@test -n "$(f)" || { echo "Usage: make prod-catalog-import f=backups/catalog-<...>.archive.gz CATALOG_OWNER_SUB=<id>" >&2; exit 1; }
+	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" PRUNE="$(PRUNE)" CATALOG_OWNER_SUB="$(CATALOG_OWNER_SUB)" \
+		scripts/catalog-sync/import.sh "$(f)"

@@ -1,0 +1,48 @@
+{
+  "_comment": [
+    "Catalog sync (workspace spec 103, D10): what scripts/catalog-sync copies from a local database to production.",
+    "system: only the catalog documents, {entitySource: 'system'} unless the entry gives a filter; user documents are never touched.",
+    "whole: the whole collection is catalog; production gets exactly the package (missing documents are deleted).",
+    "never: user data, not exported. A database given as a string applies the mode to all its collections.",
+    "A collection that is not listed makes the export and the import fail: classify every new collection here."
+  ],
+  "rmu-core": {
+    "cultures": "system",
+    "effect-types": "system",
+    "enumerations": "system",
+    "maneuver-modifiers": "system",
+    "professions": "system",
+    "races": "system",
+    "skills": "system",
+    "traits": "system",
+    "fighting-styles": "whole",
+    "healing-tables": "whole",
+    "maneuver-tables": "whole",
+    "poison-tables": "whole",
+    "psychology-tables": "whole",
+    "skill-categories": "whole",
+    "skill-difficulties": "whole",
+    "realms": "never"
+  },
+  "rmu-items": {
+    "items": "system",
+    "materials": "whole",
+    "trading-tables": "whole",
+    "treasure-tables": "whole"
+  },
+  "rmu-spells": {
+    "spell-lists": "system",
+    "spells": "system",
+    "alchemy-tables": "whole"
+  },
+  "rmu-npcs": {
+    "npcs": { "mode": "system", "filter": { "accessType": "public" } },
+    "encounter-settings": "whole",
+    "encounter-tables": "whole"
+  },
+  "rmu-media": "never",
+  "rmu-strategic": "never",
+  "rmu-tactical": "never",
+  "rmu-users": "never",
+  "rmu-platform": "never"
+}

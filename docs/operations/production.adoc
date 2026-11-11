@@ -12,9 +12,10 @@ This page grows with the spec. Today it covers:
 - the configuration of the stack;
 - the server;
 - the first start;
-- day-to-day commands.
+- day-to-day commands;
+- the data: the first load and the updates of the book catalog.
 
-Keycloak, the data, backups and monitoring come in the next phases.
+Backups and monitoring come in the next phases.
 
 == What differs from the local stack
 
@@ -126,7 +127,7 @@ A VPS with Ubuntu 24.04 LTS, 4 vCPU, 8 GB and 75 GB.
 . Run `make prod-pull`.
 . Start the infrastructure first: `make prod-up s="rmu-mongo rmu-postgres rmu-keycloak rmu-kafka rmu-s3 rmu-s3-init"`.
 . Apply the Keycloak production stack through the tunnel (link:keycloak-terraform.adoc#_production_keycloak[Production Keycloak]) and note the `primary_user_id` output.
-. Restore the data and run the pending migrations (`make prod-restore f=...` and `make prod-migrate-pending`).
+. Restore the data, run the pending migrations and reassign the users (<<_first_load_the_local_database_reassigned_to_one_user>>).
 . Run `make prod-up`. Caddy asks for the certificate on the first HTTPS request.
 
 == Day to day
@@ -149,5 +150,58 @@ make prod-pull && make prod-up    # after changing versions in .env.production
 . Run `make prod-up`.
 
 Respect the release order of link:migrations.adoc[the release checklist].
+
+== Data
+
+=== First load: the local database, reassigned to one user
+
+The documents keep the Keycloak `sub` of their users in many fields (`owner`, `members[].userId`, `shares`, `players`, `factionPlayers`, the realm's `games[].ownerId`...). The local database comes from other Keycloak instances, so after the restore every user reference goes to the production account:
+
+. Back up the local database and copy the archive to the server.
+. `make prod-restore f=backups/mongo-<date>.archive.gz`, then `make prod-migrate-pending`.
+. Sign in once with the production account, so `rmu-api-users` creates its user document. Its `sub` is the `primary_user_id` output of the Keycloak stack.
+. `make prod-reassign-users TARGET_SUB=<sub> TARGET_NAME=<nick> DRY_RUN=1` lists the old subs and the changes per collection.
+. The same without `DRY_RUN` asks first, then:
+** turns every string equal to an old sub, at any depth, into `TARGET_SUB`, and the `userName` next to it into `TARGET_NAME`;
+** merges what that duplicates: one member or share per user (the highest role or level), none for the owner, and unique id lists;
+** deletes the old users, their friendships, invites and messages from `rmu-users`;
+** fails if any old sub is left, and records `103-reassign-users` in `rmu-platform.migrations`.
+
+`KEEP_SUBS="<sub> ..."` leaves some users out. The script is `scripts/reassign-users.js`, run by `scripts/mongo-reassign-users.sh`.
+
+=== Book catalog updates: local to production
+
+The book data is prepared locally (imports, fixes) and copied to production without touching what users create. `scripts/catalog-sync/collections.json` gives every collection a mode:
+
+[options="header",cols="1,4"]
+|===
+|Mode |What is copied
+
+|`system`
+|The catalog documents only: `entitySource: "system"`, or the entry's `filter` (`npcs`: `accessType: "public"`, the Creature Law creatures, which only an admin writes). User documents are never touched.
+
+|`whole`
+|The whole collection (the tables). Production ends with exactly the package.
+
+|`never`
+|Nothing: realms, campaigns, combats, users, images and `rmu-platform`.
+|===
+
+A collection without a mode makes the export and the import fail: classify every new collection there.
+
+. **Locally:** `make catalog-export`. It writes `backups/catalog-<date>-<hash>.archive.gz` with a manifest (collections, counts, the applied migrations and the commit of this repository). The package holds book data: it never goes to git.
+. Copy it with `scp` to `/opt/rmu/rmu-platform/backups/`.
+. **On the server:** `make prod-catalog-import f=backups/catalog-<...>.archive.gz CATALOG_OWNER_SUB=<admin sub> DRY_RUN=1`. It restores the package into `rmu-catalog-staging` and prints per collection the new, changed, same, conflicting and orphan documents.
+. The same without `DRY_RUN` asks, backs up Mongo and merges.
+
+**What the merge does:**
+
+* The `owner` of every imported document becomes `CATALOG_OWNER_SUB`, and a changed document gets its production `version` plus one.
+* **Conflict:** the `_id` exists in production as user data. It is skipped and reported.
+* **Orphan:** catalog in production that is not in the package. `whole` deletes them. `system` only lists them, because characters can reference them; `PRUNE=1` deletes them after a review.
+* **Migrations:** the import stops if the applied migrations of production and of the package differ. Run the pending ones on the side that lacks them, and export again.
+* Each import is recorded in `rmu-platform.catalog-syncs`, and `rmu-catalog-staging` is dropped.
+
+Images and the translated texts of the catalog come with the `rmu-mfe-assets` image: update them by deploying its new version.
 
 **Keycloak admin console:** open the tunnel `ssh -L 8090:127.0.0.1:8090 rmu@<host>`, then go to `http://localhost:8090/sso/admin/`.
