@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `compose/observability.yaml` (`observability`): `grafana/otel-lgtm`.
 
   `.env.example` enables `infrastructure,apis,mfes,gateway,tools` by default.
+- `compose/production.yaml`: the production override (workspace spec 103). It is applied on top of `compose.yaml` with `.env.production` through the `make prod-*` targets. Only the gateway publishes ports, Keycloak listens on the loopback, the gateway uses `compose/config/caddy/Caddyfile.production` (automatic HTTPS) and Mailpit moves to the `dev` profile. `make prod-config` runs `scripts/check-production-ports.sh`. See `docs/operations/production.adoc`.
 - `Makefile`: the entry point. Run `make help` to list the targets.
 - `scripts/`: `mongo-backup.sh`, `mongo-restore.sh`, `mongo-migrate.sh` (runs `scripts/migrations/*.js` and records them in `rmu-platform.migrations`), `mongo-migrate-pending.sh`, `keycloak-add-default-group.sh` (`make keycloak-default-group`) and `recalculate-characters.sh` (characters queued by a migration in `rmu-platform.pending-recalculations`). The runbook is `docs/operations/migrations.adoc`.
 - `terraform/`: Keycloak realm/clients/groups/users via the `mrparkers/keycloak` provider. It holds `modules/keycloak` plus one state per stack in `stacks/<name>/`. Only `keycloak-local` exists for now.
@@ -71,6 +72,7 @@ Local endpoints: Keycloak `http://localhost/sso` through the gateway (issuer `ht
   - Published images of users still read older names; `compose/apis.yaml` sets them as `legacy` until it releases (`docs/architecture/configuration.adoc`).
 - The `apis` and `tools` profiles must always be enabled together with `infrastructure`. They `depends_on` mongo/kafka, so without it Compose fails with `depends on undefined service`.
 - Relative paths in `compose/*.yaml` (bind mounts) resolve against `compose/`, not the repo root. Variable interpolation still uses the root `.env`.
+- Exception: relative paths in `compose/production.yaml`, an override passed with `-f`, resolve against the repo root (`./compose/config/...`). A wrong path makes Docker create an empty root-owned directory in its place.
 - The gateway (Caddy) resolves upstreams per request, so it starts with any subset of services running. Each MFE route lists the container first and `host.docker.internal:<dev port>` second with `lb_policy first`: a stopped container falls back to the dev server. Keep that pattern and the `handle /mfe/*` 404, which stops unknown remotes from getting the shell's `index.html`.
 - MFE images take their URLs at runtime (`env-config.js` from the container environment). The shell's config is the one in effect in the browser, so it carries every remote and API URL, as gateway-relative paths.
 - The default network is named `rmu-network` (declared in the root `compose.yaml`), so containers started outside Compose (`make docker-run` in an API repo) can join it. If it was created by hand with `docker network create`, Compose rejects it: run `docker compose --profile '*' down && docker network rm rmu-network` once.

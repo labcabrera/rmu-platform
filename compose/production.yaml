@@ -1,0 +1,159 @@
+# Production override (workspace spec 103): applied on top of compose.yaml, never alone.
+#
+#   docker compose --env-file .env.production -f compose.yaml -f compose/production.yaml up -d
+#   (the Makefile wraps it: make prod-config, make prod-up...)
+#
+# What it changes against the local stack:
+#   - Only the gateway publishes ports (80, 443 and 443/udp). Docker writes its own iptables rules, so a
+#     published port is open to the Internet even with ufw enabled; Mongo, Kafka, S3 and the APIs stay
+#     inside the network. Keycloak listens on 127.0.0.1:8090 only, for its admin console and Terraform
+#     through an SSH tunnel.
+#   - restart: unless-stopped, so everything comes back after a reboot or a crash.
+#   - Memory limits sized for an 8 GB host (the stack uses about 2.5 GB at rest).
+#   - The gateway takes Caddyfile.production: the public host with automatic HTTPS (Let's Encrypt).
+#   - Mailpit moves to the `dev` profile: production sends mail through a real SMTP (Keycloak realm).
+#
+# Profiles for production: COMPOSE_PROFILES=infrastructure,apis,mfes,gateway (.env.production.example).
+# `tools` (Kafka UI) and `observability` (local Grafana) are for development only.
+
+x-prod: &prod
+  restart: unless-stopped
+  ports: !reset []
+
+services:
+  # --- Infrastructure -----------------------------------------------------------------------------
+  rmu-mongo:
+    <<: *prod
+    # WiredTiger sizes its cache from the container limit (about 256 MB here).
+    mem_limit: 1g
+
+  rmu-postgres:
+    restart: unless-stopped
+    mem_limit: 256m
+
+  rmu-keycloak:
+    restart: unless-stopped
+    # Loopback only: the admin console (/sso/admin is closed in the gateway) and Terraform go through
+    # `ssh -L 8090:127.0.0.1:8090 <user>@<host>`.
+    ports: !override
+      - "127.0.0.1:8090:8080"
+    mem_limit: 1g
+    environment:
+      # Heap as a share of the container limit instead of the 70 % default.
+      JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=60
+      # Prometheus metrics on the management port 9000, read by the monitoring agent (spec 103, D9).
+      KC_METRICS_ENABLED: "true"
+
+  rmu-kafka:
+    <<: *prod
+    mem_limit: 768m
+    environment:
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx384m
+      # Only the in-network listener: nothing outside the Docker network talks to Kafka.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://rmu-kafka-broker:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+  rmu-mailpit:
+    profiles: !override
+      - dev
+    ports: !reset []
+
+  rmu-s3:
+    <<: *prod
+    mem_limit: 256m
+
+  # One-shot bucket setup: keeps restart "no".
+  rmu-s3-init:
+    mem_limit: 256m
+
+  # --- APIs ---------------------------------------------------------------------------------------
+  rmu-api-core:
+    <<: *prod
+    mem_limit: 320m
+  rmu-api-strategic:
+    <<: *prod
+    mem_limit: 320m
+  rmu-api-tactical:
+    <<: *prod
+    mem_limit: 320m
+  rmu-api-attack-tables:
+    <<: *prod
+    mem_limit: 256m
+  rmu-api-items:
+    <<: *prod
+    mem_limit: 320m
+  rmu-api-npc-names:
+    <<: *prod
+    mem_limit: 128m
+  rmu-api-npcs:
+    <<: *prod
+    mem_limit: 320m
+  rmu-api-spells:
+    <<: *prod
+    mem_limit: 320m
+  rmu-api-users:
+    <<: *prod
+    mem_limit: 256m
+  rmu-api-media:
+    <<: *prod
+    mem_limit: 320m
+
+  # --- MFEs (nginx, static files) -----------------------------------------------------------------
+  rmu-mfe-shell:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-core:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-strategic:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-tactical:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-npcs:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-items:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-spells:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-wiki:
+    restart: unless-stopped
+    mem_limit: 64m
+  rmu-mfe-assets:
+    restart: unless-stopped
+    mem_limit: 64m
+
+  # --- Gateway ------------------------------------------------------------------------------------
+  rmu-gateway:
+    restart: unless-stopped
+    mem_limit: 128m
+    ports: !override
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    # No dev servers on the host in production.
+    extra_hosts: !reset []
+    environment:
+      RMU_PUBLIC_HOST: ${RMU_PUBLIC_HOST:?set RMU_PUBLIC_HOST, e.g. rmu.labcabrera.com}
+      RMU_ACME_EMAIL: ${RMU_ACME_EMAIL:?set RMU_ACME_EMAIL for the Let's Encrypt account}
+      # `local_certs` issues certificates from Caddy's own CA instead of Let's Encrypt (local tests of this
+      # override, e.g. with RMU_PUBLIC_HOST=rmu.localhost). Empty in production.
+      RMU_CADDY_TLS_OPTION: ${RMU_CADDY_TLS_OPTION:-}
+    # Relative paths of this override resolve against the project directory (rmu-platform), not compose/.
+    volumes: !override
+      - ./compose/config/caddy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      # The certificates and the ACME account: losing them means issuing again, and Let's Encrypt
+      # limits how often a name can be issued.
+      - rmu-caddy-data:/data
+      - rmu-caddy-config:/config
+
+volumes:
+  rmu-caddy-data:
+    driver: local
+  rmu-caddy-config:
+    driver: local

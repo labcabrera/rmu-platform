@@ -132,3 +132,46 @@ e2e-combat: ## Combat flow test (spec 005) on the first tactical game: it change
 
 diagrams: ## Render docs/diagrams/*.plantuml to SVG (PlantUML in Docker; f=<file> for one)
 	docs/diagrams/render.sh $(f)
+
+# --- Production (workspace spec 103) ------------------------------------------------------------------------
+# The production override on top of compose.yaml, with its own env file (never .env). The Mongo scripts read
+# their credentials from it through ENV_FILE. See docs/operations/production.adoc.
+PROD_ENV_FILE ?= .env.production
+PROD_COMPOSE  := docker compose --env-file $(PROD_ENV_FILE) -f compose.yaml -f compose/production.yaml
+PROD_SCRIPT_ENV := ENV_FILE="$(abspath $(PROD_ENV_FILE))"
+
+.PHONY: prod-env prod-config prod-pull prod-up prod-down prod-ps prod-logs prod-backup prod-restore \
+	prod-migrate-pending
+
+prod-env:
+	@test -f "$(PROD_ENV_FILE)" || { echo "Missing $(PROD_ENV_FILE). Create it from .env.production.example" >&2; exit 1; }
+
+prod-config: prod-env ## Production: validate the compose files and check that only the gateway publishes ports
+	$(PROD_COMPOSE) config -q
+	scripts/check-production-ports.sh "$(PROD_ENV_FILE)"
+
+prod-pull: prod-env ## Production: pull the images of the versions in the env file
+	$(PROD_COMPOSE) pull --ignore-buildable
+
+prod-up: prod-config ## Production: start the profiles of the env file (s="<services>" for some)
+	$(PROD_COMPOSE) up -d --remove-orphans $(s)
+	$(PROD_COMPOSE) ps
+
+prod-down: prod-env ## Production: stop the stack (volumes are kept)
+	$(PROD_COMPOSE) --profile '*' down
+
+prod-ps: prod-env ## Production: list the services
+	$(PROD_COMPOSE) --profile '*' ps
+
+prod-logs: prod-env ## Production: follow logs (all services, or one with s=<service>)
+	$(PROD_COMPOSE) --profile '*' logs -f --tail=200 $(s)
+
+prod-backup: prod-env ## Production: dump Mongo into backups/
+	$(PROD_SCRIPT_ENV) scripts/mongo-backup.sh
+
+prod-restore: prod-env ## Production: restore a Mongo dump (f=<archive>, drops the restored collections)
+	@test -n "$(f)" || { echo "Usage: make prod-restore f=backups/<file>" >&2; exit 1; }
+	$(PROD_SCRIPT_ENV) scripts/mongo-restore.sh "$(f)"
+
+prod-migrate-pending: prod-env ## Production: run the pending migrations (DRY_RUN=1 to only list)
+	$(PROD_SCRIPT_ENV) DRY_RUN="$(DRY_RUN)" scripts/mongo-migrate-pending.sh

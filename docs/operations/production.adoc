@@ -1,0 +1,153 @@
+= Production
+:toc: left
+
+How RMU Engine runs in production (workspace spec 103):
+- one host, an OVHcloud VPS with 8 GB, running the Compose stack of this repository;
+- the Caddy gateway terminating HTTPS with Let's Encrypt;
+- DNS in Route 53, with `rmu.labcabrera.com` as the `A` and `AAAA` records of the host.
+
+There is no load balancer or CDN.
+
+This page grows with the spec. Today it covers:
+- the configuration of the stack;
+- the server;
+- the first start;
+- day-to-day commands.
+
+Keycloak, the data, backups and monitoring come in the next phases.
+
+== What differs from the local stack
+
+The production stack is the local one plus an override:
+
+[source,bash]
+----
+docker compose --env-file .env.production -f compose.yaml -f compose/production.yaml ...
+----
+
+The `prod-*` targets of the `Makefile` wrap that command.
+
+[options="header",cols="2,5"]
+|===
+|File |Role
+
+|`compose/production.yaml`
+a|The override:
+
+* only `rmu-gateway` publishes ports (80, 443 and 443/udp), and `rmu-keycloak` publishes `127.0.0.1:8090` on the loopback only;
+* `restart: unless-stopped` everywhere;
+* memory limits;
+* Kafka heap and in-network listener only;
+* Keycloak heap and metrics;
+* Mailpit moves to the `dev` profile;
+* the gateway mounts `Caddyfile.production` and keeps its certificates in the `rmu-caddy-data` volume.
+
+|`compose/config/caddy/Caddyfile.production`
+a|The routes of the local `Caddyfile` on `{$RMU_PUBLIC_HOST}` with automatic HTTPS:
+
+* HTTP redirected to HTTPS, HTTP/3;
+* HSTS, `nosniff`, `Referrer-Policy` and `X-Frame-Options`;
+* no fallback to dev servers;
+* `/sso/admin*` answers 404.
+
+|`.env.production.example`
+|Every variable of production, with placeholders. The real `.env.production` lives only on the server and in a password manager (it is gitignored).
+
+|`scripts/check-production-ports.sh`
+|Fails if any service other than the gateway publishes a port, or if Keycloak publishes one outside the loopback. `make prod-config` runs it.
+|===
+
+IMPORTANT: Docker writes its own iptables rules for published ports, so they are reachable from the Internet even when `ufw` blocks them. That is why the override removes every port except the gateway's. Keep `make prod-config` green after any change to the compose files.
+
+Relative paths in `compose/production.yaml` resolve against the project directory (this repository), not `compose/`. The included files under `compose/` keep resolving against `compose/`.
+
+== Configuration
+
+. Copy `.env.production.example` to `.env.production` and replace every `<...>`.
+. Generate each secret with `openssl rand -base64 32 | tr -d '/+=' | cut -c1-32`. The output has only letters and digits, so it fits inside the Mongo URIs.
+. **Versions:** set the image versions to the releases published on Docker Hub, never `latest` or `local`.
+. **`RMU_IAM_CLIENT_SECRET`** must match `rmu_client_secret` of the Keycloak production stack.
+
+The variables that change against `.env.example`:
+
+[options="header",cols="2,3"]
+|===
+|Variable |Production value
+
+|`COMPOSE_PROFILES` |`infrastructure,apis,mfes,gateway`
+|`RMU_PUBLIC_HOST` |`rmu.labcabrera.com`
+|`RMU_ACME_EMAIL` |Address of the Let's Encrypt account (expiry notices)
+|`RMU_CADDY_TLS_OPTION` |Empty. `local_certs` only for a local test
+|`KC_HOSTNAME`, `RMU_MFE_IAM_URI` |`https://rmu.labcabrera.com/sso`
+|`RMU_IAM_ISSUER_URI` |`https://rmu.labcabrera.com/sso/realms/rmu`
+|`LOG_LEVEL` |`info`
+|`RMU_ADMIN_*_URI` |Empty: Kafka UI and the local Grafana do not run, and the Keycloak console goes through the tunnel
+|===
+
+== Testing the override on a workstation
+
+The same stack runs locally on `https://rmu.localhost` with certificates from Caddy's own CA:
+
+. Write a `.env.production` from `.env.production.example` with the local values:
+** the local credentials;
+** `RMU_PUBLIC_HOST=rmu.localhost`;
+** `RMU_CADDY_TLS_OPTION=local_certs`;
+** the `https://rmu.localhost` URLs;
+** `local` versions.
+. Stop the local stack (`make down`), because both use ports 80 and 443 and the same volumes.
+. Run `make prod-up`. Open `https://rmu.localhost`: the browser warns about the certificate of Caddy's CA.
+. Sign-in fails with `Invalid parameter: redirect_uri` unless the realm accepts `https://rmu.localhost/*`.
+. When done, run `make prod-down` and start the local stack again.
+
+== The server
+
+A VPS with Ubuntu 24.04 LTS, 4 vCPU, 8 GB and 75 GB.
+
+. **Login:** a user `rmu` with `sudo` and the SSH key.
+** In `/etc/ssh/sshd_config`: `PermitRootLogin no` and `PasswordAuthentication no`.
+. **Updates and protection:**
+** `apt update && apt full-upgrade`, then reboot;
+** `unattended-upgrades` with security updates only;
+** `fail2ban`.
+. **Firewall:** `ufw default deny incoming`, `ufw allow 22/tcp`, `ufw allow 80/tcp`, `ufw allow 443/tcp`, `ufw allow 443/udp`, `ufw enable`.
+. **Swap:** `fallocate -l 2G /swapfile`, `chmod 600`, `mkswap`, `swapon`, and the entry in `/etc/fstab`. Timezone `Europe/Madrid`.
+. **Docker:** Docker CE and the Compose plugin from Docker's repository, and `usermod -aG docker rmu`. Log rotation in `/etc/docker/daemon.json`, then restart Docker:
++
+[source,json]
+----
+{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }
+----
+. **The repository:** clone it into `/opt/rmu/rmu-platform` and write `.env.production` there.
+
+== First start
+
+. Check that DNS resolves: `dig +short rmu.labcabrera.com A` and `AAAA` give the server. Let's Encrypt fails, and rate-limits retries, if the name does not point to the host yet.
+. Run `make prod-config` (compose valid and only the gateway public).
+. Run `make prod-pull`.
+. Start the infrastructure first: `make prod-up s="rmu-mongo rmu-postgres rmu-keycloak rmu-kafka rmu-s3 rmu-s3-init"`.
+. Apply the Keycloak production stack through the tunnel (`ssh -L 8090:127.0.0.1:8090 rmu@<host>`).
+. Restore the data and run the pending migrations (`make prod-restore f=...` and `make prod-migrate-pending`).
+. Run `make prod-up`. Caddy asks for the certificate on the first HTTPS request.
+
+== Day to day
+
+[source,bash]
+----
+make prod-ps                      # state of every service
+make prod-logs s=rmu-api-tactical # logs of one service
+make prod-backup                  # Mongo dump into backups/
+make prod-migrate-pending DRY_RUN=1
+make prod-pull && make prod-up    # after changing versions in .env.production
+----
+
+**Updating a version:**
+
+. Back up first.
+. Raise the version in `.env.production`.
+. Run `make prod-pull`.
+. Run the pending migrations.
+. Run `make prod-up`.
+
+Respect the release order of link:migrations.adoc[the release checklist].
+
+**Keycloak admin console:** open the tunnel `ssh -L 8090:127.0.0.1:8090 rmu@<host>`, then go to `http://localhost:8090/sso/admin/`.

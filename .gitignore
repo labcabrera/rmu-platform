@@ -3,6 +3,8 @@ backups/
 .sonar/*
 **/.env
 **/.env-pro
+**/.env.production
+**/.env.*.local
 aws.*
 
 # Terraform working directories, local state, and private variable files

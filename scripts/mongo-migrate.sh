@@ -4,7 +4,7 @@
 # Usage: scripts/mongo-migrate.sh <script.js>      DRY_RUN=1 to only report what would change
 #
 # mongosh runs inside the rmu-mongo container, so no local Mongo tools are needed.
-# Credentials come from MONGO_USER / MONGO_PASSWORD (environment first, then .env).
+# Credentials come from MONGO_USER / MONGO_PASSWORD (environment first, then ENV_FILE or .env).
 #
 # A script of scripts/migrations/ that runs without DRY_RUN and without errors is recorded in
 # rmu-platform.migrations ({_id: <file name>, appliedAt}), which scripts/mongo-migrate-pending.sh reads.
@@ -14,7 +14,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MONGO_CONTAINER="${MONGO_CONTAINER:-rmu-mongo}"
 
 env_value() {
-  grep -E "^$1=" "${ROOT_DIR}/.env" 2>/dev/null | tail -n1 | cut -d= -f2-
+  grep -E "^$1=" "${ENV_FILE:-${ROOT_DIR}/.env}" 2>/dev/null | tail -n1 | cut -d= -f2-
 }
 
 script="${1:?Usage: scripts/mongo-migrate.sh <script.js>}"

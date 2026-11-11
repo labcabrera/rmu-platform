@@ -15,7 +15,7 @@ MONGO_CONTAINER="${MONGO_CONTAINER:-rmu-mongo}"
 API="${RMU_API_STRATEGIC_URI:-http://localhost/api/strategic/v1}"
 
 env_value() {
-  grep -E "^$1=" "${ROOT_DIR}/.env" 2>/dev/null | tail -n1 | cut -d= -f2-
+  grep -E "^$1=" "${ENV_FILE:-${ROOT_DIR}/.env}" 2>/dev/null | tail -n1 | cut -d= -f2-
 }
 
 MONGO_USER="${MONGO_USER:-$(env_value MONGO_USER)}"

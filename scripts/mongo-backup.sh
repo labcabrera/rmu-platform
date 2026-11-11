@@ -4,7 +4,7 @@
 # Usage: scripts/mongo-backup.sh [output-file]
 #
 # mongodump runs inside the rmu-mongo container, so no local Mongo tools are needed.
-# Credentials come from MONGO_USER / MONGO_PASSWORD (environment first, then .env).
+# Credentials come from MONGO_USER / MONGO_PASSWORD (environment first, then ENV_FILE or .env).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,7 +12,7 @@ MONGO_CONTAINER="${MONGO_CONTAINER:-rmu-mongo}"
 BACKUP_DIR="${BACKUP_DIR:-${ROOT_DIR}/backups}"
 
 env_value() {
-  grep -E "^$1=" "${ROOT_DIR}/.env" 2>/dev/null | tail -n1 | cut -d= -f2-
+  grep -E "^$1=" "${ENV_FILE:-${ROOT_DIR}/.env}" 2>/dev/null | tail -n1 | cut -d= -f2-
 }
 
 MONGO_USER="${MONGO_USER:-$(env_value MONGO_USER)}"

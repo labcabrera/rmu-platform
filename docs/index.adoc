@@ -15,6 +15,7 @@ Documentation map for the RMU Engine platform. `rmu-platform` describes how the 
 == Running the platform
 
 * link:local-development.adoc[Local development]: Compose profiles, common combinations, running an API or MFE from source.
+* link:operations/production.adoc[Production]: the production override, the server, the first start and day-to-day commands (workspace spec 103).
 
 == Operations
 
