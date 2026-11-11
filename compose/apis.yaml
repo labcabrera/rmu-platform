@@ -87,6 +87,7 @@ services:
       RMU_API_SPELLS_URI: http://rmu-api-spells:3009/v1
       RMU_API_NPCS_URI: http://rmu-api-npcs:3008/v1
       RMU_API_USERS_URI: http://rmu-api-users:3010/v1
+      RMU_API_MEDIA_URI: http://rmu-api-media:3011/v1
       # Workspace spec 062: commission of a jeweler buying gems and jewelry (game master house rule, 1-5)
       RMU_STRATEGIC_JEWELER_PERCENT: ${RMU_STRATEGIC_JEWELER_PERCENT:-3}
 
@@ -234,6 +235,7 @@ services:
       RMU_MEDIA_S3_SECRET_ACCESS_KEY: ${RMU_MEDIA_S3_SECRET_ACCESS_KEY}
       RMU_MEDIA_S3_FORCE_PATH_STYLE: true
       RMU_MEDIA_IMAGE_MAX_WIDTH: 2048
+      RMU_MEDIA_CHRONICLE_MAX_WIDTH: 4096
       RMU_MEDIA_UPLOAD_MAX_BYTES: ${RMU_MEDIA_UPLOAD_MAX_BYTES:-10485760}
       # The base images are the manifest of rmu-mfe-assets (spec 057), read in the network.
       RMU_MEDIA_BASE_MANIFEST_URI: http://rmu-mfe-assets/images/manifest.json
